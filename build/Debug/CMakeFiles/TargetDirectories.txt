@@ -1,0 +1,6 @@
+C:/Users/mbe01/OneDrive/Studie/7. Semester/Datamaskinprojekt/TEsting/Test/test2/idontknow/build/Debug/CMakeFiles/idontknow.dir
+C:/Users/mbe01/OneDrive/Studie/7. Semester/Datamaskinprojekt/TEsting/Test/test2/idontknow/build/Debug/CMakeFiles/edit_cache.dir
+C:/Users/mbe01/OneDrive/Studie/7. Semester/Datamaskinprojekt/TEsting/Test/test2/idontknow/build/Debug/CMakeFiles/rebuild_cache.dir
+C:/Users/mbe01/OneDrive/Studie/7. Semester/Datamaskinprojekt/TEsting/Test/test2/idontknow/build/Debug/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir
+C:/Users/mbe01/OneDrive/Studie/7. Semester/Datamaskinprojekt/TEsting/Test/test2/idontknow/build/Debug/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
+C:/Users/mbe01/OneDrive/Studie/7. Semester/Datamaskinprojekt/TEsting/Test/test2/idontknow/build/Debug/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir
