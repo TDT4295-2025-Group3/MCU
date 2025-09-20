@@ -36,9 +36,15 @@ enable_language(C CXX ASM)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME}
-        Core/Src/app/gameloop.cpp
-        Core/Src/app/gameloop.hpp
-        Core/Src/app/constants.hpp)
+    Core/Src/app/gameloop.cpp
+    Core/Src/app/gameloop.hpp
+    Core/Src/app/constants.hpp
+    Core/Src/app/math.hpp
+    Core/Src/app/player.hpp
+    Core/Src/app/player.cpp
+    Core/Src/app/camera.hpp
+    Core/Src/app/camera.cpp
+    Core/Src/app/input.hpp)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
