@@ -1,9 +1,8 @@
 #include "game.hpp"
 
-#include <__algorithm/clamp.h>
+#include <cstdio>
 
 #include "constants.hpp"
-#include "platform.hpp"
 
 static inline bool time_reached(uint32_t now, uint32_t target) {
     // signed diff handles wraparound
@@ -16,7 +15,33 @@ void Game::init() {
     next_frame_ms = tick + FRAME_MS;
     initialized = true;
 
-    pos = Vec3{10.0f, 10.0f, 0.0f};
+     Rasterizer::Vertex vertices[3]  = {
+        {0, 0, 0, 15, 0, 0},
+         {0.5, 1, 0, 0, 15, 0},
+         {1, 0, 0, 0, 0, 15}
+    };
+    auto createVert = gfx.createVertex(vertices, 3);
+    if (createVert.getStatus() != Rasterizer::StatusCode::OK) {
+        printf("Failed to create vertex buffer\n");
+        return;
+    }
+    Rasterizer::Triangle triangle = {0, 1, 2};
+    auto createTri = gfx.createTriangle(&triangle, 1);
+
+    if (createTri.getStatus() != Rasterizer::StatusCode::OK) {
+        printf("Failed to create triangle buffer\n");
+        return;
+    }
+    Rasterizer::Transform transform = {
+        0, 0, 0, 0, 0, 0, 1, 1, 1
+    };
+    auto createInst = gfx.createInstance(createVert.getVertexId(), createTri.getTriangleId(), transform);
+    if (createInst.getStatus() != Rasterizer::StatusCode::OK) {
+        printf("Failed to create instance\n");
+        return;
+    }
+
+    instanceId = createInst.getInstanceId();
 }
 
 void Game::tick_once() {
@@ -45,25 +70,28 @@ void Game::tick_once() {
 }
 
 void Game::tick_graphics() {
-    gfx.clear(0xFF000000);
+    gfx.clear(0xFF101018);
 
-    // red hue based on z
-    uint8_t red = static_cast<uint8_t>(std::clamp(pos.z, 125.0f, 255.0f));
-    uint32_t color = 0xFF000000 | (red << 16);
-
-    gfx.rect(static_cast<uint16_t>(pos.x),
-             static_cast<uint16_t>(pos.y),
-             10, 10, color);
+    if (instanceId != 0xFF) {
+        Rasterizer::Transform t {
+            pos.x,
+            pos.y,
+            pos.z,
+            0, 0, 0,
+            1, 1, 1
+        };
+        gfx.updateInstance(instanceId, t);
+    }
 
     gfx.end_frame();
 }
 
 void Game::tick_logic() {
     auto ks = input.poll();
-    if (ks.up) pos.y -= 5.0f;
-    if (ks.down) pos.y += 5.0f;
-    if (ks.left) pos.x -= 5.0f;
-    if (ks.right) pos.x += 5.0f;
-    if (ks.a) pos.z += 5.0f;
-    if (ks.b) pos.z -= 5.0f;
+    if (ks.up) pos.y -= 0.1f;
+    if (ks.down) pos.y += 0.1f;
+    if (ks.left) pos.x -= 0.1f;
+    if (ks.right) pos.x += 0.1;
+    if (ks.a) pos.z += 0.1f;
+    if (ks.b) pos.z -= 0.1f;
 }

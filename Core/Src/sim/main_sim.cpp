@@ -1,7 +1,8 @@
 #include <iostream>
 
 #include "game.hpp"
-#include "host_platform.hpp"
+#include "host_input_timer.hpp"
+#include "host_rasterizer.hpp"
 
 int main() {
     HostInput input;

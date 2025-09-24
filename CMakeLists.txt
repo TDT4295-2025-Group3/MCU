@@ -39,6 +39,7 @@ set(APP_SRC
 
 set(APP_INC
         ${CMAKE_SOURCE_DIR}/Core/Src/app
+        ${CMAKE_SOURCE_DIR}/Core/Src/app/platform
 )
 
 # -------------------------
@@ -80,11 +81,14 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
     add_executable(simulator
             ${APP_SRC}
             Core/Src/sim/main_sim.cpp
-            Core/Src/sim/host_platform.cpp
+            Core/Src/sim/host_input_timer.cpp
+            Core/Src/sim/host_rasterizer.cpp
+            Core/Src/sim/small3dlib.h
     )
 
     target_include_directories(simulator PRIVATE
             ${APP_INC}
+            ${CMAKE_SOURCE_DIR}/Core/Src/sim
     )
 
     # SDL3 is a host dependency; guard it from STM32 builds

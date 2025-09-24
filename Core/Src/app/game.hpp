@@ -1,10 +1,12 @@
 #pragma once
-#include "platform.hpp"
+#include "iinput.hpp"
+#include "irasterizer.hpp"
+#include "itimer.hpp"
 #include "math/Vec3.hpp"
 
 class Game {
 public:
-    Game(IRasterizer& gfx, IInput& in, ITimer& time)
+    Game(Rasterizer::IRasterizer& gfx, IInput& in, ITimer& time)
         : gfx(gfx), input(in), timer(time) {}
 
     void init();
@@ -15,8 +17,9 @@ private:
     bool initialized = false;
     Vec3 pos{};
 
+    uint32_t instanceId;
 private:
-    IRasterizer& gfx;
+    Rasterizer::IRasterizer& gfx;
     IInput&      input;
     ITimer&      timer;
     uint32_t next_tick_ms;
