@@ -2,3 +2,4 @@ build
 CMakeCache.txt
 .idea
 CMakeFiles
+.vscode
