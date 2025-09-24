@@ -83,6 +83,14 @@ void Game::tick_graphics() {
         gfx.updateInstance(instanceId, t);
     }
 
+    cameraZ -= 0.005;
+    Rasterizer::Transform cam {
+        0, 0, cameraZ,
+        0, 0, 0,
+        1, 1, 1
+    };
+    gfx.updateCamera(cam);
+
     gfx.end_frame();
 }
 

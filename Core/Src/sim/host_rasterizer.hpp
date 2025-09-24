@@ -27,6 +27,8 @@ public:
 
     Rasterizer::UpdateInstResponse updateInstance(uint8_t instanceId, const Rasterizer::Transform &transform) override;
 
+    Rasterizer::UpdateInstResponse updateCamera(const Rasterizer::Transform &transform) override;
+
     struct Impl;
     std::unique_ptr<Impl> impl;
 };

@@ -161,5 +161,12 @@ namespace Rasterizer {
          * @return status
          */
         virtual UpdateInstResponse updateInstance(uint8_t instanceId, const Transform& transform) = 0;
+
+        /**
+         * Camera transform update;
+         * @param transform new transform
+         * @return status
+         */
+        virtual UpdateInstResponse updateCamera(const Transform& transform) = 0;
     };
 }

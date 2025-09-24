@@ -338,16 +338,24 @@ Rasterizer::CreateInstResponse HostRasterizer::createInstance(uint8_t vertexId, 
     impl->scene.models = impl->models.data();
     impl->scene.modelCount = static_cast<S3L_Index>(impl->models.size());
 
-    return Rasterizer::CreateInstResponse(Rasterizer::StatusCode::OK, instId);
+    return Rasterizer::CreateInstResponse(Rasterizer::StatusCode::OK, instId + 1);
 }
 
 Rasterizer::UpdateInstResponse HostRasterizer::updateInstance(uint8_t instanceId,
                                                               const Rasterizer::Transform &transform) {
+    instanceId = instanceId - 1; // adjust for camera
     if (instanceId >= impl->instances.size())
         return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::INVALID_ID);
 
     impl->instances[instanceId].transform = transform;
     Impl::toS3LTransform(transform, impl->transforms[instanceId]);
     impl->models[instanceId].transform = impl->transforms[instanceId];
+    return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
+}
+
+Rasterizer::UpdateInstResponse HostRasterizer::updateCamera(const Rasterizer::Transform &transform) {
+    S3L_Transform3D camT{};
+    Impl::toS3LTransform(transform, camT);
+    impl->scene.camera.transform = camT;
     return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
 }

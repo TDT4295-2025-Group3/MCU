@@ -24,4 +24,6 @@ private:
     ITimer&      timer;
     uint32_t next_tick_ms;
     uint32_t next_frame_ms;
+
+    float cameraZ = -2;
 };
