@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include "constants.hpp"
+#include "input.hpp"
 
 static inline bool time_reached(uint32_t now, uint32_t target) {
     // signed diff handles wraparound
@@ -15,7 +16,11 @@ void Game::init() {
     next_frame_ms = tick + FRAME_MS;
     initialized = true;
 
-    // Unit cube centered at origin
+    // Reset player and camera
+    player.reset();
+    camera.reset();
+
+    // Cube vertex data
     Rasterizer::Vertex cubeVerts[8] = {
         {-0.5f, -0.5f, -0.5f, 15,  0, 15},  // 0
         { 0.5f, -0.5f, -0.5f, 15, 15, 0},   // 1
@@ -38,13 +43,13 @@ void Game::init() {
         {4,5,6}, {4,6,7},
         // -Z (back)
         {1,0,3}, {1,3,2},
-        // +Y (top) FIXED
+        // +Y (top)
         {3,7,6}, {3,6,2},
         // -Y (bottom)
         {0,1,5}, {0,5,4},
         // +X (right)
         {1,2,6}, {1,6,5},
-        // -X (left) FIXED
+        // -X (left)
         {0,7,3}, {0,4,7},
     };
     auto createCubeTri = gfx.createTriangle(cubeTris, 12);
@@ -55,7 +60,7 @@ void Game::init() {
 
     // Create an instance (position=0, rotation=0, scale=1)
     Rasterizer::Transform transform = {
-        0, 0.5f, 0,  // pos (lift cube above ground)
+        0, 0.5f, 0,  // initial pos; will be updated each frame to player position
         0, 0, 0,  // rot (rad)
         1, 1, 1   // scale
     };
@@ -66,7 +71,7 @@ void Game::init() {
     }
     instanceCubeId = createCubeInst.getInstanceId();
 
-    // Pyramid (square base on y = -0.5, apex at y = +0.5)
+    // Pyramid
     Rasterizer::Vertex pyrVerts[5] = {
         {-0.5f, -0.5f, -0.5f,  0,  0,  0},  // 0
         { 0.5f, -0.5f, -0.5f, 15,  0,  0},  // 1
@@ -93,7 +98,7 @@ void Game::init() {
     }
 
     Rasterizer::Transform pyrT = {
-        1.2f, 0.5f, 0.0f,   // move pyramid to the right and up
+        3.0f, 0.5f, 2.5f,
         0.0f, 0.0f, 0.0f,
         1.0f, 1.0f, 1.0f
     };
@@ -171,44 +176,56 @@ void Game::tick_graphics() {
     gfx.clear(0xFF101018);
 
     if (instanceCubeId != 0xFF) {
-        // Compute a simple rotation around Z based on time
-        const float angle = (timer.get_ticks_ms() % 6000) * (2.0f * 3.1415926f / 6000.0f);
-
+        // Update cube instance to player position
         Rasterizer::Transform t {
-            pos.x, pos.y, pos.z,
-            angle, angle * 0.7f, 0.0f, // rotate around X and Y
+            player.getPosition().x, player.getPosition().y + 0.5f, player.getPosition().z,
+            0.0f, 0.0f, 0.0f,
             1.0f, 1.0f, 1.0f
         };
         gfx.updateInstance(instanceCubeId, t);
     }
 
-    if (instancePyrId != 0xFF) {
-        const float t = (timer.get_ticks_ms() % 8000) * (2.0f * 3.1415926f / 8000.0f);
-        Rasterizer::Transform tp {
-            pos.x + 1.2f, pos.y, pos.z, // keep relative offset to cube
-            0.0f, t, 0.0f,              // spin around Y
-            1.0f, 1.0f, 1.0f
-        };
-        gfx.updateInstance(instancePyrId, tp);
-    }
+    // Pyramid remains static where placed in init
 
-    Rasterizer::Transform cam {
-        0, 3.0f, -6.0f,     // higher up
-        -0.6f, 0, 0,        // rotate ~ -34° around X
-        1, 1, 1
+    // Camera locked to player using camera state
+    // Convert camera position/orientation to rasterizer transform
+    // We approximate by placing camera transform at camera position with rotation from yaw/pitch
+    Rasterizer::Transform camT{
+        camera.getPosition().x, camera.getPosition().y, camera.getPosition().z,
+        // small3dlib expects rotations per-axis; we use pitch around X and yaw around Y
+        camera.getPitch(), camera.getYaw(), 0.0f,
+        1.0f, 1.0f, 1.0f
     };
-
-    gfx.updateCamera(cam);
+    gfx.updateCamera(camT);
 
     gfx.end_frame();
 }
 
 void Game::tick_logic() {
     auto ks = input.poll();
-    if (ks.up) pos.y += 0.1f;
-    if (ks.down) pos.y -= 0.1f;
-    if (ks.left) pos.x -= 0.1f;
-    if (ks.right) pos.x += 0.1;
-    if (ks.a) pos.z += 0.1f;
-    if (ks.b) pos.z -= 0.1f;
+
+    // Map keys to InputState and camera deltas
+    mcu_game::InputState in{};
+    // Arrow keys drive player relative to camera: up = forward (positive moveZ), right = +moveX
+    in.moveZ += ks.up ? 1.0f : 0.0f;
+    in.moveZ -= ks.down ? 1.0f : 0.0f;
+    in.moveX += ks.right ? 1.0f : 0.0f;
+    in.moveX -= ks.left ? 1.0f : 0.0f;
+    in.jump = ks.space;
+
+    // WASD control camera look. Use small radians per tick.
+    const float lookStep = 0.03f; // radians per logic tick
+    if (ks.a) in.lookYawDelta -= lookStep; // A = yaw left
+    if (ks.d)     in.lookYawDelta += lookStep; // D = yaw right
+    if (ks.w)     in.lookPitchDelta += lookStep; // W = pitch up
+    if (ks.s)     in.lookPitchDelta -= lookStep; // S = pitch down
+
+    // Fixed dt per logic tick
+    const float dt = TICK_MS / 1000.0f;
+
+    // Update player with camera-relative movement first
+    player.update(in, camera, dt);
+
+    // Update camera using new player position so yaw/pitch orbit around the player
+    camera.update(in.lookYawDelta, in.lookPitchDelta, player, dt);
 }

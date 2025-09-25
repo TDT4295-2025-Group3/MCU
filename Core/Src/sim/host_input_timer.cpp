@@ -10,23 +10,24 @@ uint32_t HostTimer::get_ticks_ms() {
 
 KeyState HostInput::poll() {
     SDL_Event event;
+    // Pump events to keep window responsive and update keyboard state
     while (SDL_PollEvent(&event)) {
-        const auto k = SDL_GetKeyboardState(nullptr);
-        return KeyState{
-            .up = k[SDL_SCANCODE_UP],
-            .down = k[SDL_SCANCODE_DOWN],
-            .left = k[SDL_SCANCODE_LEFT],
-            .right = k[SDL_SCANCODE_RIGHT],
-            .a = k[SDL_SCANCODE_Z],
-            .b = k[SDL_SCANCODE_X]
-        };
+        if (event.type == SDL_EVENT_QUIT) {
+            // No quit handling here; the simulator main loop runs forever
+        }
     }
-    return KeyState{
-        .up = false,
-        .down = false,
-        .left = false,
-        .right = false,
-        .a = false,
-        .b = false
-    };
+    const bool *k = SDL_GetKeyboardState(nullptr);
+    KeyState ks{};
+    ks.up = k[SDL_SCANCODE_UP];
+    ks.down = k[SDL_SCANCODE_DOWN];
+    ks.left = k[SDL_SCANCODE_LEFT];
+    ks.right = k[SDL_SCANCODE_RIGHT];
+    // camera look
+    ks.w = k[SDL_SCANCODE_W];
+    ks.s = k[SDL_SCANCODE_S];
+    ks.a = k[SDL_SCANCODE_A];
+    ks.d = k[SDL_SCANCODE_D];
+    // jump
+    ks.space = k[SDL_SCANCODE_SPACE];
+    return ks;
 }
