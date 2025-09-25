@@ -99,7 +99,7 @@ void Game::tick_logic() {
     if (ks.up) pos.y -= 0.1f;
     if (ks.down) pos.y += 0.1f;
     if (ks.left) pos.x -= 0.1f;
-    if (ks.right) pos.x += 0.1;
+    if (ks.right) pos.x += 0.1f;
     if (ks.a) pos.z += 0.1f;
     if (ks.b) pos.z -= 0.1f;
 }
