@@ -42,8 +42,6 @@ enable_language(C CXX ASM)
 set(APP_SRC
         Core/Src/app/game.cpp
         Core/Src/app/game.hpp
-        Core/Src/app/gameloop.cpp
-        Core/Src/app/gameloop.hpp
         Core/Src/app/constants.hpp
         Core/Src/app/math.hpp
         Core/Src/app/player.hpp
