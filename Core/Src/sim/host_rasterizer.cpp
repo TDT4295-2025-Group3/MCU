@@ -12,6 +12,7 @@
 #include <SDL3/SDL_video.h>
 
 #define S3L_PIXEL_FUNCTION HostRasterizer_DrawPixelShim
+#define S3L_Z_BUFFER 1   // Enable z-buffer so faces occlude correctly (prevents see-through artifacts)
 #define S3L_MAX_PIXELS (320 * 240)   // cap for dynamic res
 #include "small3dlib.h"
 

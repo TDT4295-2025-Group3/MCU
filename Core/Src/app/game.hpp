@@ -17,7 +17,9 @@ private:
     bool initialized = false;
     Vec3 pos{};
 
-    uint32_t instanceId;
+    uint32_t instanceCubeId = 0xFF;
+    uint32_t instancePyrId  = 0xFF;
+    uint32_t instancePlaneId = 0xFF;
 private:
     Rasterizer::IRasterizer& gfx;
     IInput&      input;
