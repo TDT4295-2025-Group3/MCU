@@ -33,6 +33,7 @@ void Player::update(const InputState &in, const Camera &cam, float dt) {
     }
 
     // Jump
+    // TODO: coyote time, variable jump height
     if (in.jump && grounded) {
         velocity.y = playerConfig.jumpVelocity;
         grounded = false;
