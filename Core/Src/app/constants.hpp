@@ -6,12 +6,12 @@
 /**
  * Game physics/logic tickrate
  */
-constexpr uint32_t GAME_TICKRATE = 20;
+constexpr uint32_t GAME_TICKRATE = 60;
 
 /**
  * Actual graphics framerate
  */
-constexpr uint32_t GAME_FRAMERATE = 4;
+constexpr uint32_t GAME_FRAMERATE = 60;
 
 
 constexpr uint32_t TICK_MS = 1000 / GAME_TICKRATE;

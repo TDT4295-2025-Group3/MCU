@@ -2,37 +2,93 @@
     "version": 3,
     "configurePresets": [
         {
-            "name": "default",
+            "name": "base",
             "hidden": true,
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
-		    "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+            "cacheVariables": {}
+        },
+        {
+            "name": "host-Debug",
+            "inherits": "base",
             "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BUILD_SIMULATOR": "ON",
+                "BUILD_STM32": "OFF"
+            },
+            "vendor": {
+                "jetbrains.com/clion": {
+                    "toolchain": "Default"
+                }
             }
         },
         {
-            "name": "Debug",
-            "inherits": "default",
+            "name": "host-Release",
+            "inherits": "base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
+                "CMAKE_BUILD_TYPE": "Release",
+                "BUILD_SIMULATOR": "ON",
+                "BUILD_STM32": "OFF"
+            },
+            "vendor": {
+                "jetbrains.com/clion": {
+                    "toolchain": "Default"
+                }
+            }
+        },
+
+        {
+            "name": "stm32-Debug",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BUILD_SIMULATOR": "OFF",
+                "BUILD_STM32": "ON"
+            },
+            "vendor": {
+                "jetbrains.com/clion": {
+                    "toolchain": "ST32-CLT"
+                }
             }
         },
         {
-            "name": "Release",
-            "inherits": "default",
+            "name": "stm32-Release",
+            "inherits": "base",
+            "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
+                "CMAKE_BUILD_TYPE": "Release",
+                "BUILD_SIMULATOR": "OFF",
+                "BUILD_STM32": "ON"
+            },
+            "vendor": {
+                "jetbrains.com/clion": {
+                    "toolchain": "ST32-CLT"
+                }
             }
         }
     ],
+
     "buildPresets": [
         {
-            "name": "Debug",
-            "configurePreset": "Debug"
+            "name": "host-Debug",
+            "configurePreset": "host-Debug",
+            "targets": [ "simulator" ]
         },
         {
-            "name": "Release",
-            "configurePreset": "Release"
+            "name": "host-Release",
+            "configurePreset": "host-Release",
+            "targets": [ "simulator" ]
+        },
+        {
+            "name": "stm32-Debug",
+            "configurePreset": "stm32-Debug",
+            "targets": [ "idontknow" ]
+        },
+        {
+            "name": "stm32-Release",
+            "configurePreset": "stm32-Release",
+            "targets": [ "idontknow" ]
         }
     ]
 }
