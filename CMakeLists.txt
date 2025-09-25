@@ -49,6 +49,7 @@ set(APP_SRC
         Core/Src/app/camera.hpp
         Core/Src/app/camera.cpp
         Core/Src/app/input.hpp
+        Core/Src/Device/spi_smt.hpp
 )
 
 set(APP_INC
@@ -103,6 +104,7 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
     target_include_directories(simulator PRIVATE
             ${APP_INC}
             ${CMAKE_SOURCE_DIR}/Core/Src/sim
+            ${CMAKE_SOURCE_DIR}/Core/Src/Device 
     )
 
     # SDL3 is a host dependency; guard it from STM32 builds
