@@ -14,14 +14,13 @@ void Camera::update(float yawDelta, float pitchDelta, const Player &player, floa
     Vec3 desiredTarget = player.getPosition();
     desiredTarget.y += cameraConfig.heightOffset;
 
-    // Smooth target
-    // Exponential smoothing: newTarget = lerp(oldTarget, desiredTarget, 1 - exp(-smooth * dt))
-    target = lerp(target, desiredTarget, 1.0f - std::exp(-cameraConfig.smooth * dt));
+    // Smooth target toward player to reduce jitter
+    float smoothFactor = (dt > 0.0f) ? 1.0f - std::exp(-cameraConfig.smooth * dt) : 1.0f;
+    target = lerp(target, desiredTarget, smoothFactor);
 
-    // Desired camera position is behind target along forward vector
-    Vec3 fwd = forward_vector_from_yaw_pitch(yaw, pitch);
-    Vec3 desiredPos = target - fwd * cameraConfig.distance;
-    position = lerp(position, desiredPos, 1.0f - std::exp(-cameraConfig.smooth * dt));
+    // Place camera on orbit sphere defined by yaw/pitch around the target
+    const Vec3 fwd = forward_vector_from_yaw_pitch(yaw, pitch);
+    position = target - fwd * cameraConfig.distance;
 }
 
 } // namespace mcu_game

@@ -215,8 +215,8 @@ void Game::tick_logic() {
 
     // WASD control camera look. Use small radians per tick.
     const float lookStep = 0.03f; // radians per logic tick
-    if (ks.a) in.lookYawDelta -= lookStep; // A = yaw left
-    if (ks.d)     in.lookYawDelta += lookStep; // D = yaw right
+    if (ks.a) in.lookYawDelta += lookStep; // A = yaw left
+    if (ks.d)     in.lookYawDelta -= lookStep; // D = yaw right
     if (ks.w)     in.lookPitchDelta += lookStep; // W = pitch up
     if (ks.s)     in.lookPitchDelta -= lookStep; // S = pitch down
 

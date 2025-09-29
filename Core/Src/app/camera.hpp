@@ -20,8 +20,9 @@ public:
     void reset() {
         yaw = 0.0f; 
         pitch = 0.3f; // slight downward angle
-        position = {0,0, -cameraConfig.distance};
         target = {0, cameraConfig.heightOffset, 0};
+        const Vec3 forward = forward_vector_from_yaw_pitch(yaw, pitch);
+        position = target - forward * cameraConfig.distance;
     }
 
     void update(float yawDelta, float pitchDelta, const class Player &player, float dt);
