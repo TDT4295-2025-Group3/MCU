@@ -217,8 +217,8 @@ void Game::tick_logic() {
     const float lookStep = 0.03f; // radians per logic tick
     if (ks.a) in.lookYawDelta += lookStep; // A = yaw left
     if (ks.d)     in.lookYawDelta -= lookStep; // D = yaw right
-    if (ks.w)     in.lookPitchDelta += lookStep; // W = pitch up
-    if (ks.s)     in.lookPitchDelta -= lookStep; // S = pitch down
+    if (ks.w)     in.lookPitchDelta -= lookStep; // W = pitch up
+    if (ks.s)     in.lookPitchDelta += lookStep; // S = pitch down
 
     // Fixed dt per logic tick
     const float dt = TICK_MS / 1000.0f;
