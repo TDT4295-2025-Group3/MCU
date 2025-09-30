@@ -36,6 +36,7 @@ void Game::init() {
         printf("Failed to create vertex buffer\n");
         return;
     }
+    cubeVertexId = createCubeVert.getVertexId();
 
     // 12 triangles (CCW, outward)
     Rasterizer::Triangle cubeTris[12] = {
@@ -57,6 +58,7 @@ void Game::init() {
         printf("Failed to create triangle buffer\n");
         return;
     }
+    cubeTriangleId = createCubeTri.getTriangleId();
 
     // Create an instance (position=0, rotation=0, scale=1)
     Rasterizer::Transform transform = {
@@ -64,7 +66,7 @@ void Game::init() {
         0, 0, 0,  // rot (rad)
         1, 1, 1   // scale
     };
-    auto createCubeInst = gfx.createInstance(createCubeVert.getVertexId(), createCubeTri.getTriangleId(), transform);
+    auto createCubeInst = gfx.createInstance(cubeVertexId, cubeTriangleId, transform);
     if (createCubeInst.getStatus() != Rasterizer::StatusCode::OK) {
         printf("Failed to create instance\n");
         return;
@@ -144,6 +146,8 @@ void Game::init() {
     }
     
     instancePlaneId = createPlaneInst.getInstanceId();
+
+    initialize_platforms(cubeVertexId, cubeTriangleId);
     
 }
 
@@ -223,9 +227,118 @@ void Game::tick_logic() {
     // Fixed dt per logic tick
     const float dt = TICK_MS / 1000.0f;
 
+    auto previousPosition = player.getPosition();
+
     // Update player with camera-relative movement first
     player.update(in, camera, dt);
 
+    resolve_world_collisions(previousPosition);
+
     // Update camera using new player position so yaw/pitch orbit around the player
     camera.update(in.lookYawDelta, in.lookPitchDelta, player, dt);
+}
+
+void Game::initialize_platforms(uint32_t vertexId, uint32_t triangleId) {
+    struct PlatformDef {
+        mcu_game::Vec3 center;
+        mcu_game::Vec3 size;
+    };
+
+    // Position and size of each platform
+    constexpr PlatformDef defs[PLATFORM_COUNT] = {
+        {{1.5f, 0.5f, 1.5f}, {1.5f, 0.5f, 1.5f}},
+        {{-2.0f, 1.75f, 2.5f}, {1.0f, 0.5f, 1.0f}},
+        {{-4.0f, 2.5f, 0.0f}, {2.0f, 0.5f, 1.5f}},
+    };
+
+    for (std::size_t i = 0; i < PLATFORM_COUNT; ++i) {
+        platforms[i].center = defs[i].center;
+        platforms[i].size = defs[i].size;
+
+        Rasterizer::Transform t{
+            // position
+            platforms[i].center.x,
+            platforms[i].center.y,
+            platforms[i].center.z,
+            // rotation
+            0.0f, 0.0f, 0.0f,
+            // scale
+            platforms[i].size.x,
+            platforms[i].size.y,
+            platforms[i].size.z
+        };
+
+        auto inst = gfx.createInstance(vertexId, triangleId, t);
+        if (inst.getStatus() == Rasterizer::StatusCode::OK) {
+            platforms[i].instanceId = inst.getInstanceId();
+        } else {
+            platforms[i].instanceId = 0xFF;
+            printf("Failed to create platform %zu instance\n", i);
+        }
+    }
+}
+
+void Game::resolve_world_collisions(const mcu_game::Vec3& previousPosition) {
+    constexpr float PLAYER_HALF_SIZE = 0.5f;
+    constexpr float PLAYER_HEIGHT = 1.0f;
+    constexpr float EPSILON = 1e-4f;
+
+    auto pos = player.getPosition();
+
+    if (pos.y < 0.0f && player.getVelocity().y <= 0.0f) {
+        player.landOn(0.0f);
+        pos = player.getPosition();
+    }
+
+    float prevBottom = previousPosition.y;
+
+    struct AABB {
+        float minX, minY, minZ;
+        float maxX, maxY, maxZ;
+    };
+
+    // Defines the player's bounding box
+    AABB playerBox{
+        pos.x - PLAYER_HALF_SIZE,
+        pos.y,
+        pos.z - PLAYER_HALF_SIZE,
+        pos.x + PLAYER_HALF_SIZE,
+        pos.y + PLAYER_HEIGHT,
+        pos.z + PLAYER_HALF_SIZE
+    };
+
+    for (const auto& platform : platforms) {
+        if (platform.instanceId == 0xFF) {
+            continue;
+        }
+
+        const float halfX = platform.size.x * 0.5f;
+        const float halfY = platform.size.y * 0.5f;
+        const float halfZ = platform.size.z * 0.5f;
+
+        const float minX = platform.center.x - halfX;
+        const float maxX = platform.center.x + halfX;
+        const float minY = platform.center.y - halfY;
+        const float maxY = platform.center.y + halfY;
+        const float minZ = platform.center.z - halfZ;
+        const float maxZ = platform.center.z + halfZ;
+
+        const bool overlapX = playerBox.maxX > minX && playerBox.minX < maxX;
+        const bool overlapZ = playerBox.maxZ > minZ && playerBox.minZ < maxZ;
+        if (!overlapX || !overlapZ) {
+            continue;
+        }
+
+        const float velocityY = player.getVelocity().y;
+        const bool wasAbove = prevBottom >= maxY - EPSILON;
+        const bool nowBelowTop = playerBox.minY < maxY;
+
+        if (velocityY <= 0.0f && wasAbove && nowBelowTop) {
+            player.landOn(maxY);
+            auto correctedPos = player.getPosition();
+            playerBox.minY = correctedPos.y;
+            playerBox.maxY = correctedPos.y + PLAYER_HEIGHT;
+            prevBottom = correctedPos.y;
+        }
+    }
 }

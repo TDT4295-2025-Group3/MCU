@@ -7,7 +7,7 @@ namespace mcu_game {
 
 struct PlayerConfig {
     float moveSpeed = 4.0f;      // units per second for full input
-    float airControlFactor = 0.3f; // reduced control in air
+    float airControlFactor = 1.2f; // reduced control in air
     float jumpVelocity = 6.0f;   // initial jump impulse (units/sec)
     float gravity = -9.8f;       // gravity acceleration (units/sec^2)
     float friction = 8.0f;       // ground friction (per second)
@@ -24,6 +24,7 @@ public:
     }
 
     void update(const InputState &in, const class Camera &cam, float dt);
+    void landOn(float surfaceY);
 
     const Vec3 &getPosition() const { return position; }
     const Vec3 &getVelocity() const { return velocity; }
