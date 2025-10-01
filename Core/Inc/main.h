@@ -44,7 +44,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+extern OSPI_HandleTypeDef hospi1;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
