@@ -66,7 +66,6 @@ if (BUILD_STM32)
     add_executable(${PROJECT_NAME}
             ${APP_SRC}
             Core/Src/device/input_stm.cpp
-            Core/Src/device/timer_stm.cpp
     )
 
     add_subdirectory(cmake/stm32cubemx)
