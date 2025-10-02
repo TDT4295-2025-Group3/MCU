@@ -46,7 +46,7 @@ inline Vec3 forward_vector_from_yaw_pitch(float yaw, float pitch) {
     float sy = std::sin(yaw);
     float cp = std::cos(pitch);
     float sp = std::sin(pitch);
-    return { sy * cp, sp, cy * cp };
+    return { -sy * cp, sp, cy * cp };
 }
 
 } // namespace mcu_game

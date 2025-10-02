@@ -2,7 +2,8 @@
 #include "iinput.hpp"
 #include "irasterizer.hpp"
 #include "itimer.hpp"
-#include "math/Vec3.hpp"
+#include "player.hpp"
+#include "camera.hpp"
 
 class Game {
 public:
@@ -15,15 +16,16 @@ private:
     void tick_logic();
     void tick_graphics();
     bool initialized = false;
-    Vec3 pos{};
+    mcu_game::Player player{};
+    mcu_game::Camera camera{};
 
-    uint32_t instanceId;
+    uint32_t instanceCubeId = 0xFF;
+    uint32_t instancePyrId  = 0xFF;
+    uint32_t instancePlaneId = 0xFF;
 private:
     Rasterizer::IRasterizer& gfx;
     IInput&      input;
     ITimer&      timer;
     uint32_t next_tick_ms;
     uint32_t next_frame_ms;
-
-    float cameraZ = -2;
 };
