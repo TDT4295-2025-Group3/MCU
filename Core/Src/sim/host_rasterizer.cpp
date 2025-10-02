@@ -10,6 +10,7 @@
 // SDL only in this TU
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_video.h>
+#include <SDL3/SDL.h>
 
 #define S3L_PIXEL_FUNCTION HostRasterizer_DrawPixelShim
 #define S3L_MAX_PIXELS (320 * 240)   // cap for dynamic res
@@ -34,6 +35,24 @@ static inline uint32_t ARGB_to_ABGR(uint32_t argb) {
 }
 
 static inline void HostRasterizer_DrawPixelShim(S3L_PixelInfo *p);
+
+static bool processEvents() {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        switch (event.type) {
+            case SDL_EVENT_QUIT: // Window close button
+                return false;
+            case SDL_EVENT_KEY_DOWN: // Optional: ESC key
+                if (event.key.key == SDLK_ESCAPE && event.key.down) {
+                    return false; // exit
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    return true;
+}
 
 struct HostRasterizer::Impl {
     // SDL
@@ -211,6 +230,17 @@ void HostRasterizer::rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32
 }
 
 void HostRasterizer::end_frame() {
+
+    // Process events
+    if (!processEvents()) {
+        // Clean up & exit
+        SDL_DestroyTexture(impl->texture);
+        SDL_DestroyRenderer(impl->renderer);
+        SDL_DestroyWindow(impl->window);
+        SDL_Quit();
+        std::exit(0);
+    }
+
     if (impl->scene.modelCount > 0) {
         // ensure transforms are current
         for (size_t i = 0; i < impl->models.size(); ++i)
@@ -224,6 +254,7 @@ void HostRasterizer::end_frame() {
         throw std::runtime_error(SDL_GetError());
     }
     const uint8_t *src = reinterpret_cast<const uint8_t *>(impl->framebuffer.data());
+    // uint8_t *dst = <uint8_t *>(pixels);
     uint8_t *dst = reinterpret_cast<uint8_t *>(pixels);
     const int rowBytes = impl->fbW * 4;
     for (int y = 0; y < impl->fbH; ++y) {
