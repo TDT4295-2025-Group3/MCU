@@ -6,7 +6,7 @@
 
 int main() {
     HostInput input;
-    HostRasterizer rasterizer{320, 240};
+    HostRasterizer rasterizer{1024, 768};
     HostTimer timer;
 
     Game game{rasterizer, input, timer};
