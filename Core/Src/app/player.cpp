@@ -56,4 +56,10 @@ void Player::landOn(float surfaceY) {
     grounded = true;
 }
 
+void Player::applyCollisionResult(const Vec3& newPosition, const Vec3& newVelocity, bool groundedState) {
+    position = newPosition;
+    velocity = newVelocity;
+    grounded = groundedState;
+}
+
 } // namespace mcu_game

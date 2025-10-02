@@ -25,6 +25,7 @@ public:
 
     void update(const InputState &in, const class Camera &cam, float dt);
     void landOn(float surfaceY);
+    void applyCollisionResult(const Vec3& newPosition, const Vec3& newVelocity, bool groundedState);
 
     const Vec3 &getPosition() const { return position; }
     const Vec3 &getVelocity() const { return velocity; }
