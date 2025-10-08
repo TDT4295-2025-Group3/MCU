@@ -17,6 +17,7 @@ extern "C" {
 #include <cstdint>
 #include <cstring>
 #include "main.h"
+#include "spi_stm.hpp"
 
 
 // Operations:
@@ -58,6 +59,7 @@ uint8_t rxBuffer[2]; // Buffer to hold received return code and data
 // Function prototype for send_Buffer and receive_Buffer
 static void send_Buffer(uint8_t *buf, uint32_t len);
 static void receive_Buffer(uint8_t *buf, uint32_t len);
+static void pack_create_vert_message(uint8_t *buffer, uint16_t numVerts, Vertex108 *vertices);
 
 // DMA callbacks
 void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi) {
@@ -102,23 +104,27 @@ uint8_t wipe_all(void) {
 
 
 // Op CREATE_VERTEX returns returnCode and one byte data containing the vertex ID
-// vertexBuffer is a pointer to an array of vertices, each vertex is 3 floats (x, y, z) converted to 3 Q16.16
-// uint16_t create_vertex(uint32_t *vertexBuffer, uint32_t vertCount) {
-//     if(spiState != SPI_IDLE) return 0xFF;
-//     if(vertCount == 0) return 0x01; // invalid data
+// vertexBuffer is a pointer to an array of vertices, each vertex is 3 floats (x, y, z, r, g , b) converted to 3 Q16.16
+uint16_t create_vertex(Vertex108 *vertexBuffer, uint32_t vertCount) {
+    if(spiState != SPI_IDLE) return 0xFF;
+    if(vertCount == 0) return 0x01; // invalid data
 
-//     uint8_t cmd = CREATE_VERTEX;
-//     uint32_t len = vertCount * 3 * 4 + 1; // command byte + 3 floats per vertex, 4 bytes each
-//     uint8_t buffer[len];
-//     buffer[0] = cmd;
-    
+    uint32_t len = 2 + ((vertCount * 108 + 7) / 8); // 2 bytes for header + ceil(108*vertCount / 8) 
+    uint8_t *buffer = (uint8_t *)malloc(len);
+    if(!buffer) return 0x01; // out of memory
 
-//     txDone = 0;
-//     rxDone = 0;
-//     spiState = SPI_CMD_SENT;
-//     send_Buffer(&buffer, len);
 
-// }
+    // create packed message in buffer and convert vertex data to Q16.16
+    pack_create_vert_message(buffer, (uint16_t)vertCount, vertexBuffer);
+
+    txDone = 0;
+    rxDone = 0;
+    spiState = SPI_CMD_SENT;
+    send_Buffer(buffer, len);
+    free(buffer);
+    return 0x00; // command sent successfully
+
+}
 
 // Op CREATE_TRIANGLE returns returnCode and one byte data containing the triangle ID
 // uint16_t create_triangle(uint32_t *triangleBuffer, uint32_t triCount) {
@@ -207,6 +213,47 @@ static void receive_Buffer(uint8_t *buf, uint32_t len)
     {
         spiState = SPI_ERROR;
         Error_Handler();
+    }
+}
+
+// Pack n bits into a buffer at bit offset
+static void pack_bits(uint8_t *buf, uint32_t *bit_offset, uint32_t value, uint8_t nbits) {
+    for (int i = nbits - 1; i >= 0; i--) {
+        uint32_t byte_pos = *bit_offset / 8;
+        uint8_t bit_pos  = 7 - (*bit_offset % 8);
+        buf[byte_pos] |= ((value >> i) & 1) << bit_pos;
+        (*bit_offset)++;
+    }
+}
+
+
+
+static void pack_create_vert_message(uint8_t *buffer, uint16_t numVerts, Vertex108 *vertices) {
+    memset(buffer, 0, 2 + ((numVerts * 108 + 7) / 8)); // rough size, 14 bytes per vertex max
+
+    // 1) Pack header: 4-bit opcode + 12-bit vertex count
+    uint16_t header = (CREATE_VERTEX << 12) | (numVerts & 0x0FFF);
+    buffer[0] = header >> 8;
+    buffer[1] = header & 0xFF;
+
+    uint32_t bit_offset = 16; // start after header
+
+    // 2) Pack vertices
+    for (uint16_t i = 0; i < numVerts; i++) {
+        Vertex108 *v = &vertices[i];
+        v->x = floatToQ16_16(v->x);
+        v->y = floatToQ16_16(v->y);
+        v->z = floatToQ16_16(v->z);
+
+        // pack x, y, z (32 bits each)
+        pack_bits(buffer, &bit_offset, (uint32_t)v->x, 32);
+        pack_bits(buffer, &bit_offset, (uint32_t)v->y, 32);
+        pack_bits(buffer, &bit_offset, (uint32_t)v->z, 32);
+
+        // pack r,g,b (4 bits each)
+        pack_bits(buffer, &bit_offset, v->r & 0x0F, 4);
+        pack_bits(buffer, &bit_offset, v->g & 0x0F, 4);
+        pack_bits(buffer, &bit_offset, v->b & 0x0F, 4);
     }
 }
 
