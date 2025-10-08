@@ -6,8 +6,8 @@
 namespace mcu_game {
 
 struct CameraConfig {
-    float minPitch = -1.55f; // radians (~-89 deg)
-    float maxPitch =  1.55f; // radians
+    float minPitch = -1.22f; // radians (~-70 deg)
+    float maxPitch =  1.22f; // radians (~+70 deg)
     float distance = 5.0f;  // follow distance
     float heightOffset = 1.5f; // look at point above player origin
     float yawSensitivity = 1.0f;   // multiplier for input yaw delta
@@ -20,8 +20,9 @@ public:
     void reset() {
         yaw = 0.0f; 
         pitch = 0.3f; // slight downward angle
-        position = {0,0, -cameraConfig.distance};
         target = {0, cameraConfig.heightOffset, 0};
+        const Vec3 forward = forward_vector_from_yaw_pitch(yaw, pitch);
+        position = target - forward * cameraConfig.distance;
     }
 
     void update(float yawDelta, float pitchDelta, const class Player &player, float dt);
