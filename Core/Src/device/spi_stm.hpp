@@ -17,8 +17,15 @@ inline Q16_16 floatToQ16_16(float value) {
 inline float q16_16ToFloat(Q16_16 value) {
     return static_cast<float>(value) / (1 << 16);
 }
+
+typedef struct {
+    int32_t x, y, z;   // Q16.16
+    uint8_t r, g, b;   // 4-bit each
+} Vertex108;
+
+
 uint8_t wipe_all(void);
-uint16_t create_vertex(uint32_t *vertexBuffer, uint32_t vertCount);
+uint16_t create_vertex(Vertex108 *vertexBuffer, uint32_t vertCount);
 uint16_t create_triangle(uint32_t *triangleBuffer, uint32_t triCount);
 uint16_t create_instance(uint32_t *instanceBuffer, uint32_t instCount);
 uint8_t update_instance(uint32_t *instanceBuffer, uint32_t instCount);

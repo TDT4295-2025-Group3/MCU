@@ -106,7 +106,12 @@ int main(void)
   MX_ICACHE_Init();
   MX_OCTOSPI1_Init();
   /* USER CODE BEGIN 2 */
-
+  //test create vertex x,y,z,r,g,b 32bit float and 4 bit colour
+  Vertex108 testVerts[2] = {
+      {1, 2, 3, 0xF, 0x00, 0x00}, // Red vertex
+      {4, 5, 6, 0x00, 0x0F, 0x00}  // Green vertex
+  };
+  create_vertex(testVerts, 2);
 
 
   /* USER CODE END 2 */
@@ -138,7 +143,6 @@ int main(void)
 
     /* USER CODE BEGIN 2 */
 
-    // create_vertex(NULL, 0);
 
     /* USER CODE END 2 */
 
