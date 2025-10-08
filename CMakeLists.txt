@@ -63,6 +63,10 @@ set(APP_INC
 # --- STM32 firmware (cross) ---
 
 if (BUILD_STM32)
+
+    # --- ADD FatFs middleware build ---
+    add_subdirectory(Middlewares/FatFs)
+
     add_executable(${PROJECT_NAME}
             ${APP_SRC}
             Core/Src/device/input_stm.cpp
@@ -74,6 +78,7 @@ if (BUILD_STM32)
     target_include_directories(${PROJECT_NAME} PRIVATE
             ${APP_INC}
             ${CMAKE_SOURCE_DIR}/Core/Src/device
+            ${CMAKE_SOURCE_DIR}/Middlewares/FatFs/Inc
     )
 
     target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_STM32=1)
@@ -85,6 +90,7 @@ if (BUILD_STM32)
     target_link_libraries(${PROJECT_NAME}
             stm32cubemx
             # add other libs here, still plain
+            FatFs
     )
 endif()
 
@@ -104,7 +110,7 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
     target_include_directories(simulator PRIVATE
             ${APP_INC}
             ${CMAKE_SOURCE_DIR}/Core/Src/sim
-            ${CMAKE_SOURCE_DIR}/Core/Src/Device 
+            ${CMAKE_SOURCE_DIR}/Core/Src/Device
     )
 
     # SDL3 is a host dependency; guard it from STM32 builds
