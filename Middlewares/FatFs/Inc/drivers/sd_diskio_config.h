@@ -26,7 +26,7 @@ extern "C" {
 #endif
 /* Includes ------------------------------------------------------------------*/
 
-#include "stm32{family}xx_hal.h"
+#include "stm32u5xx_hal.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -48,7 +48,7 @@ extern "C" {
  * Notice: This is applicable only for cortex M7 based platform.
  */
 
-#define ENABLE_SD_DMA_CACHE_MAINTENANCE  1
+#define ENABLE_SD_DMA_CACHE_MAINTENANCE  0
 
 
 extern SD_HandleTypeDef hsd_sdmmc1;

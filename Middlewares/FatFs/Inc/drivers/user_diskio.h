@@ -29,7 +29,7 @@
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
-extern Diskio_drvTypeDef  USER_Driver;
+extern const Diskio_drvTypeDef  USER_Driver;
 
 #ifdef __cplusplus
 }

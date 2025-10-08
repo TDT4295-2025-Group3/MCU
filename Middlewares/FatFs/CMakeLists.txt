@@ -19,3 +19,13 @@ set(FATFS_INC
 add_library(FatFs STATIC ${FATFS_SRCS})
 
 target_include_directories(FatFs PUBLIC ${FATFS_INC})
+target_include_directories(FatFs PUBLIC
+    ${CMAKE_SOURCE_DIR}/Core/Inc
+    ${CMAKE_SOURCE_DIR}/Drivers/STM32U5xx_HAL_Driver/Inc
+    ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32U5xx/Include
+    ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include
+)
+target_compile_definitions(FatFs PUBLIC
+    USE_HAL_DRIVER
+    STM32U545xx
+)
