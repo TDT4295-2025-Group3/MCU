@@ -35,7 +35,6 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 uint8_t txBuffer[256];   // test buffer
-volatile bool txDone = false;
 
 /* USER CODE END PD */
 
@@ -63,7 +62,6 @@ static void MX_ICACHE_Init(void);
 static void MX_OCTOSPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
-static void Send_Buffer(uint8_t *buf, uint32_t len);
 
 /* USER CODE END PFP */
 
@@ -139,16 +137,10 @@ int main(void)
 
 
     /* USER CODE BEGIN 2 */
-    for (int i = 0; i < sizeof(txBuffer); i++)
-        txBuffer[i] = i;            // fill pattern
 
-    Send_Buffer(txBuffer, sizeof(txBuffer));test 1 
-    while (!txDone)
-    {
-        BSP_LED_Toggle(LED_GREEN);
-        HAL_Delay(100); // Add a small delay to make the toggle visible
-    }
-/* USER CODE END 2 */
+    wipe_all();
+
+    /* USER CODE END 2 */
 
 
 
@@ -318,48 +310,51 @@ static void MX_OCTOSPI1_Init(void)
 
 }
 
-static OSPI_RegularCmdTypeDef ospi_cmd;
+OSPI_RegularCmdTypeDef ospi_cmd;
 
 
-static void OSPI_ConfigRawWrite(uint32_t length)
-{
-    memset(&ospi_cmd, 0, sizeof(ospi_cmd));
-    ospi_cmd.OperationType   = HAL_OSPI_OPTYPE_COMMON_CFG;
-    ospi_cmd.FlashId         = HAL_OSPI_FLASH_ID_1;
-    ospi_cmd.InstructionMode = HAL_OSPI_INSTRUCTION_1_LINE;    // not NONE
-    ospi_cmd.Instruction     = 0x00;                          // dummy byte that FPGA should ignore
-    ospi_cmd.InstructionSize = HAL_OSPI_INSTRUCTION_8_BITS;
-    ospi_cmd.InstructionDtrMode = HAL_OSPI_INSTRUCTION_DTR_DISABLE;
-    ospi_cmd.AddressMode     = HAL_OSPI_ADDRESS_NONE;       // no address
-    ospi_cmd.AlternateBytesMode = HAL_OSPI_ALTERNATE_BYTES_NONE;
-    ospi_cmd.DataMode        = HAL_OSPI_DATA_4_LINES;       // quad
-    ospi_cmd.DummyCycles     = 0;
-    ospi_cmd.NbData          = length;                      // number of bytes to transfer
-    ospi_cmd.SIOOMode        = HAL_OSPI_SIOO_INST_EVERY_CMD;
-}
+// static void OSPI_ConfigRawWrite(uint32_t length)
+// {
+//     memset(&ospi_cmd, 0, sizeof(ospi_cmd));
+//     ospi_cmd.OperationType   = HAL_OSPI_OPTYPE_COMMON_CFG;
+//     ospi_cmd.FlashId         = HAL_OSPI_FLASH_ID_1;
+//     ospi_cmd.InstructionMode = HAL_OSPI_INSTRUCTION_1_LINE;    // not NONE
+//     ospi_cmd.Instruction     = 0x00;                          // dummy byte that FPGA should ignore
+//     ospi_cmd.InstructionSize = HAL_OSPI_INSTRUCTION_8_BITS;
+//     ospi_cmd.InstructionDtrMode = HAL_OSPI_INSTRUCTION_DTR_DISABLE;
+//     ospi_cmd.AddressMode     = HAL_OSPI_ADDRESS_NONE;       // no address
+//     ospi_cmd.AlternateBytesMode = HAL_OSPI_ALTERNATE_BYTES_NONE;
+//     ospi_cmd.DataMode        = HAL_OSPI_DATA_4_LINES;       // quad
+//     ospi_cmd.DummyCycles     = 0;
+//     ospi_cmd.NbData          = length;                      // number of bytes to transfer
+//     ospi_cmd.SIOOMode        = HAL_OSPI_SIOO_INST_EVERY_CMD;
+// }
 
 
 
+//pin 0 -> CN10.24
+//pin 1 -> CN7.34
+//pin 2 -> CN10.15
+//pin 3 -> CN10.13
+// static void Send_Buffer(uint8_t *buf, uint32_t len)
+// {
+//     OSPI_ConfigRawWrite(len);
 
-static void Send_Buffer(uint8_t *buf, uint32_t len)
-{
-    OSPI_ConfigRawWrite(len);
+//     if (HAL_OSPI_Command(&hospi1, &ospi_cmd, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
+//     {
+//         Error_Handler();
+//     }
 
-    if (HAL_OSPI_Command(&hospi1, &ospi_cmd, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
-    {
-        Error_Handler();
-    }
+//     if (HAL_OSPI_Transmit_DMA(&hospi1, buf) != HAL_OK)
+//     {
+//         Error_Handler();
+//     }
+// }
 
-    if (HAL_OSPI_Transmit_DMA(&hospi1, buf) != HAL_OK)
-    {
-        Error_Handler();
-    }
-}
-
-void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi)
-{
-    txDone = true;
-}
+// void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi)
+// {
+//     txDone = true;
+// }
 
 
 /**
