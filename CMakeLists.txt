@@ -65,8 +65,8 @@ set(APP_INC
 if (BUILD_STM32)
     add_executable(${PROJECT_NAME}
             ${APP_SRC}
-            Core/Src/device/input_stm.cpp
-            Core/Src/device/input_stm.hpp
+            Core/Src/device/spi_stm.cpp
+            Core/Src/device/spi_stm.hpp
     )
 
     add_subdirectory(cmake/stm32cubemx)

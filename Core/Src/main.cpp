@@ -23,7 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
-#include "input_stm.hpp"
+#include "spi_stm.hpp"
 
 /* USER CODE END Includes */
 
@@ -138,7 +138,7 @@ int main(void)
 
     /* USER CODE BEGIN 2 */
 
-    wipe_all();
+    // create_vertex(NULL, 0);
 
     /* USER CODE END 2 */
 
