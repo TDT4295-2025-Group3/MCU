@@ -79,6 +79,7 @@ if (BUILD_STM32)
             ${APP_INC}
             ${CMAKE_SOURCE_DIR}/Core/Src/device
             ${CMAKE_SOURCE_DIR}/Middlewares/FatFs/Inc
+            ${CMAKE_SOURCE_DIR}/Middlewares/FatFs/Inc/drivers
     )
 
     target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_STM32=1)
@@ -110,7 +111,7 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
     target_include_directories(simulator PRIVATE
             ${APP_INC}
             ${CMAKE_SOURCE_DIR}/Core/Src/sim
-            ${CMAKE_SOURCE_DIR}/Core/Src/Device
+            ${CMAKE_SOURCE_DIR}/Core/Src/device
     )
 
     # SDL3 is a host dependency; guard it from STM32 builds
