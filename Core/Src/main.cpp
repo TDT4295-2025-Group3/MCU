@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include "spi_stm.hpp"
+#include "irasterizer.hpp"
 
 /* USER CODE END Includes */
 
@@ -107,11 +108,18 @@ int main(void)
   MX_OCTOSPI1_Init();
   /* USER CODE BEGIN 2 */
   //test create vertex x,y,z,r,g,b 32bit float and 4 bit colour
-  Vertex108 testVerts[2] = {
-      {1, 2, 3, 0xF, 0x00, 0x00}, // Red vertex
-      {4, 5, 6, 0x00, 0x0F, 0x00}  // Green vertex
-  };
-  create_vertex(testVerts, 2);
+  Rasterizer::Transform testInst;
+  testInst.posX = 1.0f;
+  testInst.posY = 2.0f;
+  testInst.posZ = 3.0f;
+  testInst.rotX = 3.0f;
+  testInst.rotY = 2.0f;
+  testInst.rotZ = 1.0f;
+  testInst.scaleX = 1.0f;
+  testInst.scaleY = 1.0f;
+  testInst.scaleZ = 1.0f;
+  
+  update_instance(&testInst, 2);
 
 
   /* USER CODE END 2 */
