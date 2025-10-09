@@ -2,7 +2,6 @@
 extern "C" {
 #endif
 
-
 // SPI functions for communication with FPGA and implementation of MCU-FPGA protocol operations
 // MCU is configured as quad SPI master
 // The FPGA expects commands in a specific format
@@ -73,7 +72,6 @@ void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi) {
     spiState = SPI_RX_WAIT;
 }
 
-
 void HAL_OSPI_RxCpltCallback(OSPI_HandleTypeDef *hospi) {
     rxDone = 1;
     spiReturnCode = rxBuffer[0] & 0x0F;   // Only lower nibble for return code
@@ -84,7 +82,6 @@ void HAL_OSPI_RxCpltCallback(OSPI_HandleTypeDef *hospi) {
 void HAL_OSPI_ErrorCallback(OSPI_HandleTypeDef *hospi) {
     spiState = SPI_ERROR;
 }
-
 
 // Op WIPE_ALL
 // usage: wipe_all(); returns returncode sent by FPGA
@@ -103,9 +100,6 @@ uint8_t wipe_all(void) {
 
     return 0x00; // command sent successfully
 }
-
-
-
 
 // Op CREATE_VERTEX returns returnCode and one byte data containing the vertex ID
 // vertexBuffer is a pointer to an array of vertices, each vertex is 3 floats (x, y, z, r, g , b) converted to 3 Q16.16
@@ -273,8 +267,6 @@ static void pack_bits(uint8_t *buf, uint32_t *bit_offset, uint32_t value, uint8_
     }
 }
 
-
-
 static void pack_create_vert_message(uint8_t *buffer, uint16_t numVerts, Rasterizer::Vertex *vertices) {
     memset(buffer, 0, 2 + ((numVerts * 108 + 7) / 8)); // rough size, 14 bytes per vertex max
 
@@ -366,7 +358,6 @@ static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform 
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleY), 32);
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleZ), 32);
 }
-
 
 #ifdef __cplusplus
 }
