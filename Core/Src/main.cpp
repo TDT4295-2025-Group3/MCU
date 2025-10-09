@@ -19,6 +19,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "game.hpp"
+#include "ff.h"
+#include "ff_gen_drv.h"
+#include "sd_diskio.h"
+
+#include <cstdio>
+#include <cstring>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -43,6 +49,10 @@
 /* Private variables ---------------------------------------------------------*/
 
 COM_InitTypeDef BspCOMInit;
+SD_HandleTypeDef hsd_sdmmc1;
+
+static FATFS sdFatFs;
+static char SDPath[4];
 
 /* USER CODE BEGIN PV */
 
@@ -53,13 +63,158 @@ void SystemClock_Config(void);
 static void SystemPower_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ICACHE_Init(void);
+static bool MX_SDMMC1_SD_Init(void);
 /* USER CODE BEGIN PFP */
+namespace
+{
+constexpr uint32_t kSdmmcTransferClockDiv = 8U; // 48 MHz / (2 * 8) ~= 3 MHz
+}
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static bool SD_CardSelfTest(void)
+{
+  if (FATFS_LinkDriver(&SD_Driver, SDPath) != 0)
+  {
+    printf("[SD] FATFS_LinkDriver failed\r\n");
+    return false;
+  }
 
+  bool mounted = false;
+  bool fileOpen = false;
+  bool fileCreated = false;
+  bool success = false;
+
+  FRESULT res = FR_OK;
+  FIL file{};
+  char filePath[32] = {0};
+  HAL_SD_CardInfoTypeDef cardInfo{};
+  constexpr char testData[] = "FatFs SD card test OK\r\n";
+  char readBuffer[sizeof(testData)] = {0};
+  UINT bytesWritten = 0;
+  UINT bytesRead = 0;
+
+  do
+  {
+    const HAL_SD_CardStateTypeDef cardStateBefore = HAL_SD_GetCardState(&hsd_sdmmc1);
+    printf("[SD] Card state before mount: %d\r\n", static_cast<int>(cardStateBefore));
+
+    HAL_SD_CardInfoTypeDef preMountInfo{};
+    if (HAL_SD_GetCardInfo(&hsd_sdmmc1, &preMountInfo) == HAL_OK)
+    {
+      printf("[SD] Info before mount: RCA=0x%04lx, blocks=%lu, blockSize=%lu\r\n",
+             static_cast<unsigned long>(preMountInfo.RelCardAdd),
+             static_cast<unsigned long>(preMountInfo.LogBlockNbr),
+             static_cast<unsigned long>(preMountInfo.LogBlockSize));
+    }
+    else
+    {
+      printf("[SD] HAL_SD_GetCardInfo pre-mount failed, err=0x%08lx\r\n",
+             HAL_SD_GetError(&hsd_sdmmc1));
+    }
+
+    res = f_mount(&sdFatFs, SDPath, 1);
+    if (res != FR_OK)
+    {
+      printf("[SD] f_mount failed: %d\r\n", res);
+      printf("[SD] Card state after failed mount: %d (error=0x%08lx)\r\n",
+             static_cast<int>(HAL_SD_GetCardState(&hsd_sdmmc1)),
+             HAL_SD_GetError(&hsd_sdmmc1));
+      const DSTATUS diskStat = SD_Driver.disk_status(0);
+      printf("[SD] Disk status flags: 0x%02x\r\n", diskStat);
+      break;
+    }
+    mounted = true;
+
+    if (HAL_SD_GetCardInfo(&hsd_sdmmc1, &cardInfo) == HAL_OK)
+    {
+      const uint32_t blockSize = cardInfo.LogBlockSize;
+      const uint64_t capacityBytes = static_cast<uint64_t>(cardInfo.LogBlockNbr) * blockSize;
+      printf("[SD] Card detected: %lu blocks x %lu bytes (%llu MB)\r\n",
+             static_cast<unsigned long>(cardInfo.LogBlockNbr),
+             static_cast<unsigned long>(blockSize),
+             static_cast<unsigned long long>(capacityBytes / (1024ULL * 1024ULL)));
+    }
+    else
+    {
+      printf("[SD] HAL_SD_GetCardInfo failed, err=0x%08lx\r\n",
+             HAL_SD_GetError(&hsd_sdmmc1));
+    }
+
+    std::snprintf(filePath, sizeof(filePath), "%stest.txt", SDPath);
+
+    res = f_open(&file, filePath, FA_CREATE_ALWAYS | FA_WRITE);
+    if (res != FR_OK)
+    {
+      printf("[SD] f_open(write) failed: %d\r\n", res);
+      break;
+    }
+    fileOpen = true;
+    fileCreated = true;
+
+    res = f_write(&file, testData, sizeof(testData) - 1, &bytesWritten);
+    if (res != FR_OK || bytesWritten != sizeof(testData) - 1)
+    {
+      printf("[SD] f_write failed: %d (bytes=%u)\r\n", res, bytesWritten);
+      break;
+    }
+
+    res = f_close(&file);
+    if (res != FR_OK)
+    {
+      printf("[SD] f_close(write) failed: %d\r\n", res);
+      break;
+    }
+    fileOpen = false;
+
+    res = f_open(&file, filePath, FA_READ);
+    if (res != FR_OK)
+    {
+      printf("[SD] f_open(read) failed: %d\r\n", res);
+      break;
+    }
+    fileOpen = true;
+
+    res = f_read(&file, readBuffer, sizeof(testData) - 1, &bytesRead);
+    if (res != FR_OK)
+    {
+      printf("[SD] f_read failed: %d\r\n", res);
+      break;
+    }
+
+    if (bytesRead != sizeof(testData) - 1 || std::memcmp(readBuffer, testData, sizeof(testData) - 1) != 0)
+    {
+      printf("[SD] Data mismatch (read %u bytes)\r\n", bytesRead);
+      break;
+    }
+
+    printf("[SD] Read back: %s", readBuffer);
+    success = true;
+  }
+  while (false);
+
+  if (fileOpen)
+  {
+    f_close(&file);
+  }
+
+  if (mounted)
+  {
+    if (fileCreated)
+    {
+      f_unlink(filePath);
+    }
+    f_mount(nullptr, SDPath, 0);
+  }
+
+  FATFS_UnLinkDriver(SDPath);
+
+  printf("[SD] Self-test %s\r\n", success ? "PASSED" : "FAILED");
+
+  return success;
+}
 /* USER CODE END 0 */
 
 /**
@@ -96,6 +251,8 @@ int main(void)
   MX_GPIO_Init();
   MX_ICACHE_Init();
   /* USER CODE BEGIN 2 */
+  bool sdReady = false;
+  uint32_t blinkDelayMs = 1000U;
 
   /* USER CODE END 2 */
 
@@ -116,13 +273,37 @@ int main(void)
     Error_Handler();
   }
 
+  const bool sdInitOk = MX_SDMMC1_SD_Init();
+  if (sdInitOk)
+  {
+    sdReady = SD_CardSelfTest();
+    blinkDelayMs = sdReady ? 200U : 1000U;
+
+    if (sdReady)
+    {
+      printf("[SD] Card communication OK\r\n");
+    }
+    else
+    {
+      printf("[SD] Card communication FAILED\r\n");
+    }
+  }
+  else
+  {
+    printf("[SD] Controller init failed\r\n");
+  }
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
     /* USER CODE END WHILE */
     HAL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);
-    // sleep 500
-    HAL_Delay(1000);
+    HAL_Delay(blinkDelayMs);
+    if (!sdReady)
+    {
+      HAL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);
+      HAL_Delay(150);
+    }
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -146,7 +327,8 @@ void SystemClock_Config(void)
 
   /** Initializes the CPU, AHB and APB buses clocks
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI|RCC_OSCILLATORTYPE_HSI48;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_4;
@@ -221,6 +403,33 @@ static void MX_ICACHE_Init(void)
 
   /* USER CODE END ICACHE_Init 2 */
 
+}
+
+static bool MX_SDMMC1_SD_Init(void)
+{
+  hsd_sdmmc1.Instance = SDMMC1;
+  hsd_sdmmc1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
+  hsd_sdmmc1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
+  hsd_sdmmc1.Init.BusWide = SDMMC_BUS_WIDE_1B;
+  hsd_sdmmc1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
+  hsd_sdmmc1.Init.ClockDiv = kSdmmcTransferClockDiv;
+  if (HAL_SD_Init(&hsd_sdmmc1) != HAL_OK)
+  {
+    printf("[SD] HAL_SD_Init error: 0x%08lx\r\n", HAL_SD_GetError(&hsd_sdmmc1));
+    return false;
+  }
+
+  const uint32_t sdmmcClkHz = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_SDMMC);
+  uint32_t transferClkHz = 0U;
+  if (sdmmcClkHz != 0U)
+  {
+    transferClkHz = (kSdmmcTransferClockDiv == 0U)
+                      ? sdmmcClkHz
+                      : (sdmmcClkHz / (2U * kSdmmcTransferClockDiv));
+  }
+  printf("[SD] Transfer clock configured ~ %lu Hz\r\n", static_cast<unsigned long>(transferClkHz));
+
+  return true;
 }
 
 /**

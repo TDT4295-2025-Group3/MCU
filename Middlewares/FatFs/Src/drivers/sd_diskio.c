@@ -17,6 +17,7 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "sd_diskio.h"
+#include <stdio.h>
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -102,13 +103,29 @@ static DRESULT SD_read(BYTE lun, BYTE *buff, LBA_t sector, UINT count)
 {
   DRESULT res = RES_ERROR;
 
-  if (HAL_SD_ReadBlocks(&sdmmc_handle, (uint8_t*)buff, sector, count, SD_TIMEOUT) == HAL_OK)
+  for (uint32_t attempt = 0; attempt < 2U; ++attempt)
   {
-    /* Wait until the card state is ready */
-    while (HAL_SD_GetCardState(&sdmmc_handle) != HAL_SD_CARD_TRANSFER)
+    if (HAL_SD_ReadBlocks(&sdmmc_handle, (uint8_t*)buff, sector, count, SD_TIMEOUT) == HAL_OK)
     {
+      /* Wait until the card state is ready */
+      while (HAL_SD_GetCardState(&sdmmc_handle) != HAL_SD_CARD_TRANSFER)
+      {
+      }
+      res = RES_OK;
+      break;
     }
-    res = RES_OK;
+
+    const uint32_t err = HAL_SD_GetError(&sdmmc_handle);
+    printf("[SD] HAL_SD_ReadBlocks failed (attempt %lu): 0x%08lx\r\n",
+           (unsigned long)(attempt + 1U), (unsigned long)err);
+
+    (void)HAL_SD_Abort(&sdmmc_handle);
+    if (HAL_SD_InitCard(&sdmmc_handle) != HAL_OK)
+    {
+      printf("[SD] HAL_SD_InitCard retry failed: 0x%08lx\r\n",
+             (unsigned long)HAL_SD_GetError(&sdmmc_handle));
+      break;
+    }
   }
   return res;
 }

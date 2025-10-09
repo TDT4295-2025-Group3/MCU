@@ -20,6 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include <stdbool.h>
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -89,6 +90,17 @@ void HAL_SD_MspInit(SD_HandleTypeDef* hsd)
   if(hsd->Instance==SDMMC1)
   {
     /* USER CODE BEGIN SDMMC1_MspInit 0 */
+    /* SDMMC signals on Port D require VddIO2 */
+    bool pwr_clk_was_disabled = __HAL_RCC_PWR_IS_CLK_DISABLED();
+    if (pwr_clk_was_disabled)
+    {
+      __HAL_RCC_PWR_CLK_ENABLE();
+    }
+    HAL_PWREx_EnableVddIO2();
+    if (pwr_clk_was_disabled)
+    {
+      __HAL_RCC_PWR_CLK_DISABLE();
+    }
 
     /* USER CODE END SDMMC1_MspInit 0 */
 
@@ -114,14 +126,14 @@ void HAL_SD_MspInit(SD_HandleTypeDef* hsd)
     */
     GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF12_SDMMC1;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin = GPIO_PIN_2;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF12_SDMMC1;
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
