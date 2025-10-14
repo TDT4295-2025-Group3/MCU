@@ -20,7 +20,7 @@ inline float q16_16ToFloat(Q16_16 value) {
 }
 
 uint8_t wipe_all(void);
-uint16_t create_vertex(Rasterizer::Vertex *vertexBuffer, uint32_t vertCount);
+uint16_t create_vertex(Rasterizer::Vertex *vertexBuffer, uint16_t vertCount);
 uint16_t create_triangle(Rasterizer::Triangle *triangleBuffer, uint16_t triCount);
 uint16_t create_instance(Rasterizer::Transform *instanceData, uint8_t vertbufferID, uint8_t tribufferID);
 uint8_t update_instance(Rasterizer::Transform *instanceData, uint8_t instID);
