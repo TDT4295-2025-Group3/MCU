@@ -13,31 +13,8 @@ extern "C" {
 // OPCODES 5 -> 15 is available for more commands
 // Return codes 5 -> 15 is available for more return codes
 
-#include <cstdint>
-#include <cstring>
-#include "main.h"
-#include "spi_stm.hpp"
-#include "irasterizer.hpp"
 
 //TODO: change these enums to irasterizer enums
-// Operations:
-enum {
-    WIPE_ALL = 0x00,
-    CREATE_VERTEX = 0x01,
-    CREATE_TRIANGLE = 0x02,
-    CREATE_INSTANCE = 0x03,
-    UPDATE_INSTANCE = 0x04,
-
-};
-
-// Return codes:
-enum {
-    OK = 0x00,
-    OUT_OF_MEMORY = 0x01,
-    INVALID_ID = 0x02,
-    INVALID_OPERATION = 0x03,
-    INVALID_DATA = 0x04,
-};
 
 // SPI state machine states
 typedef enum {
@@ -89,7 +66,7 @@ uint8_t wipe_all(void) {
     if(spiState != SPI_IDLE) return 0xFF; // busy
 
 
-    uint8_t cmd = WIPE_ALL;
+    uint8_t cmd = static_cast<uint8_t>(Rasterizer::Operation::WIPE_ALL);
     uint32_t len = 1;    // 1 byte command
 
     txDone = 0;
@@ -103,7 +80,7 @@ uint8_t wipe_all(void) {
 
 // Op CREATE_VERTEX returns returnCode and one byte data containing the vertex ID
 // vertexBuffer is a pointer to an array of vertices, each vertex is 3 floats (x, y, z, r, g , b) converted to 3 Q16.16
-uint16_t create_vertex(Rasterizer::Vertex *vertexBuffer, uint32_t vertCount) {
+uint16_t create_vertex(Rasterizer::Vertex *vertexBuffer, uint16_t vertCount) {
     if(spiState != SPI_IDLE) return 0xFF;
     if(vertCount == 0) return 0x01; // invalid data
 
@@ -113,7 +90,7 @@ uint16_t create_vertex(Rasterizer::Vertex *vertexBuffer, uint32_t vertCount) {
 
 
     // create packed message in buffer and convert vertex data to Q16.16
-    pack_create_vert_message(buffer, (uint16_t)vertCount, vertexBuffer);
+    pack_create_vert_message(buffer, vertCount, vertexBuffer);
 
     txDone = 0;
     rxDone = 0;
@@ -271,7 +248,7 @@ static void pack_create_vert_message(uint8_t *buffer, uint16_t numVerts, Rasteri
     memset(buffer, 0, 2 + ((numVerts * 108 + 7) / 8)); // rough size, 14 bytes per vertex max
 
     // 1) Pack header: 4-bit opcode + 12-bit vertex count
-    uint16_t header = (CREATE_VERTEX << 12) | (numVerts & 0x0FFF);
+    uint16_t header = (static_cast<uint8_t>(Rasterizer::Operation::CREATE_VERT) << 12) | (numVerts & 0x0FFF);
     buffer[0] = header >> 8;
     buffer[1] = header & 0xFF;
 
@@ -300,7 +277,7 @@ static void pack_create_tri_message(uint8_t *buffer, uint16_t numTris, Rasterize
     memset(buffer, 0, 2 + ((numTris * 36 + 7) / 8)); // rough size, 5 bytes per triangle max
 
     // 1) Pack header: 4-bit opcode + 12-bit triangle count
-    uint16_t header = (CREATE_TRIANGLE << 12) | (numTris & 0x0FFF);
+    uint16_t header = (static_cast<uint8_t>(Rasterizer::Operation::CREATE_TRI) << 12) | (numTris & 0x0FFF);
     buffer[0] = header >> 8;
     buffer[1] = header & 0xFF;
 
@@ -319,7 +296,7 @@ static void pack_create_tri_message(uint8_t *buffer, uint16_t numTris, Rasterize
 
 static void pack_create_instance_message(uint8_t *buffer, uint8_t vertbuffID, uint8_t tribuffID, Rasterizer::Transform *instanceData) {
     memset(buffer, 0, 3+9*4); // rough size
-    uint32_t cmd = CREATE_INSTANCE;
+    uint32_t cmd = static_cast<uint8_t>(Rasterizer::Operation::CREATE_INST);
     uint32_t bit_offset = 0;
     // more work for header due to non-alignment
     pack_bits(buffer, &bit_offset, cmd, 4);
@@ -330,9 +307,12 @@ static void pack_create_instance_message(uint8_t *buffer, uint8_t vertbuffID, ui
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posX), 32);
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posY), 32);
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posZ), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->rotX), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->rotY), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->rotZ), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotX)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotY)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotZ)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotX)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotY)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotZ)), 32);
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleX), 32);
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleY), 32);
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleZ), 32);
@@ -341,7 +321,7 @@ static void pack_create_instance_message(uint8_t *buffer, uint8_t vertbuffID, ui
 
 static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform *instanceData, uint8_t instID) {
     memset(buffer, 0, 3+9*4); // rough size
-    uint32_t cmd = UPDATE_INSTANCE;
+    uint32_t cmd = static_cast<uint8_t>(Rasterizer::Operation::UPDATE_INST);
     uint32_t bit_offset = 0;
     // more work for header due to non-alignment
     pack_bits(buffer, &bit_offset, cmd, 4);
@@ -351,9 +331,12 @@ static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform 
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posX), 32);
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posY), 32);
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posZ), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->rotX), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->rotY), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->rotZ), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotX)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotY)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotZ)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotX)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotY)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotZ)), 32);
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleX), 32);
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleY), 32);
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleZ), 32);
