@@ -15,10 +15,11 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+// TODO: enable NVIC global interrupts for OCTOSPI and link callback functions correctly.
 
 // ---------- Notes ----------
 // This file expects to be compiled as C++ (it uses new/delete, std::atomic).
-// The HAL callbacks keep C linkage but we use C++ inside.
+// The HAL callbacks keep C linkage but we use C++ inside. 
 // ---------------------------
 
 // ---------- SPI state ----------
