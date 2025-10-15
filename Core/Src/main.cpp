@@ -24,7 +24,6 @@
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include "spi_stm.hpp"
-#include "irasterizer.hpp"
 
 /* USER CODE END Includes */
 
@@ -119,7 +118,20 @@ int main(void)
   testInst.scaleY = 1.0f;
   testInst.scaleZ = 1.0f;
   
-  update_instance(&testInst, 2);
+  // update_instance(&testInst, 2);
+
+
+  Rasterizer::SpiAsyncRasterizer rasterizer;
+
+  auto fut = rasterizer.wipeAllAsync();
+  // Continue doing other logic...
+  // Later, poll or check if done:
+  if (fut && fut->done.load()) {
+      if (fut->returnCode == static_cast<uint8_t>(Rasterizer::StatusCode::OK)) {
+          // success
+      }
+      delete fut;
+  }
 
 
   /* USER CODE END 2 */

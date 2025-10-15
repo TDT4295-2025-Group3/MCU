@@ -1,5 +1,8 @@
+#pragma once
 #include <stdint.h>
 #include "irasterizer.hpp"
+#include <atomic>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,11 +22,37 @@ inline float q16_16ToFloat(Q16_16 value) {
     return static_cast<float>(value) / (1 << 16);
 }
 
-uint8_t wipe_all(void);
-uint16_t create_vertex(Rasterizer::Vertex *vertexBuffer, uint16_t vertCount);
-uint16_t create_triangle(Rasterizer::Triangle *triangleBuffer, uint16_t triCount);
-uint16_t create_instance(Rasterizer::Transform *instanceData, uint8_t vertbufferID, uint8_t tribufferID);
-uint8_t update_instance(Rasterizer::Transform *instanceData, uint8_t instID);
+// Minimal future/promise pair
+struct SpiFuture {
+    std::atomic<bool> done{false};
+    uint8_t returnCode = 0;
+    uint8_t data = 0;
+};
+
+struct SpiPromise {
+    SpiFuture* fut = nullptr;
+};
+
+namespace Rasterizer {
+
+class SpiAsyncRasterizer : public IAsyncRasterizer {
+public:
+    SpiAsyncRasterizer() = default;
+
+    Rasterizer::SpiFuture* wipeAllAsync() override;
+    Rasterizer::SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count) override;
+    Rasterizer::SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count) override;
+    Rasterizer::SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform) override;
+    Rasterizer::SpiFuture* updateInstanceAsync(uint8_t instanceId, const Transform& transform) override;
+};
+
+} // namespace Rasterizer
+
+// uint8_t wipe_all(void);
+// uint16_t create_vertex(Rasterizer::Vertex *vertexBuffer, uint16_t vertCount);
+// uint16_t create_triangle(Rasterizer::Triangle *triangleBuffer, uint16_t triCount);
+// uint16_t create_instance(Rasterizer::Transform *instanceData, uint8_t vertbufferID, uint8_t tribufferID);
+// uint8_t update_instance(Rasterizer::Transform *instanceData, uint8_t instID);
 #ifdef __cplusplus
 }
 #endif
