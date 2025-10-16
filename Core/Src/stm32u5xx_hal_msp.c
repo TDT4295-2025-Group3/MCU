@@ -157,6 +157,9 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
       Error_Handler();
     }
 
+    /* OCTOSPI1 interrupt Init */
+    HAL_NVIC_SetPriority(OCTOSPI1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(OCTOSPI1_IRQn);
     /* USER CODE BEGIN OCTOSPI1_MspInit 1 */
 
     /* USER CODE END OCTOSPI1_MspInit 1 */
@@ -195,6 +198,9 @@ void HAL_OSPI_MspDeInit(OSPI_HandleTypeDef* hospi)
 
     /* OCTOSPI1 DMA DeInit */
     HAL_DMA_DeInit(hospi->hdma);
+
+    /* OCTOSPI1 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(OCTOSPI1_IRQn);
     /* USER CODE BEGIN OCTOSPI1_MspDeInit 1 */
 
     /* USER CODE END OCTOSPI1_MspDeInit 1 */

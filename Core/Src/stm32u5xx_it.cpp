@@ -1,7 +1,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    stm32u5xx_it.c
+  * @file    stm32u5xx_it.cpp
   * @brief   Interrupt Service Routines.
   ******************************************************************************
   * @attention
@@ -56,6 +56,7 @@
 
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef handle_GPDMA1_Channel0;
+extern OSPI_HandleTypeDef hospi1;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -224,6 +225,20 @@ void GPDMA1_Channel0_IRQHandler(void)
   /* USER CODE BEGIN GPDMA1_Channel0_IRQn 1 */
 
   /* USER CODE END GPDMA1_Channel0_IRQn 1 */
+}
+
+/**
+  * @brief This function handles OCTOSPI1 global interrupt.
+  */
+void OCTOSPI1_IRQHandler(void)
+{
+  /* USER CODE BEGIN OCTOSPI1_IRQn 0 */
+
+  /* USER CODE END OCTOSPI1_IRQn 0 */
+  HAL_OSPI_IRQHandler(&hospi1);
+  /* USER CODE BEGIN OCTOSPI1_IRQn 1 */
+
+  /* USER CODE END OCTOSPI1_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
