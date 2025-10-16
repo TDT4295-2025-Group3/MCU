@@ -107,6 +107,32 @@ int main(void)
   MX_OCTOSPI1_Init();
   /* USER CODE BEGIN 2 */
   //test create vertex x,y,z,r,g,b 32bit float and 4 bit colour
+  Rasterizer::Vertex testVerts[3];
+  testVerts[0].x = 1.0f;
+  testVerts[0].y = 0.0f;
+  testVerts[0].z = 11.11f;
+  testVerts[0].r = 15;
+  testVerts[0].g = 0;
+  testVerts[0].b = 0;
+
+  testVerts[1].x = 0.0f;
+  testVerts[1].y = 1.0f;
+  testVerts[1].z = 0.0f;
+  testVerts[1].r = 0;
+  testVerts[1].g = 15;
+  testVerts[1].b = 0;
+
+  testVerts[2].x = 0.0f;
+  testVerts[2].y = 0.0f;
+  testVerts[2].z = 1.0f;
+  testVerts[2].r = 0;
+  testVerts[2].g = 0;
+  testVerts[2].b = 15;
+
+  Rasterizer::Triangle testTri[1];
+  testTri[0].index0 = 0;
+  testTri[0].index1 = 1;
+  testTri[0].index2 = 2;
   Rasterizer::Transform testInst;
   testInst.posX = 1.0f;
   testInst.posY = 2.0f;
@@ -118,12 +144,10 @@ int main(void)
   testInst.scaleY = 1.0f;
   testInst.scaleZ = 1.0f;
   
-  // update_instance(&testInst, 2);
-
 
   Rasterizer::SpiAsyncRasterizer rasterizer;
 
-  auto fut = rasterizer.wipeAllAsync();
+  auto fut = rasterizer.updateInstanceAsync(1, testInst);
   // Continue doing other logic...
   // Later, poll or check if done:
   if (fut && fut->done.load()) {

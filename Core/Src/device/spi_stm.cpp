@@ -17,12 +17,6 @@ extern "C" {
 #endif
 // TODO: enable NVIC global interrupts for OCTOSPI and link callback functions correctly.
 
-// ---------- Notes ----------
-// This file expects to be compiled as C++ (it uses new/delete, std::atomic).
-// The HAL callbacks keep C linkage but we use C++ inside. 
-// ---------------------------
-
-// ---------- SPI state ----------
 typedef enum {
     SPI_IDLE,
     SPI_CMD_SENT,
@@ -37,12 +31,11 @@ static volatile uint8_t spiData = 0;
 
 static uint8_t rxBuffer[2]; // shared rx buffer for replies (return code + optional data)
 
-// ---------- Callback and future/promise types ----------
+// Callback and future/promise types
 typedef void (*SpiTransferCallback)(uint8_t returnCode, uint8_t data, void* userCtx);
 
 
 
-// ---------- Job queue ----------
 struct SpiJob {
     uint8_t* txBuf = nullptr;            // ownership: job owns this buffer and must free it
     uint32_t length = 0;
@@ -63,7 +56,7 @@ static void receive_Buffer(uint8_t *buf, uint32_t len);
 static void OSPI_ConfigRawWrite(uint32_t length);
 static void spiStartNextJob(void);
 
-// ---------- Packet packing helper ----------
+// Packet packing helper
 static void pack_bits(uint8_t *buf, uint32_t *bit_offset, uint32_t value, uint8_t nbits) {
     for (int i = nbits - 1; i >= 0; i--) {
         uint32_t byte_pos = *bit_offset / 8;
@@ -79,7 +72,7 @@ static void pack_create_tri_message(uint8_t *buffer, uint16_t numTris, Rasterize
 static void pack_create_instance_message(uint8_t *buffer, uint8_t vertbuffID, uint8_t tribuffID, Rasterizer::Transform *instanceData);
 static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform *instanceData, uint8_t instID);
 
-// ---------- OSPI helper (uses global ospi_cmd and hospi1 from main project) ----------
+// OSPI helper (uses global ospi_cmd and hospi1 from main project)
 static void OSPI_ConfigRawWrite(uint32_t length)
 {
     memset(&ospi_cmd, 0, sizeof(ospi_cmd));
@@ -97,7 +90,13 @@ static void OSPI_ConfigRawWrite(uint32_t length)
     ospi_cmd.SIOOMode        = HAL_OSPI_SIOO_INST_EVERY_CMD;
 }
 
-// ---------- send / receive wrappers ----------
+// send / receive wrappers
+//pin layout on nucleo board
+//pin 0 -> CN10.24
+//pin 1 -> CN7.34
+//pin 2 -> CN10.15
+//pin 3 -> CN10.13
+//NCS -> CN7.28
 static void send_Buffer(uint8_t *buf, uint32_t len)
 {
     OSPI_ConfigRawWrite(len);
@@ -136,7 +135,7 @@ static void receive_Buffer(uint8_t *buf, uint32_t len)
     }
 }
 
-// ---------- Queue helpers ----------
+// Queue helpers
 static bool spiQueueJob(uint8_t* txBuf, uint32_t len, SpiTransferCallback cb, void* ctx, Rasterizer::SpiPromise* promise)
 {
     // Caller passes ownership of txBuf -> job takes ownership and will free it on completion
@@ -153,7 +152,7 @@ static bool spiQueueJob(uint8_t* txBuf, uint32_t len, SpiTransferCallback cb, vo
     job.promise = promise;
 
     spiJobTail = (spiJobTail + 1) % SPI_JOB_QUEUE_SIZE;
-    spiJobCount++;
+    spiJobCount= (spiJobCount + 1);
 
     // if idle, start next job now
     if (spiState == SPI_IDLE) {
@@ -176,7 +175,7 @@ static void spiStartNextJob(void)
     send_Buffer(job.txBuf, job.length);
 }
 
-// ---------- DMA HAL callbacks (C linkage via HAL) ----------
+// DMA HAL callbacks (C linkage via HAL)
 // TX complete -> start RX (2 bytes expected)
 extern "C" void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi) {
     // start receive for reply (2 bytes): return nibble + optional 1-byte data
@@ -222,7 +221,7 @@ extern "C" void HAL_OSPI_RxCpltCallback(OSPI_HandleTypeDef *hospi) {
 
     // 4) advance queue head
     spiJobHead = (spiJobHead + 1) % SPI_JOB_QUEUE_SIZE;
-    spiJobCount--;
+    spiJobCount = (spiJobCount - 1);
 
     // 5) start next job if any
     spiStartNextJob();
@@ -257,18 +256,17 @@ extern "C" void HAL_OSPI_ErrorCallback(OSPI_HandleTypeDef *hospi) {
 
         // advance queue
         spiJobHead = (spiJobHead + 1) % SPI_JOB_QUEUE_SIZE;
-        spiJobCount--;
+        spiJobCount = (spiJobCount - 1);
     }
 
     // try to recover by going idle; upper layer can reenqueue
     spiState = SPI_IDLE;
 }
 
-// ---------- Public "async" wrappers (game side friendly) ----------
 // Note: these functions allocate the packet buffer (malloc) and the returned SpiFuture
 // Caller must delete the returned SpiFuture* when done.
 
-static void spiFutureCallback(uint8_t code, uint8_t data, void* ctx) {
+static __attribute__((unused)) void spiFutureCallback(uint8_t code, uint8_t data, void* ctx) {
     // This callback is only used if caller prefers callback instead of promise.
     // We don't use it in future-based wrappers, but keep it for completeness.
     SpiPromise* p = (SpiPromise*)ctx;
@@ -367,7 +365,7 @@ Rasterizer::SpiFuture* update_instance_async(Rasterizer::Transform *instanceData
 // spi_service: optional polling-style API for code that doesn't want futures.
 // If you pass a pointer to data, it will be populated and the function will return the return code.
 // Returns: 0xFF = busy, 0x15 = SPI error, otherwise return code.
-uint8_t spi_service_poll(uint8_t *data) {
+__attribute__((unused)) uint8_t  spi_service_poll(uint8_t *data) {
     if (spiState == SPI_DONE) {
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET); // Deassert NCS
         spiState = SPI_IDLE;
@@ -383,7 +381,7 @@ uint8_t spi_service_poll(uint8_t *data) {
 
 } // extern "C"
 
-// ---------- Pack functions (adapted from your earlier code) ----------
+// Pack functions
 static void pack_create_vert_message(uint8_t *buffer, uint16_t numVerts, Rasterizer::Vertex *vertices) {
     uint32_t bufsize = 2 + ((numVerts * 108 + 7) / 8);
     memset(buffer, 0, bufsize);
