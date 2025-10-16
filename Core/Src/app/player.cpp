@@ -45,14 +45,21 @@ void Player::update(const InputState &in, const Camera &cam, float dt) {
     // Integrate
     position += velocity * dt;
 
-    // Very primitive ground collision at y=0
-    if (position.y < 0.0f) {
-        position.y = 0.0f;
-        if (velocity.y < 0) velocity.y = 0;
-        grounded = true;
-    } else {
-        grounded = false;
+    grounded = false;
+}
+
+void Player::landOn(float surfaceY) {
+    position.y = surfaceY;
+    if (velocity.y < 0.0f) {
+        velocity.y = 0.0f;
     }
+    grounded = true;
+}
+
+void Player::applyCollisionResult(const Vec3& newPosition, const Vec3& newVelocity, bool groundedState) {
+    position = newPosition;
+    velocity = newVelocity;
+    grounded = groundedState;
 }
 
 } // namespace mcu_game

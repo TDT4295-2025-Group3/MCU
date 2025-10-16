@@ -49,7 +49,7 @@ set(APP_SRC
         Core/Src/app/camera.hpp
         Core/Src/app/camera.cpp
         Core/Src/app/input.hpp
-        Core/Src/Device/spi_stm.hpp
+        Core/Src/device/spi_stm.hpp
 )
 
 set(APP_INC

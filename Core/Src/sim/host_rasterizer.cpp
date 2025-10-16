@@ -13,8 +13,8 @@
 #include <SDL3/SDL.h>
 
 #define S3L_PIXEL_FUNCTION HostRasterizer_DrawPixelShim
-#define S3L_Z_BUFFER 1   // Enable z-buffer so faces occlude correctly (prevents see-through artifacts)
-#define S3L_MAX_PIXELS (320 * 240)   // cap for dynamic res
+#define S3L_Z_BUFFER 1              // Enable z-buffer so faces occlude correctly (prevents see-through artifacts)
+#define S3L_MAX_PIXELS (1024 * 768) // cap for dynamic res (matches max allowed framebuffer size)
 #include "small3dlib.h"
 
 // Utilities
@@ -181,6 +181,12 @@ static inline void HostRasterizer_DrawPixelShim(S3L_PixelInfo *p) {
 
 HostRasterizer::HostRasterizer(int width, int height)
     : impl(std::make_unique<Impl>(width, height)) {
+    // Added for debugging screen size issues
+    const size_t requestedPixels = static_cast<size_t>(width) * static_cast<size_t>(height);
+    if (requestedPixels > S3L_MAX_PIXELS) {
+        throw std::runtime_error(
+            "Requested resolution exceeds S3L_MAX_PIXELS. Increase the limit in host_rasterizer.cpp to continue.");
+    }
     Impl::g_current = impl.get();
 
     // SDL setup
