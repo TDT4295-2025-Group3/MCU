@@ -10,14 +10,22 @@
 
 class Game {
 public:
-    Game(Rasterizer::IRasterizer& gfx, IInput& in, ITimer& time)
-        : gfx(gfx), input(in), timer(time) {}
+    Game(Rasterizer::IRasterizer& gfx, IInput& in, ITimer& time, const char* modelBasePath = nullptr)
+        : gfx(gfx), input(in), timer(time), modelBasePath(modelBasePath) {}
 
     void init();
     void tick_once();
+    void setModelBasePath(const char* basePath) { modelBasePath = basePath; }
 private:
     void tick_logic();
     void tick_graphics();
+    bool loadModelGeometry(const char* relativePath,
+                           uint32_t& vertexId,
+                           uint32_t& triangleId,
+                           bool logSuccess = true,
+                           size_t* outVertexCount = nullptr,
+                           size_t* outTriangleCount = nullptr);
+    bool loadModelInstance(const char* relativePath, const Rasterizer::Transform& transform, uint32_t& instanceId);
     void handle_player_collisions(const mcu_game::Vec3& previousPosition);
     bool sweep_against_box(const mcu_game::Vec3& boxCenter,
                            const mcu_game::Vec3& boxHalfExtents,
@@ -52,4 +60,5 @@ private:
     ITimer&      timer;
     uint32_t next_tick_ms;
     uint32_t next_frame_ms;
+    const char* modelBasePath = nullptr;
 };

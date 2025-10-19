@@ -1,3 +1,32 @@
+/*********************************************************************************************
+*                                                                                           
+*   @@@@@@@@@@@@@@@@@@@@@@@@@@@                                                             
+*  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@                                                            
+*  @@@                       @@@                                                            
+*  @@@                       @@@                                                            
+*  @@@     @@         @@     @@@                                                            
+*  @@@   @@@@@@     @@@@@@   @@@                                                            
+*  @@@    @@@@       @@@@    @@@                                                            
+*  @@@    @@@@       @@@@    @@@                                                            
+*  @@@    @@@@       @@@@    @@@                                                            
+*  @@@    @@@@       @@@@    @@@                                                     @@@@   
+*  @@@    @@@@       @@@@    @@@                                                     @@@@   
+*  @@@    @@@@       @@@@                                                            @@@@   
+*  @@@    @@@@       @@@@    @@@@@@@@@   @@@   @@@   @@@   @@@@@@@@   @@@@@@@  @@@@@@@@@@   
+*  @@@    @@@@       @@@@    @@@    @@@   @@@  @@@@  @@@        @@@   @@@     @@@@   @@@@   
+*  @@@    @@@@       @@@@    @@@    @@@@  @@@ @@ @@ @@@    @@@@@@@@   @@@     @@@    @@@@   
+*  @@@    @@@@@     @@@@@    @@@    @@@    @@@@@ @@@@@@   @@@   @@@   @@@     @@@@   @@@@   
+*  @@@     @@@@@@@@@@@@@     @@@@@@@@@@    @@@@   @@@@    @@@@  @@@   @@@      @@@@@@@@@@   
+*  @@@        @@@@@@@        @@@@@@@@       @@@   @@@      @@@@@@@@   @@@        @@@@@@@@   
+*  @@@                       @@@                                                            
+*  @@@ @@@@@@@@@@@@@@@@@@@@@ @@@                                                            
+*  @@@                                                                                      
+*  @@@                       @@@                                                            
+*  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@                                                            
+*    @@@@@@@@@@@@@@@@@@@@@@@@@                                                              
+*
+*********************************************************************************************/
+
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
@@ -53,6 +82,7 @@ SD_HandleTypeDef hsd_sdmmc1;
 
 static FATFS sdFatFs;
 static char SDPath[4];
+static char gModelBasePath[64];
 
 /* USER CODE BEGIN PV */
 
@@ -68,6 +98,65 @@ static bool MX_SDMMC1_SD_Init(void);
 namespace
 {
 constexpr uint32_t kSdmmcTransferClockDiv = 8U; // 48 MHz / (2 * 8) ~= 3 MHz
+constexpr char kModelDirectory[] = "models";
+
+class NullInput : public IInput
+{
+public:
+  KeyState poll() override { return {}; }
+};
+
+class HalTimer : public ITimer
+{
+public:
+  uint32_t get_ticks_ms() override { return HAL_GetTick(); }
+};
+
+class NullRasterizer : public Rasterizer::IRasterizer
+{
+public:
+  void clear(uint32_t) override {}
+  void rect(uint16_t, uint16_t, uint16_t, uint16_t, uint32_t) override {}
+  void end_frame() override {}
+
+  Rasterizer::WipeAllResponse wipeAll() override
+  {
+    return Rasterizer::WipeAllResponse(Rasterizer::StatusCode::OK);
+  }
+
+  Rasterizer::CreateVertResponse createVertex(const Rasterizer::Vertex*, uint16_t) override
+  {
+    const uint8_t id = nextVertexId++;
+    return Rasterizer::CreateVertResponse(Rasterizer::StatusCode::OK, id);
+  }
+
+  Rasterizer::CreateTriResponse createTriangle(const Rasterizer::Triangle*, uint16_t) override
+  {
+    const uint8_t id = nextTriangleId++;
+    return Rasterizer::CreateTriResponse(Rasterizer::StatusCode::OK, id);
+  }
+
+  Rasterizer::CreateInstResponse createInstance(uint8_t, uint8_t, const Rasterizer::Transform&) override
+  {
+    const uint8_t id = nextInstanceId++;
+    return Rasterizer::CreateInstResponse(Rasterizer::StatusCode::OK, id);
+  }
+
+  Rasterizer::UpdateInstResponse updateInstance(uint8_t, const Rasterizer::Transform&) override
+  {
+    return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
+  }
+
+  Rasterizer::UpdateInstResponse updateCamera(const Rasterizer::Transform&) override
+  {
+    return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
+  }
+
+private:
+  uint8_t nextVertexId = 0;
+  uint8_t nextTriangleId = 0;
+  uint8_t nextInstanceId = 0;
+};
 }
 
 /* USER CODE END PFP */
@@ -132,10 +221,11 @@ static bool SD_CardSelfTest(void)
     {
       const uint32_t blockSize = cardInfo.LogBlockSize;
       const uint64_t capacityBytes = static_cast<uint64_t>(cardInfo.LogBlockNbr) * blockSize;
-      printf("[SD] Card detected: %lu blocks x %lu bytes (%llu MB)\r\n",
+      const unsigned long capacityMB = static_cast<unsigned long>(capacityBytes / (1024ULL * 1024ULL));
+      printf("[SD] Card detected: %lu blocks x %lu bytes (%lu MB)\r\n",
              static_cast<unsigned long>(cardInfo.LogBlockNbr),
              static_cast<unsigned long>(blockSize),
-             static_cast<unsigned long long>(capacityBytes / (1024ULL * 1024ULL)));
+             capacityMB);
     }
     else
     {
@@ -215,6 +305,54 @@ static bool SD_CardSelfTest(void)
 
   return success;
 }
+
+static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
+{
+  if (FATFS_LinkDriver(&SD_Driver, SDPath) != 0)
+  {
+    printf("[SD] FATFS_LinkDriver runtime failed\r\n");
+    return false;
+  }
+
+  const FRESULT mountRes = f_mount(&sdFatFs, SDPath, 1);
+  if (mountRes != FR_OK)
+  {
+    printf("[SD] f_mount runtime failed: %d\r\n", mountRes);
+    FATFS_UnLinkDriver(SDPath);
+    return false;
+  }
+
+  char dirPath[sizeof(gModelBasePath)] = {0};
+  const int dirWritten = std::snprintf(dirPath, sizeof(dirPath), "%s%s", SDPath, kModelDirectory);
+  if ((dirWritten <= 0) || (dirWritten >= static_cast<int>(sizeof(dirPath))))
+  {
+    printf("[SD] models directory path too long\r\n");
+    f_mount(nullptr, SDPath, 0);
+    FATFS_UnLinkDriver(SDPath);
+    return false;
+  }
+
+  const FRESULT dirRes = f_mkdir(dirPath);
+  if (dirRes != FR_OK && dirRes != FR_EXIST)
+  {
+    printf("[SD] f_mkdir('%s') failed: %d\r\n", dirPath, dirRes);
+    f_mount(nullptr, SDPath, 0);
+    FATFS_UnLinkDriver(SDPath);
+    return false;
+  }
+
+  const int baseWritten = std::snprintf(modelBasePath, maxLen, "%s%s/", SDPath, kModelDirectory);
+  if ((baseWritten <= 0) || (baseWritten >= static_cast<int>(maxLen)))
+  {
+    printf("[SD] Model base path buffer too small\r\n");
+    f_mount(nullptr, SDPath, 0);
+    FATFS_UnLinkDriver(SDPath);
+    return false;
+  }
+
+  printf("[SD] Runtime mount OK (base=%s)\r\n", modelBasePath);
+  return true;
+}
 /* USER CODE END 0 */
 
 /**
@@ -252,7 +390,9 @@ int main(void)
   MX_ICACHE_Init();
   /* USER CODE BEGIN 2 */
   bool sdReady = false;
-  uint32_t blinkDelayMs = 1000U;
+  bool runtimeMountOk = false;
+  uint32_t lastBlinkMs = HAL_GetTick();
+  bool errorBlinkShortPhase = false;
 
   /* USER CODE END 2 */
 
@@ -277,7 +417,6 @@ int main(void)
   if (sdInitOk)
   {
     sdReady = SD_CardSelfTest();
-    blinkDelayMs = sdReady ? 200U : 1000U;
 
     if (sdReady)
     {
@@ -293,17 +432,50 @@ int main(void)
     printf("[SD] Controller init failed\r\n");
   }
 
+  NullInput input;
+  HalTimer timer;
+  NullRasterizer rasterizer;
+  Game game{rasterizer, input, timer};
+
+  if (sdReady)
+  {
+    runtimeMountOk = SD_MountForRuntime(gModelBasePath, sizeof(gModelBasePath));
+    if (runtimeMountOk)
+    {
+      game.setModelBasePath(gModelBasePath);
+    }
+  }
+
+  game.init();
+  const bool sdOperational = sdReady && runtimeMountOk;
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
     /* USER CODE END WHILE */
-    HAL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);
-    HAL_Delay(blinkDelayMs);
-    if (!sdReady)
+    game.tick_once();
+
+    const uint32_t now = HAL_GetTick();
+    if (sdOperational)
     {
-      HAL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);
-      HAL_Delay(150);
+      if ((now - lastBlinkMs) >= 200U)
+      {
+        HAL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);
+        lastBlinkMs = now;
+      }
     }
+    else
+    {
+      const uint32_t waitMs = errorBlinkShortPhase ? 150U : 1000U;
+      if ((now - lastBlinkMs) >= waitMs)
+      {
+        HAL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);
+        lastBlinkMs = now;
+        errorBlinkShortPhase = !errorBlinkShortPhase;
+      }
+    }
+
+    HAL_Delay(1);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
