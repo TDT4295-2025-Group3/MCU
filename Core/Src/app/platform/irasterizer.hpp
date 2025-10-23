@@ -9,6 +9,7 @@ namespace Rasterizer {
         OUT_OF_MEMORY = 0b0010,
         INVALID_ID = 0b0011,
         INVALID_OPCODE = 0b0100,
+        SPI_ERROR = 0b1111,
     };
 
     enum class Operation: uint8_t {
