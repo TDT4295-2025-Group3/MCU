@@ -185,8 +185,8 @@ extern "C" void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi) {
 
 // RX complete -> read reply, call job callback/promise, free job buffer, advance queue
 extern "C" void HAL_OSPI_RxCpltCallback(OSPI_HandleTypeDef *hospi) {
-    spiReturnCode = rxBuffer[0] & 0x0F;   // Only lower nibble for return code
-    spiData       = rxBuffer[1];          // Optional data
+    spiReturnCode = rxBuffer[0] & 0xF0;   // Only first nibble for return code
+    spiData       = (rxBuffer[0] & 0x0F) | (rxBuffer[1] & 0xF0); // Optional data in last nibble of first byte and first nibble of second byte
     spiState = SPI_DONE;
 
     // Safely capture the current job (head). ISR runs while main might enqueue, but head is updated here.
@@ -235,7 +235,7 @@ extern "C" void HAL_OSPI_ErrorCallback(OSPI_HandleTypeDef *hospi) {
     if (spiJobCount > 0) {
         SpiJob &job = spiJobQueue[spiJobHead];
 
-        const uint8_t errCode = 0x0F; // custom SPI error code (choose as you like)
+        const uint8_t errCode = static_cast<uint8_t>(Rasterizer::StatusCode::SPI_ERROR);
         const uint8_t errData = 0x00;
 
         if (job.callback) {
