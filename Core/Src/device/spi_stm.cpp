@@ -97,6 +97,7 @@ static void OSPI_ConfigRawWrite(uint32_t length)
 //pin 2 -> CN10.15
 //pin 3 -> CN10.13
 //NCS -> CN7.28
+//CLK -> CN10.37
 static void send_Buffer(uint8_t *buf, uint32_t len)
 {
     OSPI_ConfigRawWrite(len);
