@@ -211,6 +211,9 @@ extern "C" void HAL_OSPI_RxCpltCallback(OSPI_HandleTypeDef *hospi) {
         job.promise->fut->returnCode = (uint8_t)spiReturnCode;
         job.promise->fut->data = (uint8_t)spiData;
         job.promise->fut->done.store(true, std::memory_order_release);
+        if (job.promise->callback) {
+            job.promise->callback(job.promise->fut, job.promise->userCtx);
+        }
         // free promise wrapper (it was allocated alongside future)
         delete job.promise;
         job.promise = nullptr;
@@ -248,6 +251,9 @@ extern "C" void HAL_OSPI_ErrorCallback(OSPI_HandleTypeDef *hospi) {
             job.promise->fut->returnCode = errCode;
             job.promise->fut->data = errData;
             job.promise->fut->done.store(true, std::memory_order_release);
+            if (job.promise->callback) {
+                job.promise->callback(job.promise->fut, job.promise->userCtx);
+            }
             delete job.promise;
             job.promise = nullptr;
         }
@@ -272,7 +278,7 @@ extern "C" void HAL_OSPI_ErrorCallback(OSPI_HandleTypeDef *hospi) {
 static __attribute__((unused)) void spiFutureCallback(uint8_t code, uint8_t data, void* ctx) {
     // This callback is only used if caller prefers callback instead of promise.
     // We don't use it in future-based wrappers, but keep it for completeness.
-    SpiPromise* p = (SpiPromise*)ctx;
+    auto* p = static_cast<Rasterizer::SpiPromise*>(ctx);
     if (p && p->fut) {
         p->fut->returnCode = code;
         p->fut->data = data;
@@ -282,11 +288,15 @@ static __attribute__((unused)) void spiFutureCallback(uint8_t code, uint8_t data
 }
 
 // Helper to create a future and promise
-static Rasterizer::SpiFuture* create_future_and_enqueue(uint8_t* buffer, uint32_t len)
+static Rasterizer::SpiFuture* create_future_and_enqueue(uint8_t* buffer, uint32_t len,
+                                                        SpiFutureCallback userCallback,
+                                                        void* userCtx)
 {
     Rasterizer::SpiFuture* fut = new Rasterizer::SpiFuture();
     Rasterizer::SpiPromise* prom = new Rasterizer::SpiPromise();
     prom->fut = fut;
+    prom->callback = userCallback;
+    prom->userCtx = userCtx;
 
     bool ok = spiQueueJob(buffer, len, nullptr, nullptr, prom);
     if (!ok) {
@@ -302,15 +312,16 @@ static Rasterizer::SpiFuture* create_future_and_enqueue(uint8_t* buffer, uint32_
 extern "C" {
 
 // wipe_all: simple command with no extra data
-Rasterizer::SpiFuture* wipe_all_async(void) {
+Rasterizer::SpiFuture* wipe_all_async(SpiFutureCallback callback, void* userCtx) {
     uint8_t* buf = (uint8_t*)malloc(1);
     if (!buf) return nullptr;
-    buf[0] = static_cast<uint8_t>(Rasterizer::Operation::WIPE_ALL) << 4;
-    return create_future_and_enqueue(buf, 1);
+    buf[0] = static_cast<uint8_t>(Rasterizer::Operation::WIPE_ALL)  << 4;
+    return create_future_and_enqueue(buf, 1, callback, userCtx);
 }
 
 // create_vertex_async: allocate and pack, return a future
-Rasterizer::SpiFuture* create_vertex_async(Rasterizer::Vertex *vertexBuffer, uint16_t vertCount) {
+Rasterizer::SpiFuture* create_vertex_async(Rasterizer::Vertex *vertexBuffer, uint16_t vertCount,
+                                           SpiFutureCallback callback, void* userCtx) {
     if (vertCount == 0) return nullptr;
 
 
@@ -322,14 +333,15 @@ Rasterizer::SpiFuture* create_vertex_async(Rasterizer::Vertex *vertexBuffer, uin
     // pack message (the function will convert floats to Q16.16 in-place)
     pack_create_vert_message(buffer, vertCount, vertexBuffer);
 
-    Rasterizer::SpiFuture* fut = create_future_and_enqueue(buffer, len);
+    Rasterizer::SpiFuture* fut = create_future_and_enqueue(buffer, len, callback, userCtx);
     if (!fut) {
         free(buffer);
     }
     return fut;
 }
 
-Rasterizer::SpiFuture* create_triangle_async(Rasterizer::Triangle *triangleBuffer, uint16_t triCount) {
+Rasterizer::SpiFuture* create_triangle_async(Rasterizer::Triangle *triangleBuffer, uint16_t triCount,
+                                             SpiFutureCallback callback, void* userCtx) {
     if (triCount == 0) return nullptr;
     uint32_t len = 2 + ((triCount * 36 + 7) / 8);
     uint8_t* buffer = (uint8_t*)malloc(len);
@@ -337,31 +349,34 @@ Rasterizer::SpiFuture* create_triangle_async(Rasterizer::Triangle *triangleBuffe
 
     pack_create_tri_message(buffer, triCount, triangleBuffer);
 
-    Rasterizer::SpiFuture* fut = create_future_and_enqueue(buffer, len);
+    Rasterizer::SpiFuture* fut = create_future_and_enqueue(buffer, len, callback, userCtx);
     if (!fut) free(buffer);
     return fut;
 }
 
-Rasterizer::SpiFuture* create_instance_async(Rasterizer::Transform *instanceData, uint8_t vertbufferID, uint8_t tribufferID) {
+Rasterizer::SpiFuture* create_instance_async(Rasterizer::Transform *instanceData, uint8_t vertbufferID,
+                                             uint8_t tribufferID, SpiFutureCallback callback, void* userCtx) {
     uint32_t len = 3 + 12*4;
     uint8_t* buffer = (uint8_t*)malloc(len);
     if (!buffer) return nullptr;
 
     pack_create_instance_message(buffer, vertbufferID, tribufferID, instanceData);
 
-    Rasterizer::SpiFuture* fut = create_future_and_enqueue(buffer, len);
+    Rasterizer::SpiFuture* fut = create_future_and_enqueue(buffer, len, callback, userCtx);
     if (!fut) free(buffer);
     return fut;
 }
 
-Rasterizer::SpiFuture* update_instance_async(Rasterizer::Transform *instanceData, uint8_t vertID, uint8_t triID, uint8_t instanceId) {
+    uint32_t len = 3 + 12*4;
+Rasterizer::SpiFuture* update_instance_async(Rasterizer::Transform *instanceData, uint8_t vertID, uint8_t triID, uint8_t instanceId,
+    SpiFutureCallback callback, void* userCtx) {
     uint32_t len = 4 + 12*4;
     uint8_t* buffer = (uint8_t*)malloc(len);
     if (!buffer) return nullptr;
 
     pack_instance_update_message(buffer, instanceData, vertID, triID, instanceId);
 
-    Rasterizer::SpiFuture* fut = create_future_and_enqueue(buffer, len);
+    Rasterizer::SpiFuture* fut = create_future_and_enqueue(buffer, len, callback, userCtx);
     if (!fut) free(buffer);
     return fut;
 }
@@ -492,24 +507,138 @@ static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform 
 
 
 namespace Rasterizer {
-    Rasterizer::SpiFuture* SpiAsyncRasterizer::wipeAllAsync() {
-        return wipe_all_async();
+    Rasterizer::SpiFuture* SpiAsyncRasterizer::wipeAllAsync(FutureCallback callback, void* userCtx) {
+        return wipe_all_async(callback, userCtx);
     }
 
-    Rasterizer::SpiFuture* SpiAsyncRasterizer::createVertexAsync(const Vertex* vertices, uint16_t count) {
+    Rasterizer::SpiFuture* SpiAsyncRasterizer::createVertexAsync(const Vertex* vertices, uint16_t count,
+                                                                 FutureCallback callback, void* userCtx) {
         // cast away const since the SPI layer takes non-const (we can fix that later)
-        return create_vertex_async(const_cast<Vertex*>(vertices), count);
+        return create_vertex_async(const_cast<Vertex*>(vertices), count, callback, userCtx);
     }
 
-    Rasterizer::SpiFuture* SpiAsyncRasterizer::createTriangleAsync(const Triangle* triangles, uint16_t count) {
-        return create_triangle_async(const_cast<Triangle*>(triangles), count);
+    Rasterizer::SpiFuture* SpiAsyncRasterizer::createTriangleAsync(const Triangle* triangles, uint16_t count,
+                                                                   FutureCallback callback, void* userCtx) {
+        return create_triangle_async(const_cast<Triangle*>(triangles), count, callback, userCtx);
     }
 
-    Rasterizer::SpiFuture* SpiAsyncRasterizer::createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform) {
-        return create_instance_async(const_cast<Transform*>(&transform), vertexId, triangleId);
+    Rasterizer::SpiFuture* SpiAsyncRasterizer::createInstanceAsync(uint8_t vertexId, uint8_t triangleId,
+                                                                   const Transform& transform,
+                                                                   FutureCallback callback, void* userCtx) {
+        return create_instance_async(const_cast<Transform*>(&transform), vertexId, triangleId, callback, userCtx);
     }
 
-    Rasterizer::SpiFuture* SpiAsyncRasterizer::updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) {
-        return update_instance_async(const_cast<Transform*>(&transform), vertID, triID, instanceId);
+    Rasterizer::SpiFuture* SpiAsyncRasterizer::updateInstanceAsync(uint8_t instanceId, const Transform& transform,
+                                                                   FutureCallback callback, void* userCtx) {
+        return update_instance_async(const_cast<Transform*>(&transform), instanceId, callback, userCtx);
+    }
+
+    void SpiRasterizer::basic_callback(SpiFuture* future, void* ctx) {
+        if (!future || ctx == nullptr) {
+            return;
+        }
+        auto* state = static_cast<CallbackState*>(ctx);
+        state->status = static_cast<StatusCode>(future->returnCode);
+        state->data = future->data;
+        state->finished.store(true, std::memory_order_release);
+    }
+
+    void SpiRasterizer::wait_for_completion(CallbackState& state) {
+        while (!state.finished.load(std::memory_order_acquire)) {
+            // Busy-wait; consider integrating with an RTOS event or yield if available
+        }
+    }
+
+    // void SpiRasterizer::clear(uint32_t /*argb*/) {
+    //     // Hardware clear command not yet implemented; placeholder
+    // }
+
+    // void SpiRasterizer::rect(uint16_t /*x*/, uint16_t /*y*/, uint16_t /*w*/, uint16_t /*h*/, uint32_t /*argb*/) {
+    //     // Not supported on SPI rasterizer; placeholder
+    // }
+
+    // void SpiRasterizer::end_frame() {
+    //     // No explicit frame boundary command in current protocol
+    // }
+
+    WipeAllResponse SpiRasterizer::wipeAll() {
+        CallbackState state{};
+        SpiFuture* fut = async_.wipeAllAsync(&SpiRasterizer::basic_callback, &state);
+        if (!fut) {
+            return WipeAllResponse(StatusCode::SPI_ERROR);
+        }
+        wait_for_completion(state);
+        delete fut;
+        return WipeAllResponse(state.status);
+    }
+
+    CreateVertResponse SpiRasterizer::createVertex(const Vertex* vertices, uint16_t count) {
+        CallbackState state{};
+        SpiFuture* fut = async_.createVertexAsync(vertices, count, &SpiRasterizer::basic_callback, &state);
+        if (!fut) {
+            return CreateVertResponse(StatusCode::SPI_ERROR, 0);
+        }
+        wait_for_completion(state);
+        delete fut;
+        return CreateVertResponse(state.status, state.data);
+    }
+
+    CreateTriResponse SpiRasterizer::createTriangle(const Triangle* triangles, uint16_t count) {
+        CallbackState state{};
+        SpiFuture* fut = async_.createTriangleAsync(triangles, count, &SpiRasterizer::basic_callback, &state);
+        if (!fut) {
+            return CreateTriResponse(StatusCode::SPI_ERROR, 0);
+        }
+        wait_for_completion(state);
+        delete fut;
+        return CreateTriResponse(state.status, state.data);
+    }
+
+    CreateInstResponse SpiRasterizer::createInstance(uint8_t vertexId, uint8_t triangleId, const Transform& transform) {
+        CallbackState state{};
+        SpiFuture* fut = async_.createInstanceAsync(vertexId, triangleId, transform,
+                                                    &SpiRasterizer::basic_callback, &state);
+        if (!fut) {
+            return CreateInstResponse(StatusCode::SPI_ERROR, 0);
+        }
+        wait_for_completion(state);
+        delete fut;
+        return CreateInstResponse(state.status, state.data);
+    }
+
+    UpdateInstResponse SpiRasterizer::updateInstance(uint8_t instanceId, const Transform& transform) {
+        CallbackState state{};
+        SpiFuture* fut = async_.updateInstanceAsync(instanceId, transform,
+                                                    &SpiRasterizer::basic_callback, &state);
+        if (!fut) {
+            return UpdateInstResponse(StatusCode::SPI_ERROR);
+        }
+        wait_for_completion(state);
+        delete fut;
+        return UpdateInstResponse(state.status);
+    }
+
+    SpiFuture* SpiRasterizer::wipeAllAsync(FutureCallback callback, void* userCtx) {
+        return async_.wipeAllAsync(callback, userCtx);
+    }
+
+    SpiFuture* SpiRasterizer::createVertexAsync(const Vertex* vertices, uint16_t count,
+                                                FutureCallback callback, void* userCtx) {
+        return async_.createVertexAsync(vertices, count, callback, userCtx);
+    }
+
+    SpiFuture* SpiRasterizer::createTriangleAsync(const Triangle* triangles, uint16_t count,
+                                                  FutureCallback callback, void* userCtx) {
+        return async_.createTriangleAsync(triangles, count, callback, userCtx);
+    }
+
+    SpiFuture* SpiRasterizer::createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
+                                                  FutureCallback callback, void* userCtx) {
+        return async_.createInstanceAsync(vertexId, triangleId, transform, callback, userCtx);
+    }
+
+    SpiFuture* SpiRasterizer::updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform,
+                                                  FutureCallback callback, void* userCtx) {
+        return async_.updateInstanceAsync(vertID, triID, instanceId, transform, callback, userCtx);
     }
 }

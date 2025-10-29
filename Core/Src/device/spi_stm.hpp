@@ -3,11 +3,6 @@
 #include "irasterizer.hpp"
 #include <atomic>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // Define the raw type for Q16.16
 using Q16_16 = int32_t;
 
@@ -22,16 +17,7 @@ inline float q16_16ToFloat(Q16_16 value) {
     return static_cast<float>(value) / (1 << 16);
 }
 
-// Minimal future/promise pair
-struct SpiFuture {
-    std::atomic<bool> done{false};
-    uint8_t returnCode = 0;
-    uint8_t data = 0;
-};
-
-struct SpiPromise {
-    SpiFuture* fut = nullptr;
-};
+using SpiFutureCallback = Rasterizer::FutureCallback;
 
 namespace Rasterizer {
 
@@ -44,15 +30,71 @@ public:
     Rasterizer::SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count) override;
     Rasterizer::SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform) override;
     Rasterizer::SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) override;
+    Rasterizer::SpiFuture* wipeAllAsync(FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+    Rasterizer::SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count,
+                                             FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+    Rasterizer::SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count,
+                                               FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+    Rasterizer::SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
+                                               FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+    Rasterizer::SpiFuture* updateInstanceAsync(uint8_t instanceId, const Transform& transform,
+                                               FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+};
+
+class SpiRasterizer : public IRasterizer {
+public:
+    SpiRasterizer() = default;
+
+    void clear(uint32_t argb) override;
+    void rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t argb) override;
+    void end_frame() override;
+
+    WipeAllResponse wipeAll() override;
+    CreateVertResponse createVertex(const Vertex* vertices, uint16_t count) override;
+    CreateTriResponse createTriangle(const Triangle* triangles, uint16_t count) override;
+    CreateInstResponse createInstance(uint8_t vertexId, uint8_t triangleId, const Transform& transform) override;
+    UpdateInstResponse updateInstance(uint8_t instanceId, const Transform& transform) override;
+
+    SpiFuture* wipeAllAsync(FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+    SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count,
+                                 FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+    SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count,
+                                   FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+    SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
+                                   FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+    SpiFuture* updateInstanceAsync(uint8_t instanceId, const Transform& transform,
+                                   FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+
+private:
+// Used as userCtx so async callbacks can store results like status and data.
+// This happens after the SPI transaction is done.
+    struct CallbackState {
+        std::atomic<bool> finished{false};
+        StatusCode status = StatusCode::SPI_ERROR;
+        uint8_t data = 0;
+    };
+
+    static void basic_callback(SpiFuture* future, void* ctx);
+    static void wait_for_completion(CallbackState& state);
+
+    SpiAsyncRasterizer async_{};
 };
 
 } // namespace Rasterizer
 
-// uint8_t wipe_all(void);
-// uint16_t create_vertex(Rasterizer::Vertex *vertexBuffer, uint16_t vertCount);
-// uint16_t create_triangle(Rasterizer::Triangle *triangleBuffer, uint16_t triCount);
-// uint16_t create_instance(Rasterizer::Transform *instanceData, uint8_t vertbufferID, uint8_t tribufferID);
-// uint8_t update_instance(Rasterizer::Transform *instanceData, uint8_t instID);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+Rasterizer::SpiFuture* wipe_all_async(SpiFutureCallback callback, void* userCtx);
+Rasterizer::SpiFuture* create_vertex_async(Rasterizer::Vertex *vertexBuffer, uint16_t vertCount,
+                                          SpiFutureCallback callback, void* userCtx);
+Rasterizer::SpiFuture* create_triangle_async(Rasterizer::Triangle *triangleBuffer, uint16_t triCount,
+                                            SpiFutureCallback callback, void* userCtx);
+Rasterizer::SpiFuture* create_instance_async(Rasterizer::Transform *instanceData, uint8_t vertbufferID,
+                                            uint8_t tribufferID, SpiFutureCallback callback, void* userCtx);
+Rasterizer::SpiFuture* update_instance_async(Rasterizer::Transform *instanceData, uint8_t instID,
+                                            SpiFutureCallback callback, void* userCtx);
 #ifdef __cplusplus
 }
 #endif

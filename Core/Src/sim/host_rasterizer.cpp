@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <vector>
 #include <array>
+#include <atomic>
 
 // SDL only in this TU
 #include <SDL3/SDL_render.h>
@@ -36,6 +37,20 @@ static inline uint32_t ARGB_to_ABGR(uint32_t argb) {
 }
 
 static inline void HostRasterizer_DrawPixelShim(S3L_PixelInfo *p);
+
+namespace {
+Rasterizer::SpiFuture* makeImmediateFuture(Rasterizer::StatusCode status, uint8_t data,
+                                           Rasterizer::FutureCallback callback, void* userCtx) {
+    auto* fut = new Rasterizer::SpiFuture();
+    fut->returnCode = static_cast<uint8_t>(status);
+    fut->data = data;
+    fut->done.store(true, std::memory_order_release);
+    if (callback) {
+        callback(fut, userCtx);
+    }
+    return fut;
+}
+}
 
 static bool processEvents() {
     SDL_Event event;
@@ -396,4 +411,34 @@ Rasterizer::UpdateInstResponse HostRasterizer::updateCamera(const Rasterizer::Tr
     Impl::toS3LTransform(transform, camT);
     impl->scene.camera.transform = camT;
     return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
+}
+
+Rasterizer::SpiFuture* HostRasterizer::wipeAllAsync(Rasterizer::FutureCallback callback, void* userCtx) {
+    auto resp = wipeAll();
+    return makeImmediateFuture(resp.getStatus(), 0, callback, userCtx);
+}
+
+Rasterizer::SpiFuture* HostRasterizer::createVertexAsync(const Rasterizer::Vertex *vertices, uint16_t count,
+                                                         Rasterizer::FutureCallback callback, void* userCtx) {
+    auto resp = createVertex(vertices, count);
+    return makeImmediateFuture(resp.getStatus(), resp.getVertexId(), callback, userCtx);
+}
+
+Rasterizer::SpiFuture* HostRasterizer::createTriangleAsync(const Rasterizer::Triangle *triangles, uint16_t count,
+                                                           Rasterizer::FutureCallback callback, void* userCtx) {
+    auto resp = createTriangle(triangles, count);
+    return makeImmediateFuture(resp.getStatus(), resp.getTriangleId(), callback, userCtx);
+}
+
+Rasterizer::SpiFuture* HostRasterizer::createInstanceAsync(uint8_t vertexId, uint8_t triangleId,
+                                                           const Rasterizer::Transform &transform,
+                                                           Rasterizer::FutureCallback callback, void* userCtx) {
+    auto resp = createInstance(vertexId, triangleId, transform);
+    return makeImmediateFuture(resp.getStatus(), resp.getInstanceId(), callback, userCtx);
+}
+
+Rasterizer::SpiFuture* HostRasterizer::updateInstanceAsync(uint8_t instanceId, const Rasterizer::Transform &transform,
+                                                           Rasterizer::FutureCallback callback, void* userCtx) {
+    auto resp = updateInstance(instanceId, transform);
+    return makeImmediateFuture(resp.getStatus(), 0, callback, userCtx);
 }

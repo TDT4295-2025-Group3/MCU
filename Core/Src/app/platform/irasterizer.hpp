@@ -27,8 +27,12 @@ namespace Rasterizer {
         uint8_t data = 0;
     };
 
+    using FutureCallback = void (*)(SpiFuture*, void*);
+
     struct SpiPromise {
         SpiFuture* fut = nullptr;
+        FutureCallback callback = nullptr;
+        void* userCtx = nullptr;
     };
 
     struct Vertex {
@@ -176,6 +180,16 @@ namespace Rasterizer {
          */
         virtual UpdateInstResponse updateInstance(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) = 0;
 
+        virtual SpiFuture* wipeAllAsync(FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+        virtual SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count,
+                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+        virtual SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count,
+                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+        virtual SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
+                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+        virtual SpiFuture* updateInstanceAsync(uint8_t instanceId, const Transform& transform,
+                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+
         /**
          * Camera transform update;
          * @param transform new transform
@@ -188,11 +202,15 @@ namespace Rasterizer {
 
     class IAsyncRasterizer {
 public:
-    virtual SpiFuture* wipeAllAsync() = 0;
-    virtual SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count) = 0;
-    virtual SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count) = 0;
-    virtual SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform) = 0;
-    virtual SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) = 0;
+    virtual SpiFuture* wipeAllAsync(FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+    virtual SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count,
+                                         FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+    virtual SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count,
+                                           FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+    virtual SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
+                                           FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+    virtual SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform,
+                                           FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
 
     virtual ~IAsyncRasterizer() = default;
 };
