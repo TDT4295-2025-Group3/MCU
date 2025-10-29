@@ -186,7 +186,7 @@ extern "C" void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi) {
 
 // RX complete -> read reply, call job callback/promise, free job buffer, advance queue
 extern "C" void HAL_OSPI_RxCpltCallback(OSPI_HandleTypeDef *hospi) {
-    spiReturnCode = rxBuffer[0] & 0xF0;   // Only first nibble for return code
+    spiReturnCode = (rxBuffer[0] & 0xF0) >> 4;   // Only first nibble for return code
     spiData       = (rxBuffer[0] & 0x0F) | (rxBuffer[1] & 0xF0); // Optional data in last nibble of first byte and first nibble of second byte
     spiState = SPI_DONE;
 
