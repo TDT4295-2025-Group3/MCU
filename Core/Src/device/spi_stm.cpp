@@ -367,9 +367,8 @@ Rasterizer::SpiFuture* create_instance_async(Rasterizer::Transform *instanceData
     return fut;
 }
 
-    uint32_t len = 3 + 12*4;
 Rasterizer::SpiFuture* update_instance_async(Rasterizer::Transform *instanceData, uint8_t vertID, uint8_t triID, uint8_t instanceId,
-    SpiFutureCallback callback, void* userCtx) {
+        SpiFutureCallback callback, void* userCtx) {
     uint32_t len = 4 + 12*4;
     uint8_t* buffer = (uint8_t*)malloc(len);
     if (!buffer) return nullptr;

@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
+#include <cstdio>
 #include "spi_stm.hpp"
 
 #ifdef SPI_TEST_MODE
@@ -130,6 +131,9 @@ int main(void)
   #ifdef SPI_TEST_MODE
   spi_test_main();
   #endif
+  Rasterizer::SpiAsyncRasterizer rasterizer;
+  Rasterizer::SpiFuture* fut = nullptr;
+
 
   /* USER CODE END 2 */
 
@@ -139,12 +143,29 @@ int main(void)
   /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
   BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
 
-  
+
+
+  BSP_COM_SelectLogPort(COM1);
+
+  setvbuf(stdout, nullptr, _IONBF, 0);
+  printf("Console ready\r\n");
+
+  fut = rasterizer.updateInstanceAsync(1, testInst);
+  if (!fut) {
+    printf("updateInstanceAsync enqueue failed\r\n");
+  } else {
+    printf("updateInstanceAsync queued\r\n");
+  }
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    if (fut && fut->done.load(std::memory_order_acquire)) {
+      printf("SPI future done rc=0x%02X data=0x%02X\r\n", fut->returnCode, fut->data);
+      delete fut;
+      fut = nullptr;
+    }
 
     // wipe_all_start();
 
@@ -159,6 +180,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
