@@ -27,7 +27,7 @@ public:
 
     Rasterizer::UpdateInstResponse updateInstance(uint8_t instanceId, const Rasterizer::Transform &transform) override;
 
-    Rasterizer::UpdateInstResponse updateCamera(const Rasterizer::Transform &transform);
+    Rasterizer::UpdateInstResponse updateCamera(const Rasterizer::Transform &transform) override;
 
     Rasterizer::SpiFuture* wipeAllAsync(Rasterizer::FutureCallback callback = nullptr, void* userCtx = nullptr) override;
     Rasterizer::SpiFuture* createVertexAsync(const Rasterizer::Vertex *vertices, uint16_t count,
