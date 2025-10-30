@@ -192,6 +192,11 @@ ModelLoadResult parse_obj(const char* path, const std::string& content, ModelDat
             continue;
         }
 
+        // Ignore everything that is not a vertex or face
+        if (!(tokens[0] == "v" || tokens[0] == "f")) {
+            continue;
+        }
+
         if (tokens[0] == "v") {
             if (tokens.size() < 4) {
                 std::printf("[Model] Parse error in %s (line %zu): vertex needs x y z\n", path, lineNumber);

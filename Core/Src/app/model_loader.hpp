@@ -14,7 +14,8 @@
  *
  * Currently unsupported
  * ---------------------
- * - Texture coordinates (`vt`), normals (`vn`), materials, groups, smoothing, etc.
+ * - Texture coordinates (`vt`), normals (`vn`), materials, groups, smoothing,
+ * and other directives are ignored during parsing.
  * - Non-manifold checks, degenerate triangle culling, or automatic normal generation.
  *
  * Limits
