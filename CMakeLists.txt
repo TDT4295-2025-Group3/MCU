@@ -9,6 +9,7 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 # Build switches
 option(BUILD_STM32 "Build the STM32 firmware target" ON)
 option(BUILD_SIMULATOR "Build the PC simulator target" ON)
+option(BUILD_SPI_TESTS "Build SPI protocol unit tests" OFF)
 
 # -------------------------
 # Compiler standards
@@ -90,6 +91,23 @@ if (BUILD_STM32)
 
     target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_STM32=1)
 
+    # If SPI tests are enabled, compile firmware with SPI test mode so main() can call spi_test_main()
+    if (BUILD_SPI_TESTS)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE SPI_TEST_MODE=1)
+    endif()
+
+    # If SPI tests are enabled, also compile the test harness into the firmware so
+    # spi_test_main() is available from main(). This keeps a single firmware ELF
+    # that runs tests at startup.
+    if (BUILD_SPI_TESTS)
+        target_sources(${PROJECT_NAME} PRIVATE
+            Core/Test/SPITests/spiTestHarness.c
+            Core/Test/SPITests/ProtocolTests.cpp
+        )
+        target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/Core/Test/SPITests)
+        # Unity is already linked below; ensure it's available for the test harness
+    endif()
+
     # keep your libob quirk
     list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 
@@ -99,6 +117,47 @@ if (BUILD_STM32)
             Unity
             
             # add other libs here, still plain
+    )
+endif()
+
+# -------------------------
+# STM32 SPI/Integration tests
+# -------------------------
+if (BUILD_STM32 AND BUILD_SPI_TESTS)
+    # Build an ELF that runs the Unity-based SPI protocol tests on the MCU.
+    add_executable(test
+        Core/Test/SPITests/spiTestHarness.c
+        Core/Test/SPITests/ProtocolTests.cpp
+        Core/Src/device/spi_stm.cpp
+        Core/Src/device/spi_stm.hpp
+        Core/Src/main.cpp
+        Core/Src/sysmem.c
+        Core/Src/syscalls.c
+        startup_stm32u545xx.s
+    )
+
+    # Include same directories as firmware so tests can access HAL headers and project headers
+    target_include_directories(test PRIVATE
+        ${APP_INC}
+        ${CMAKE_SOURCE_DIR}/Core/Src/device
+        ${CMAKE_SOURCE_DIR}/Core/Test/SPITests
+        ${CMAKE_SOURCE_DIR}/Core/Src
+        ${CMAKE_SOURCE_DIR}/Core/Src/app
+        ${CMAKE_SOURCE_DIR}/Core/Src/Device
+        ${CMAKE_SOURCE_DIR}/Core/Src
+        ${CMAKE_SOURCE_DIR}/Core/External/Unity/src
+    )
+
+    target_compile_definitions(test PRIVATE PLATFORM_STM32=1)
+
+    # Link with the STM32 support and Unity test lib
+    # stm32cubemx is provided by the cmake/stm32cubemx subdirectory
+    # Link with STM32CubeMX generated drivers (OBJECT library) and Unity
+    # STM32_Drivers is created in cmake/stm32cubemx/CMakeLists.txt as an OBJECT library
+    target_link_libraries(test
+        stm32cubemx
+        STM32_Drivers
+        Unity
     )
 endif()
 
