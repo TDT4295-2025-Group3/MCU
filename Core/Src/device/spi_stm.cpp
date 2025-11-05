@@ -29,7 +29,7 @@ static volatile SPI_TransactionState spiState = SPI_IDLE;
 static volatile uint8_t spiReturnCode = 0;
 static volatile uint8_t spiData = 0;
 
-static uint8_t rxBuffer[2]; // shared rx buffer for replies (return code + optional data)
+static uint8_t rxBuffer[3] = {0}; // shared rx buffer for replies (return code + optional data)
 
 // Callback and future/promise types
 typedef void (*SpiTransferCallback)(uint8_t returnCode, uint8_t data, void* userCtx);
@@ -100,7 +100,7 @@ static void OSPI_ConfigRawWrite(uint32_t length)
 //CLK -> CN10.37
 static void send_Buffer(uint8_t *buf, uint32_t len)
 {
-    OSPI_ConfigRawWrite(len);
+    OSPI_ConfigRawWrite(len+1); //+1 for dummy end byte to give FPGA more clock cycles
 
     if (HAL_OSPI_Command(&hospi1, &ospi_cmd, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
     {
@@ -119,7 +119,7 @@ static void send_Buffer(uint8_t *buf, uint32_t len)
 
 static void receive_Buffer(uint8_t *buf, uint32_t len)
 {
-    OSPI_ConfigRawWrite(len);
+    OSPI_ConfigRawWrite(len+1);
 
     if (HAL_OSPI_Command(&hospi1, &ospi_cmd, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
     {
@@ -180,14 +180,16 @@ static void spiStartNextJob(void)
 // TX complete -> start RX (2 bytes expected)
 extern "C" void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi) {
     // start receive for reply (2 bytes): return nibble + optional 1-byte data
-    receive_Buffer(rxBuffer, 2);
+    printf("TX complete, starting RX\r\n");
+    receive_Buffer(rxBuffer, 3);
     spiState = SPI_RX_WAIT;
 }
 
 // RX complete -> read reply, call job callback/promise, free job buffer, advance queue
 extern "C" void HAL_OSPI_RxCpltCallback(OSPI_HandleTypeDef *hospi) {
-    spiReturnCode = (rxBuffer[0] & 0xF0) >> 4;   // Only first nibble for return code
-    spiData       = (rxBuffer[0] & 0x0F) | (rxBuffer[1] & 0xF0); // Optional data in last nibble of first byte and first nibble of second byte
+    printf("RX complete, processing reply\r\n");
+    spiReturnCode = ((rxBuffer[2] & 0xF0) >> 4) | (rxBuffer[2] & 0x0F);   // Only first nibble for return code
+    spiData       = rxBuffer[1]; // Optional data in last nibble of first byte and first nibble of second byte
     spiState = SPI_DONE;
 
     // Safely capture the current job (head). ISR runs while main might enqueue, but head is updated here.
@@ -310,6 +312,7 @@ Rasterizer::SpiFuture* wipe_all_async(void) {
 // create_vertex_async: allocate and pack, return a future
 Rasterizer::SpiFuture* create_vertex_async(Rasterizer::Vertex *vertexBuffer, uint16_t vertCount) {
     if (vertCount == 0) return nullptr;
+
 
     // compute length similarly to your previous formula
     uint32_t len = 2 + ((vertCount * 108 + 7) / 8);
