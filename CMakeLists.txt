@@ -58,6 +58,17 @@ set(APP_INC
 )
 
 # -------------------------
+# Unity (Unit Test Lib)
+# -------------------------
+add_library(Unity STATIC
+    Core/External/Unity/src/unity.c
+)
+
+target_include_directories(Unity PUBLIC
+    Core/External/Unity/src
+)
+
+# -------------------------
 # STM32 firmware (cross)
 # -------------------------
 # --- STM32 firmware (cross) ---
@@ -74,6 +85,7 @@ if (BUILD_STM32)
     target_include_directories(${PROJECT_NAME} PRIVATE
             ${APP_INC}
             ${CMAKE_SOURCE_DIR}/Core/Src/device
+            ${CMAKE_SOURCE_DIR}/Core/External/Unity/src
     )
 
     target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_STM32=1)
@@ -84,6 +96,8 @@ if (BUILD_STM32)
     # ⬇⬇⬇ Change to the PLAIN signature (no PRIVATE/PUBLIC/INTERFACE)
     target_link_libraries(${PROJECT_NAME}
             stm32cubemx
+            Unity
+            
             # add other libs here, still plain
     )
 endif()
