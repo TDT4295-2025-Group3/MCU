@@ -25,6 +25,10 @@
 #include <string.h>
 #include "spi_stm.hpp"
 
+#ifdef SPI_TEST_MODE
+extern "C" int spi_test_main(void);
+#endif
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,7 +65,11 @@ static void MX_GPDMA1_Init(void);
 static void MX_ICACHE_Init(void);
 static void MX_OCTOSPI1_Init(void);
 /* USER CODE BEGIN PFP */
-
+extern "C" int _write(int file, char *ptr, int len)
+{
+    HAL_UART_Transmit(&hcom_uart[COM1], (uint8_t*)ptr, len, HAL_MAX_DELAY);
+    return len;
+}
 
 /* USER CODE END PFP */
 
@@ -88,6 +96,17 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
+  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
+  BspCOMInit.BaudRate   = 115200;
+  BspCOMInit.WordLength = COM_WORDLENGTH_8B;
+  BspCOMInit.StopBits   = COM_STOPBITS_1;
+  BspCOMInit.Parity     = COM_PARITY_NONE;
+  BspCOMInit.HwFlowCtl  = COM_HWCONTROL_NONE;
+  if (BSP_COM_Init(COM1, &BspCOMInit) != BSP_ERROR_NONE)
+  {
+    Error_Handler();
+  }
+
   /* USER CODE END Init */
 
   /* Configure the System Power */
@@ -107,7 +126,18 @@ int main(void)
   MX_OCTOSPI1_Init();
   /* USER CODE BEGIN 2 */
   //test create vertex x,y,z,r,g,b 32bit float and 4 bit colour
-  Rasterizer::Vertex testVerts[3];
+
+
+  #ifdef SPI_TEST_MODE
+  spi_test_main();
+
+  // freeze after tests so log stays visible
+  while (1) {}
+  #endif
+
+
+
+  Rasterizer::Vertex testVerts[1];
   testVerts[0].x = 1.0f;
   testVerts[0].y = 0.0f;
   testVerts[0].z = 11.11f;
@@ -115,19 +145,26 @@ int main(void)
   testVerts[0].g = 0;
   testVerts[0].b = 0;
 
-  testVerts[1].x = 0.0f;
-  testVerts[1].y = 1.0f;
-  testVerts[1].z = 0.0f;
-  testVerts[1].r = 0;
-  testVerts[1].g = 15;
-  testVerts[1].b = 0;
+  // testVerts[1].x = 0.0f;
+  // testVerts[1].y = 1.0f;
+  // testVerts[1].z = 0.0f;
+  // testVerts[1].r = 0;
+  // testVerts[1].g = 15;
+  // testVerts[1].b = 0;
 
-  testVerts[2].x = 0.0f;
-  testVerts[2].y = 0.0f;
-  testVerts[2].z = 1.0f;
-  testVerts[2].r = 0;
-  testVerts[2].g = 0;
-  testVerts[2].b = 15;
+  // testVerts[2].x = 0.0f;
+  // testVerts[2].y = 0.0f;
+  // testVerts[2].z = 1.0f;
+  // testVerts[2].r = 0;
+  // testVerts[2].g = 0;
+  // testVerts[2].b = 15;
+
+  // testVerts[3].x = 1.0f;
+  // testVerts[3].y = 1.0f;
+  // testVerts[3].z = 1.0f;
+  // testVerts[3].r = 15;
+  // testVerts[3].g = 15;
+  // testVerts[3].b = 15;
 
   Rasterizer::Triangle testTri[1];
   testTri[0].index0 = 0;
@@ -146,15 +183,67 @@ int main(void)
   
 
   Rasterizer::SpiAsyncRasterizer rasterizer;
+  // auto fut5 = rasterizer.createVertexAsync(testVerts, 1);
+  // auto fut4 = rasterizer.createTriangleAsync(testTri, 1);
+  // auto fut = rasterizer.wipeAllAsync();
+  printf("Starting async vertex creation...\n");
+for (int i = 0; i < 15; i++) {
+   auto fut = rasterizer.createVertexAsync(testVerts, 1);
+  // auto fut = rasterizer.createTriangleAsync(testTri, 1);
+  // auto fut = rasterizer.createInstanceAsync(0,0,testInst);
+  // auto fut = rasterizer.updateInstanceAsync(1, testInst);
 
-  auto fut = rasterizer.updateInstanceAsync(1, testInst);
+  HAL_Delay(100); // simulate doing other work
+
   // Continue doing other logic...
   // Later, poll or check if done:
+
+
+
   if (fut && fut->done.load()) {
       if (fut->returnCode == static_cast<uint8_t>(Rasterizer::StatusCode::OK)) {
           // success
       }
       delete fut;
+  }
+}
+  
+  auto fut2 = rasterizer.createVertexAsync(testVerts, 1);
+  // auto fut2 = rasterizer.createTriangleAsync(testTri, 1);
+  // auto fut2 = rasterizer.createInstanceAsync(1,1,testInst);
+  // auto fut2 = rasterizer.updateInstanceAsync(1, testInst);
+
+  HAL_Delay(1000); // simulate doing other work
+
+  // Continue doing other logic...
+  // Later, poll or check if done:
+
+
+
+  if (fut2 && fut2->done.load()) {
+      if (fut2->returnCode == static_cast<uint8_t>(Rasterizer::StatusCode::OK)) {
+          // success
+      }
+      delete fut2;
+  }
+
+  auto fut3 = rasterizer.createVertexAsync(testVerts, 1);
+  // auto fut3 = rasterizer.createTriangleAsync(testTri, 1);
+  // auto fut3 = rasterizer.createInstanceAsync(0,0,testInst);
+  // auto fut3 = rasterizer.updateInstanceAsync(1, testInst);
+
+  HAL_Delay(1000); // simulate doing other work
+
+  // Continue doing other logic...
+  // Later, poll or check if done:
+
+
+
+  if (fut3 && fut3->done.load()) {
+      if (fut3->returnCode == static_cast<uint8_t>(Rasterizer::StatusCode::OK)) {
+          // success
+      }
+      delete fut3;
   }
 
 
@@ -166,16 +255,7 @@ int main(void)
   /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
   BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
 
-  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
-  BspCOMInit.BaudRate   = 115200;
-  BspCOMInit.WordLength = COM_WORDLENGTH_8B;
-  BspCOMInit.StopBits   = COM_STOPBITS_1;
-  BspCOMInit.Parity     = COM_PARITY_NONE;
-  BspCOMInit.HwFlowCtl  = COM_HWCONTROL_NONE;
-  if (BSP_COM_Init(COM1, &BspCOMInit) != BSP_ERROR_NONE)
-  {
-    Error_Handler();
-  }
+  
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
