@@ -127,12 +127,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
   //test create vertex x,y,z,r,g,b 32bit float and 4 bit colour
 
-
+  // automatic testing if enabled
   #ifdef SPI_TEST_MODE
   spi_test_main();
-
-  // freeze after tests so log stays visible
-  while (1) {}
   #endif
 
 
@@ -416,7 +413,7 @@ static void MX_OCTOSPI1_Init(void)
   hospi1.Init.MemoryType = HAL_OSPI_MEMTYPE_MACRONIX;
   hospi1.Init.DeviceSize = 24;
   hospi1.Init.ChipSelectHighTime = 1;
-  hospi1.Init.ClockPrescaler = 2;
+  hospi1.Init.ClockPrescaler = 16;
   hospi1.Init.SampleShifting = HAL_OSPI_SAMPLE_SHIFTING_NONE;
   hospi1.Init.FreeRunningClock = HAL_OSPI_FREERUNCLK_DISABLE;
   hospi1.Init.ChipSelectBoundary = 0;

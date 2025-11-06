@@ -180,14 +180,14 @@ static void spiStartNextJob(void)
 // TX complete -> start RX (2 bytes expected)
 extern "C" void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi) {
     // start receive for reply (2 bytes): return nibble + optional 1-byte data
-    printf("TX complete, starting RX\r\n");
+    // printf("TX complete, starting RX\r\n");
     receive_Buffer(rxBuffer, 3);
     spiState = SPI_RX_WAIT;
 }
 
 // RX complete -> read reply, call job callback/promise, free job buffer, advance queue
 extern "C" void HAL_OSPI_RxCpltCallback(OSPI_HandleTypeDef *hospi) {
-    printf("RX complete, processing reply\r\n");
+    // printf("RX complete, processing reply\r\n");
     spiReturnCode = ((rxBuffer[2] & 0xF0) >> 4) | (rxBuffer[2] & 0x0F);   // Only first nibble for return code
     spiData       = rxBuffer[1]; // Optional data in last nibble of first byte and first nibble of second byte
     spiState = SPI_DONE;
@@ -355,7 +355,7 @@ Rasterizer::SpiFuture* create_instance_async(Rasterizer::Transform *instanceData
 }
 
 Rasterizer::SpiFuture* update_instance_async(Rasterizer::Transform *instanceData, uint8_t instID) {
-    uint32_t len = 3 + 12*4;
+    uint32_t len = 2 + 12*4;
     uint8_t* buffer = (uint8_t*)malloc(len);
     if (!buffer) return nullptr;
 
@@ -462,7 +462,7 @@ static void pack_create_instance_message(uint8_t *buffer, uint8_t vertbuffID, ui
 }
 
 static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform *instanceData, uint8_t instID) {
-    uint32_t bufsize = 3 + 12*4;
+    uint32_t bufsize = 2 + 12*4;
     memset(buffer, 0, bufsize);
     uint32_t cmd = static_cast<uint8_t>(Rasterizer::Operation::UPDATE_INST);
     uint32_t bit_offset = 0;
