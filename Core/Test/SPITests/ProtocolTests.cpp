@@ -2,6 +2,8 @@
 #include "spi_stm.hpp"
 #include "main.h"
 
+#define INTER_TEST_DELAY_MS 100
+
 
 
 void test_spi_init(void)
@@ -38,7 +40,7 @@ void test_create_vert(void){
 
     auto fut = rasterizer.createVertexAsync(testVerts, 3);
     // Simulate doing other work
-    HAL_Delay(100);
+    HAL_Delay(INTER_TEST_DELAY_MS);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     TEST_ASSERT_EQUAL(0x00, fut->data); // ID 0 expected for first vertexBuff
@@ -47,7 +49,7 @@ void test_create_vert(void){
 
 }
 
-test_create_tri(void){
+void test_create_tri(void){
     Rasterizer::SpiAsyncRasterizer rasterizer;
     Rasterizer::Triangle testTri[1];
     testTri[0].index0 = 0;
@@ -56,14 +58,33 @@ test_create_tri(void){
 
     auto fut = rasterizer.createTriangleAsync(testTri, 1);
     // Simulate doing other work
-    HAL_Delay(100);
+    HAL_Delay(INTER_TEST_DELAY_MS);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     TEST_ASSERT_EQUAL(0x00, fut->data); // ID 0 expected for first triBuff
     delete fut;
 }
 
-test_create_instance(void){
+void test_create_even_tri(void){
+    Rasterizer::SpiAsyncRasterizer rasterizer;
+    Rasterizer::Triangle testTri[2];
+    testTri[0].index0 = 0;
+    testTri[0].index1 = 1;
+    testTri[0].index2 = 2;
+    testTri[1].index0 = 2;
+    testTri[1].index1 = 1;
+    testTri[1].index2 = 0;
+
+    auto fut = rasterizer.createTriangleAsync(testTri, 2);
+    // Simulate doing other work
+    HAL_Delay(INTER_TEST_DELAY_MS);
+    TEST_ASSERT_EQUAL(true, fut->done.load());
+    TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
+    TEST_ASSERT_EQUAL(0x01, fut->data); // ID 1 expected for second triBuff
+    delete fut;
+}
+
+void test_create_instance(void){
     Rasterizer::SpiAsyncRasterizer rasterizer;
     Rasterizer::Transform testInst;
     testInst.posX = 1.0f;
@@ -76,16 +97,16 @@ test_create_instance(void){
     testInst.scaleY = 1.0f;
     testInst.scaleZ = 1.0f;
 
-    auto fut = rasterizer.createInstanceAsync(0,0,testInst);
+    auto fut = rasterizer.createInstanceAsync(0,0,testInst); //hardcoded to use vertbuff and tribuff from prev. tests
     // Simulate doing other work
-    HAL_Delay(100);
+    HAL_Delay(INTER_TEST_DELAY_MS);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
-    TEST_ASSERT_EQUAL(0x01, fut->data); // ID 1 expected for first instID
+    TEST_ASSERT_EQUAL(0x01, fut->data); // ID 1 expected for first instID, 0 reserved for camera
     delete fut;
 }
 
-test_update_instance(void){
+void test_update_instance(void){
     Rasterizer::SpiAsyncRasterizer rasterizer;
     Rasterizer::Transform testInst;
     testInst.posX = 1.0f;
@@ -100,13 +121,34 @@ test_update_instance(void){
 
     auto fut = rasterizer.updateInstanceAsync(1, testInst);
     // Simulate doing other work
-    HAL_Delay(100);
+    HAL_Delay(INTER_TEST_DELAY_MS);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     delete fut;
 }
 
-test_many_vertBuffers(void){
+void test_update_camera(void){
+    Rasterizer::SpiAsyncRasterizer rasterizer;
+    Rasterizer::Transform testCam;
+    testCam.posX = 5.0f;
+    testCam.posY = 5.0f;
+    testCam.posZ = 5.0f;
+    testCam.rotX = 0.0f;
+    testCam.rotY = 0.0f;
+    testCam.rotZ = 0.0f;
+    testCam.scaleX = 1.0f;
+    testCam.scaleY = 1.0f;
+    testCam.scaleZ = 1.0f;
+
+    auto fut = rasterizer.updateInstanceAsync(0, testCam); //instanceID 0 reserved for camera
+    // Simulate doing other work
+    HAL_Delay(INTER_TEST_DELAY_MS);
+    TEST_ASSERT_EQUAL(true, fut->done.load());
+    TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
+    delete fut;
+}
+
+void test_many_vertBuffers(void){
     Rasterizer::SpiAsyncRasterizer rasterizer;
     Rasterizer::Vertex testVerts[1];
     testVerts[0].x = 1.0f;
@@ -116,10 +158,10 @@ test_many_vertBuffers(void){
     testVerts[0].g = 0;
     testVerts[0].b = 0;
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 11; i++) { //10 verts to test if fpga handles byte aligned buffers
         auto fut = rasterizer.createVertexAsync(testVerts, 1);
         // Simulate doing other work
-        HAL_Delay(100);
+        HAL_Delay(INTER_TEST_DELAY_MS);
         TEST_ASSERT_EQUAL(true, fut->done.load());
         TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
         TEST_ASSERT_EQUAL(i+1, fut->data); // ID i+1 expected for ith vertexBuff due to previous test
@@ -127,18 +169,18 @@ test_many_vertBuffers(void){
     }
 }
 
-test_wipe_all(void){
+void test_wipe_all(void){
     Rasterizer::SpiAsyncRasterizer rasterizer;
 
     auto fut = rasterizer.wipeAllAsync();
     // Simulate doing other work
-    HAL_Delay(100);
+    HAL_Delay(INTER_TEST_DELAY_MS);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     delete fut;
 }
 
-test_full_model_load(void){
+void test_full_model_load(void){
     Rasterizer::SpiAsyncRasterizer rasterizer;
 
     // Create vertex buffer
@@ -165,7 +207,7 @@ test_full_model_load(void){
     testVerts[2].b = 15;
 
     auto futVert = rasterizer.createVertexAsync(testVerts, 3);
-    HAL_Delay(100);
+    HAL_Delay(INTER_TEST_DELAY_MS);
     TEST_ASSERT_EQUAL(true, futVert->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), futVert->returnCode);
     uint8_t vertBuffID = futVert->data;
@@ -178,7 +220,7 @@ test_full_model_load(void){
     testTri[0].index2 = 2;
 
     auto futTri = rasterizer.createTriangleAsync(testTri, 1);
-    HAL_Delay(100);
+    HAL_Delay(INTER_TEST_DELAY_MS);
     TEST_ASSERT_EQUAL(true, futTri->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), futTri->returnCode);
     uint8_t triBuffID = futTri->data;
@@ -197,12 +239,12 @@ test_full_model_load(void){
     testInst.scaleZ = 1.0f;
 
     auto futInst = rasterizer.createInstanceAsync(vertBuffID, triBuffID, testInst);
-    HAL_Delay(100);
+    HAL_Delay(INTER_TEST_DELAY_MS);
     TEST_ASSERT_EQUAL(true, futInst->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), futInst->returnCode);
     uint8_t instID = futInst->data;
     delete futInst;
-
+}
 
 
 extern "C" void run_spi_tests(void)
@@ -210,6 +252,7 @@ extern "C" void run_spi_tests(void)
     RUN_TEST(test_spi_init);
     RUN_TEST(test_create_vert);
     RUN_TEST(test_create_tri);
+    // RUN_TEST(test_create_even_tri);
     RUN_TEST(test_create_instance);
     RUN_TEST(test_update_instance);
     RUN_TEST(test_many_vertBuffers);
