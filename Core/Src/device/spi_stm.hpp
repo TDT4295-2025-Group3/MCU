@@ -24,12 +24,6 @@ namespace Rasterizer {
 class SpiAsyncRasterizer : public IAsyncRasterizer {
 public:
     SpiAsyncRasterizer() = default;
-
-    Rasterizer::SpiFuture* wipeAllAsync() override;
-    Rasterizer::SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count) override;
-    Rasterizer::SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count) override;
-    Rasterizer::SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform) override;
-    Rasterizer::SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) override;
     Rasterizer::SpiFuture* wipeAllAsync(FutureCallback callback = nullptr, void* userCtx = nullptr) override;
     Rasterizer::SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count,
                                              FutureCallback callback = nullptr, void* userCtx = nullptr) override;
@@ -37,7 +31,7 @@ public:
                                                FutureCallback callback = nullptr, void* userCtx = nullptr) override;
     Rasterizer::SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
                                                FutureCallback callback = nullptr, void* userCtx = nullptr) override;
-    Rasterizer::SpiFuture* updateInstanceAsync(uint8_t instanceId, const Transform& transform,
+    Rasterizer::SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform,
                                                FutureCallback callback = nullptr, void* userCtx = nullptr) override;
 };
 
@@ -53,7 +47,7 @@ public:
     CreateVertResponse createVertex(const Vertex* vertices, uint16_t count) override;
     CreateTriResponse createTriangle(const Triangle* triangles, uint16_t count) override;
     CreateInstResponse createInstance(uint8_t vertexId, uint8_t triangleId, const Transform& transform) override;
-    UpdateInstResponse updateInstance(uint8_t instanceId, const Transform& transform) override;
+    UpdateInstResponse updateInstance(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) override;
 
     SpiFuture* wipeAllAsync(FutureCallback callback = nullptr, void* userCtx = nullptr) override;
     SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count,
@@ -62,7 +56,7 @@ public:
                                    FutureCallback callback = nullptr, void* userCtx = nullptr) override;
     SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
                                    FutureCallback callback = nullptr, void* userCtx = nullptr) override;
-    SpiFuture* updateInstanceAsync(uint8_t instanceId, const Transform& transform,
+    SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId,  const Transform& transform,
                                    FutureCallback callback = nullptr, void* userCtx = nullptr) override;
 
 private:
@@ -93,7 +87,7 @@ Rasterizer::SpiFuture* create_triangle_async(Rasterizer::Triangle *triangleBuffe
                                             SpiFutureCallback callback, void* userCtx);
 Rasterizer::SpiFuture* create_instance_async(Rasterizer::Transform *instanceData, uint8_t vertbufferID,
                                             uint8_t tribufferID, SpiFutureCallback callback, void* userCtx);
-Rasterizer::SpiFuture* update_instance_async(Rasterizer::Transform *instanceData, uint8_t instID,
+Rasterizer::SpiFuture* update_instance_async(Rasterizer::Transform *instanceData, uint8_t vertID, uint8_t triID, uint8_t instID,
                                             SpiFutureCallback callback, void* userCtx);
 #ifdef __cplusplus
 }

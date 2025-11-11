@@ -187,7 +187,7 @@ namespace Rasterizer {
                             FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
         virtual SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
                             FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
-        virtual SpiFuture* updateInstanceAsync(uint8_t instanceId, const Transform& transform,
+        virtual SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform,
                             FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
 
         /**

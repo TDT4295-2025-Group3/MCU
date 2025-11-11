@@ -527,9 +527,9 @@ namespace Rasterizer {
         return create_instance_async(const_cast<Transform*>(&transform), vertexId, triangleId, callback, userCtx);
     }
 
-    Rasterizer::SpiFuture* SpiAsyncRasterizer::updateInstanceAsync(uint8_t instanceId, const Transform& transform,
+    Rasterizer::SpiFuture* SpiAsyncRasterizer::updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform,
                                                                    FutureCallback callback, void* userCtx) {
-        return update_instance_async(const_cast<Transform*>(&transform), instanceId, callback, userCtx);
+        return update_instance_async(const_cast<Transform*>(&transform), vertID, triID, instanceId, callback, userCtx);
     }
 
     void SpiRasterizer::basic_callback(SpiFuture* future, void* ctx) {
@@ -605,9 +605,9 @@ namespace Rasterizer {
         return CreateInstResponse(state.status, state.data);
     }
 
-    UpdateInstResponse SpiRasterizer::updateInstance(uint8_t instanceId, const Transform& transform) {
+    UpdateInstResponse SpiRasterizer::updateInstance(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) {
         CallbackState state{};
-        SpiFuture* fut = async_.updateInstanceAsync(instanceId, transform,
+        SpiFuture* fut = async_.updateInstanceAsync(vertID, triID, instanceId, transform,
                                                     &SpiRasterizer::basic_callback, &state);
         if (!fut) {
             return UpdateInstResponse(StatusCode::SPI_ERROR);

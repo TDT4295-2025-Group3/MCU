@@ -150,22 +150,13 @@ int main(void)
   setvbuf(stdout, nullptr, _IONBF, 0);
   printf("Console ready\r\n");
 
-  fut = rasterizer.updateInstanceAsync(1, testInst);
-  if (!fut) {
-    printf("updateInstanceAsync enqueue failed\r\n");
-  } else {
-    printf("updateInstanceAsync queued\r\n");
-  }
+
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    if (fut && fut->done.load(std::memory_order_acquire)) {
-      printf("SPI future done rc=0x%02X data=0x%02X\r\n", fut->returnCode, fut->data);
-      delete fut;
-      fut = nullptr;
-    }
+
 
     // wipe_all_start();
 
