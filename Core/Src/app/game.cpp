@@ -182,7 +182,7 @@ void Game::tick_graphics() {
             0.0f, 0.0f, 0.0f,
             1.0f, 1.0f, 1.0f
         };
-        gfx.updateInstance(instanceCubeId, t);
+        gfx.updateInstance(0,0,instanceCubeId, t);
     }
 
     // Pyramid remains static where placed in init
