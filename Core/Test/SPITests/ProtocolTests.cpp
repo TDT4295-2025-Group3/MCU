@@ -6,14 +6,6 @@
 
 
 
-void test_spi_init(void)
-{
-    // Just initialize SPI and check no errors
-    Rasterizer::SpiAsyncRasterizer rasterizer;
-}
-
-
-
 void test_create_vert(void){
     Rasterizer::SpiAsyncRasterizer rasterizer;
     Rasterizer::Vertex testVerts[3];
@@ -47,6 +39,32 @@ void test_create_vert(void){
     delete fut;
 
 
+}
+
+void test_even_vert(void){
+    Rasterizer::SpiAsyncRasterizer rasterizer;
+    Rasterizer::Vertex testVerts[3];
+    testVerts[0].x = 1.0f;
+    testVerts[0].y = 0.0f;
+    testVerts[0].z = 11.11f;
+    testVerts[0].r = 15;
+    testVerts[0].g = 0;
+    testVerts[0].b = 0; 
+
+    testVerts[1].x = 0.0f;
+    testVerts[1].y = 1.0f;
+    testVerts[1].z = 0.0f;
+    testVerts[1].r = 0;
+    testVerts[1].g = 15;
+    testVerts[1].b = 0;
+
+    auto fut = rasterizer.createVertexAsync(testVerts, 3);
+    // Simulate doing other work
+    HAL_Delay(INTER_TEST_DELAY_MS);
+    TEST_ASSERT_EQUAL(true, fut->done.load());
+    TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
+    TEST_ASSERT_EQUAL(0x01, fut->data); // ID 1 expected for second vertexBuff
+    delete fut;
 }
 
 void test_create_tri(void){
@@ -119,7 +137,7 @@ void test_update_instance(void){
     testInst.scaleY = 1.0f;
     testInst.scaleZ = 1.0f;
 
-    auto fut = rasterizer.updateInstanceAsync(1, testInst);
+    auto fut = rasterizer.updateInstanceAsync(0, 0, 1, testInst);
     // Simulate doing other work
     HAL_Delay(INTER_TEST_DELAY_MS);
     TEST_ASSERT_EQUAL(true, fut->done.load());
@@ -140,7 +158,7 @@ void test_update_camera(void){
     testCam.scaleY = 1.0f;
     testCam.scaleZ = 1.0f;
 
-    auto fut = rasterizer.updateInstanceAsync(0, testCam); //instanceID 0 reserved for camera
+    auto fut = rasterizer.updateInstanceAsync(0, 0, 0, testCam); //instanceID 0 reserved for camera
     // Simulate doing other work
     HAL_Delay(INTER_TEST_DELAY_MS);
     TEST_ASSERT_EQUAL(true, fut->done.load());
@@ -164,7 +182,7 @@ void test_many_vertBuffers(void){
         HAL_Delay(INTER_TEST_DELAY_MS);
         TEST_ASSERT_EQUAL(true, fut->done.load());
         TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
-        TEST_ASSERT_EQUAL(i+1, fut->data); // ID i+1 expected for ith vertexBuff due to previous test
+        TEST_ASSERT_EQUAL(i+2, fut->data); // ID i+2 expected for ith vertexBuff due to previous tests
         delete fut;
     }
 }
@@ -249,13 +267,19 @@ void test_full_model_load(void){
 
 extern "C" void run_spi_tests(void)
 {
-    RUN_TEST(test_spi_init);
+    RUN_TEST(test_wipe_all);
     RUN_TEST(test_create_vert);
+    RUN_TEST(test_even_vert);
     RUN_TEST(test_create_tri);
-    // RUN_TEST(test_create_even_tri);
+    RUN_TEST(test_create_even_tri);
     RUN_TEST(test_create_instance);
     RUN_TEST(test_update_instance);
     RUN_TEST(test_many_vertBuffers);
-    RUN_TEST(test_wipe_all);
     RUN_TEST(test_full_model_load);
+    RUN_TEST(test_wipe_all);
+    RUN_TEST(test_create_vert);
+    RUN_TEST(test_create_tri);
+    RUN_TEST(test_create_instance);
+    RUN_TEST(test_update_instance);
+    RUN_TEST(test_wipe_all);
 }
