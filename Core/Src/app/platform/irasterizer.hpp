@@ -199,19 +199,4 @@ namespace Rasterizer {
             return updateInstance(0, 0, 0, transform); // assuming camera has instance ID 0
         }
     };
-
-    class IAsyncRasterizer {
-public:
-    virtual SpiFuture* wipeAllAsync(FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
-    virtual SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count,
-                                         FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
-    virtual SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count,
-                                           FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
-    virtual SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
-                                           FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
-    virtual SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform,
-                                           FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
-
-    virtual ~IAsyncRasterizer() = default;
-};
 }

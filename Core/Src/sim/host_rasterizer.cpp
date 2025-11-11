@@ -394,22 +394,32 @@ Rasterizer::CreateInstResponse HostRasterizer::createInstance(uint8_t vertexId, 
     return Rasterizer::CreateInstResponse(Rasterizer::StatusCode::OK, instId + 1);
 }
 
-Rasterizer::UpdateInstResponse HostRasterizer::updateInstance(uint8_t instanceId,
+Rasterizer::UpdateInstResponse HostRasterizer::updateInstance(uint8_t vertexId, uint8_t triangleId,
+                                                              uint8_t instanceId,
                                                               const Rasterizer::Transform &transform) {
-    instanceId = instanceId - 1; // adjust for camera
-    if (instanceId >= impl->instances.size())
+    if (instanceId == 0) {
+        // Camera updates use instance ID 0 in the shared interface.
+        S3L_Transform3D camT{};
+        Impl::toS3LTransform(transform, camT);
+        impl->scene.camera.transform = camT;
+        return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
+    }
+
+    const uint8_t internalId = static_cast<uint8_t>(instanceId - 1); // adjust for camera slot
+    if (internalId >= impl->instances.size()) {
         return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::INVALID_ID);
+    }
 
-    impl->instances[instanceId].transform = transform;
-    Impl::toS3LTransform(transform, impl->transforms[instanceId]);
-    impl->models[instanceId].transform = impl->transforms[instanceId];
-    return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
-}
+    auto &inst = impl->instances[internalId];
 
-Rasterizer::UpdateInstResponse HostRasterizer::updateCamera(const Rasterizer::Transform &transform) {
-    S3L_Transform3D camT{};
-    Impl::toS3LTransform(transform, camT);
-    impl->scene.camera.transform = camT;
+    if ((vertexId != 0xFF && inst.vertexId != vertexId) ||
+        (triangleId != 0xFF && inst.triangleId != triangleId)) {
+        return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::INVALID_ID);
+    }
+
+    inst.transform = transform;
+    Impl::toS3LTransform(transform, impl->transforms[internalId]);
+    impl->models[internalId].transform = impl->transforms[internalId];
     return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
 }
 
@@ -437,8 +447,9 @@ Rasterizer::SpiFuture* HostRasterizer::createInstanceAsync(uint8_t vertexId, uin
     return makeImmediateFuture(resp.getStatus(), resp.getInstanceId(), callback, userCtx);
 }
 
-Rasterizer::SpiFuture* HostRasterizer::updateInstanceAsync(uint8_t instanceId, const Rasterizer::Transform &transform,
+Rasterizer::SpiFuture* HostRasterizer::updateInstanceAsync(uint8_t vertexId, uint8_t triangleId, uint8_t instanceId,
+                                                           const Rasterizer::Transform &transform,
                                                            Rasterizer::FutureCallback callback, void* userCtx) {
-    auto resp = updateInstance(instanceId, transform);
+    auto resp = updateInstance(vertexId, triangleId, instanceId, transform);
     return makeImmediateFuture(resp.getStatus(), 0, callback, userCtx);
 }

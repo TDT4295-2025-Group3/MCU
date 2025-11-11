@@ -25,9 +25,8 @@ public:
     Rasterizer::CreateInstResponse createInstance(uint8_t vertexId, uint8_t triangleId,
                                                   const Rasterizer::Transform &transform) override;
 
-    Rasterizer::UpdateInstResponse updateInstance(uint8_t instanceId, const Rasterizer::Transform &transform) override;
-
-    Rasterizer::UpdateInstResponse updateCamera(const Rasterizer::Transform &transform) override;
+    Rasterizer::UpdateInstResponse updateInstance(uint8_t vertexId, uint8_t triangleId, uint8_t instanceId,
+                                                  const Rasterizer::Transform &transform) override;
 
     Rasterizer::SpiFuture* wipeAllAsync(Rasterizer::FutureCallback callback = nullptr, void* userCtx = nullptr) override;
     Rasterizer::SpiFuture* createVertexAsync(const Rasterizer::Vertex *vertices, uint16_t count,
@@ -37,7 +36,8 @@ public:
     Rasterizer::SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId,
                                                const Rasterizer::Transform &transform,
                                                Rasterizer::FutureCallback callback = nullptr, void* userCtx = nullptr) override;
-    Rasterizer::SpiFuture* updateInstanceAsync(uint8_t instanceId, const Rasterizer::Transform &transform,
+    Rasterizer::SpiFuture* updateInstanceAsync(uint8_t vertexId, uint8_t triangleId, uint8_t instanceId,
+                                               const Rasterizer::Transform &transform,
                                                Rasterizer::FutureCallback callback = nullptr, void* userCtx = nullptr) override;
 
     struct Impl;

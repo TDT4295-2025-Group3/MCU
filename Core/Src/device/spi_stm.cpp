@@ -562,7 +562,7 @@ namespace Rasterizer {
 
     WipeAllResponse SpiRasterizer::wipeAll() {
         CallbackState state{};
-        SpiFuture* fut = async_.wipeAllAsync(&SpiRasterizer::basic_callback, &state);
+        SpiFuture* fut = rasterizer_.wipeAllAsync(&SpiRasterizer::basic_callback, &state);
         if (!fut) {
             return WipeAllResponse(StatusCode::SPI_ERROR);
         }
@@ -573,7 +573,7 @@ namespace Rasterizer {
 
     CreateVertResponse SpiRasterizer::createVertex(const Vertex* vertices, uint16_t count) {
         CallbackState state{};
-        SpiFuture* fut = async_.createVertexAsync(vertices, count, &SpiRasterizer::basic_callback, &state);
+        SpiFuture* fut = rasterizer_.createVertexAsync(vertices, count, &SpiRasterizer::basic_callback, &state);
         if (!fut) {
             return CreateVertResponse(StatusCode::SPI_ERROR, 0);
         }
@@ -584,7 +584,7 @@ namespace Rasterizer {
 
     CreateTriResponse SpiRasterizer::createTriangle(const Triangle* triangles, uint16_t count) {
         CallbackState state{};
-        SpiFuture* fut = async_.createTriangleAsync(triangles, count, &SpiRasterizer::basic_callback, &state);
+        SpiFuture* fut = rasterizer_.createTriangleAsync(triangles, count, &SpiRasterizer::basic_callback, &state);
         if (!fut) {
             return CreateTriResponse(StatusCode::SPI_ERROR, 0);
         }
@@ -595,7 +595,7 @@ namespace Rasterizer {
 
     CreateInstResponse SpiRasterizer::createInstance(uint8_t vertexId, uint8_t triangleId, const Transform& transform) {
         CallbackState state{};
-        SpiFuture* fut = async_.createInstanceAsync(vertexId, triangleId, transform,
+        SpiFuture* fut = rasterizer_.createInstanceAsync(vertexId, triangleId, transform,
                                                     &SpiRasterizer::basic_callback, &state);
         if (!fut) {
             return CreateInstResponse(StatusCode::SPI_ERROR, 0);
@@ -607,7 +607,7 @@ namespace Rasterizer {
 
     UpdateInstResponse SpiRasterizer::updateInstance(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) {
         CallbackState state{};
-        SpiFuture* fut = async_.updateInstanceAsync(vertID, triID, instanceId, transform,
+        SpiFuture* fut = rasterizer_.updateInstanceAsync(vertID, triID, instanceId, transform,
                                                     &SpiRasterizer::basic_callback, &state);
         if (!fut) {
             return UpdateInstResponse(StatusCode::SPI_ERROR);
@@ -618,26 +618,26 @@ namespace Rasterizer {
     }
 
     SpiFuture* SpiRasterizer::wipeAllAsync(FutureCallback callback, void* userCtx) {
-        return async_.wipeAllAsync(callback, userCtx);
+        return rasterizer_.wipeAllAsync(callback, userCtx);
     }
 
     SpiFuture* SpiRasterizer::createVertexAsync(const Vertex* vertices, uint16_t count,
                                                 FutureCallback callback, void* userCtx) {
-        return async_.createVertexAsync(vertices, count, callback, userCtx);
+        return rasterizer_.createVertexAsync(vertices, count, callback, userCtx);
     }
 
     SpiFuture* SpiRasterizer::createTriangleAsync(const Triangle* triangles, uint16_t count,
                                                   FutureCallback callback, void* userCtx) {
-        return async_.createTriangleAsync(triangles, count, callback, userCtx);
+        return rasterizer_.createTriangleAsync(triangles, count, callback, userCtx);
     }
 
     SpiFuture* SpiRasterizer::createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
                                                   FutureCallback callback, void* userCtx) {
-        return async_.createInstanceAsync(vertexId, triangleId, transform, callback, userCtx);
+        return rasterizer_.createInstanceAsync(vertexId, triangleId, transform, callback, userCtx);
     }
 
     SpiFuture* SpiRasterizer::updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform,
                                                   FutureCallback callback, void* userCtx) {
-        return async_.updateInstanceAsync(vertID, triID, instanceId, transform, callback, userCtx);
+        return rasterizer_.updateInstanceAsync(vertID, triID, instanceId, transform, callback, userCtx);
     }
 }

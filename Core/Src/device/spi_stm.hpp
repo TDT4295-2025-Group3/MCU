@@ -21,18 +21,18 @@ using SpiFutureCallback = Rasterizer::FutureCallback;
 
 namespace Rasterizer {
 
-class SpiAsyncRasterizer : public IAsyncRasterizer {
+class SpiAsyncRasterizer {
 public:
     SpiAsyncRasterizer() = default;
-    Rasterizer::SpiFuture* wipeAllAsync(FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+    Rasterizer::SpiFuture* wipeAllAsync(FutureCallback callback = nullptr, void* userCtx = nullptr);
     Rasterizer::SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count,
-                                             FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+                                             FutureCallback callback = nullptr, void* userCtx = nullptr);
     Rasterizer::SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count,
-                                               FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+                                               FutureCallback callback = nullptr, void* userCtx = nullptr);
     Rasterizer::SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
-                                               FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+                                               FutureCallback callback = nullptr, void* userCtx = nullptr);
     Rasterizer::SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform,
-                                               FutureCallback callback = nullptr, void* userCtx = nullptr) override;
+                                               FutureCallback callback = nullptr, void* userCtx = nullptr);
 };
 
 class SpiRasterizer : public IRasterizer {
@@ -71,7 +71,7 @@ private:
     static void basic_callback(SpiFuture* future, void* ctx);
     static void wait_for_completion(CallbackState& state);
 
-    SpiAsyncRasterizer async_{};
+    SpiAsyncRasterizer rasterizer_{};
 };
 
 } // namespace Rasterizer
