@@ -174,7 +174,7 @@ namespace Rasterizer {
          * @param transform new transform
          * @return status
          */
-        virtual UpdateInstResponse updateInstance(uint8_t instanceId, const Transform& transform) = 0;
+        virtual UpdateInstResponse updateInstance(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) = 0;
 
         /**
          * Camera transform update;
@@ -182,7 +182,7 @@ namespace Rasterizer {
          * @return status
          */
         UpdateInstResponse updateCamera(const Transform& transform){
-            return updateInstance(0, transform); // assuming camera has instance ID 0
+            return updateInstance(0, 0, 0, transform); // assuming camera has instance ID 0
         }
     };
 
@@ -192,7 +192,7 @@ public:
     virtual SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count) = 0;
     virtual SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count) = 0;
     virtual SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform) = 0;
-    virtual SpiFuture* updateInstanceAsync(uint8_t instanceId, const Transform& transform) = 0;
+    virtual SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) = 0;
 
     virtual ~IAsyncRasterizer() = default;
 };

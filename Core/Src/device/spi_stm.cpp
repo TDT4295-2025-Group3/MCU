@@ -70,7 +70,7 @@ static void pack_bits(uint8_t *buf, uint32_t *bit_offset, uint32_t value, uint8_
 static void pack_create_vert_message(uint8_t *buffer, uint16_t numVerts, Rasterizer::Vertex *vertices);
 static void pack_create_tri_message(uint8_t *buffer, uint16_t numTris, Rasterizer::Triangle *triangles);
 static void pack_create_instance_message(uint8_t *buffer, uint8_t vertbuffID, uint8_t tribuffID, Rasterizer::Transform *instanceData);
-static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform *instanceData, uint8_t instID);
+static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform *instanceData, uint8_t vertID, uint8_t triID, uint8_t instID);
 
 // OSPI helper (uses global ospi_cmd and hospi1 from main project)
 static void OSPI_ConfigRawWrite(uint32_t length)
@@ -305,7 +305,7 @@ extern "C" {
 Rasterizer::SpiFuture* wipe_all_async(void) {
     uint8_t* buf = (uint8_t*)malloc(1);
     if (!buf) return nullptr;
-    buf[0] = static_cast<uint8_t>(Rasterizer::Operation::WIPE_ALL);
+    buf[0] = static_cast<uint8_t>(Rasterizer::Operation::WIPE_ALL) << 4;
     return create_future_and_enqueue(buf, 1);
 }
 
@@ -354,12 +354,12 @@ Rasterizer::SpiFuture* create_instance_async(Rasterizer::Transform *instanceData
     return fut;
 }
 
-Rasterizer::SpiFuture* update_instance_async(Rasterizer::Transform *instanceData, uint8_t instID) {
-    uint32_t len = 2 + 12*4;
+Rasterizer::SpiFuture* update_instance_async(Rasterizer::Transform *instanceData, uint8_t vertID, uint8_t triID, uint8_t instanceId) {
+    uint32_t len = 4 + 12*4;
     uint8_t* buffer = (uint8_t*)malloc(len);
     if (!buffer) return nullptr;
 
-    pack_instance_update_message(buffer, instanceData, instID);
+    pack_instance_update_message(buffer, instanceData, vertID, triID, instanceId);
 
     Rasterizer::SpiFuture* fut = create_future_and_enqueue(buffer, len);
     if (!fut) free(buffer);
@@ -461,14 +461,16 @@ static void pack_create_instance_message(uint8_t *buffer, uint8_t vertbuffID, ui
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleZ), 32);
 }
 
-static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform *instanceData, uint8_t instID) {
-    uint32_t bufsize = 2 + 12*4;
+static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform *instanceData, uint8_t vertID, uint8_t triID, uint8_t instID) {
+    uint32_t bufsize = 4 + 12*4;
     memset(buffer, 0, bufsize);
     uint32_t cmd = static_cast<uint8_t>(Rasterizer::Operation::UPDATE_INST);
     uint32_t bit_offset = 0;
 
 
     pack_bits(buffer, &bit_offset, cmd, 4);
+    pack_bits(buffer, &bit_offset, vertID, 8);
+    pack_bits(buffer, &bit_offset, triID, 8);
     pack_bits(buffer, &bit_offset, instID, 8);
 
     pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posX), 32);
@@ -507,7 +509,7 @@ namespace Rasterizer {
         return create_instance_async(const_cast<Transform*>(&transform), vertexId, triangleId);
     }
 
-    Rasterizer::SpiFuture* SpiAsyncRasterizer::updateInstanceAsync(uint8_t instanceId, const Transform& transform) {
-        return update_instance_async(const_cast<Transform*>(&transform), instanceId);
+    Rasterizer::SpiFuture* SpiAsyncRasterizer::updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) {
+        return update_instance_async(const_cast<Transform*>(&transform), vertID, triID, instanceId);
     }
 }
