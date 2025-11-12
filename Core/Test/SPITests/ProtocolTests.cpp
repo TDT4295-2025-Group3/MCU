@@ -12,21 +12,21 @@ void test_create_vert(void){
     testVerts[0].x = 1.0f;
     testVerts[0].y = 0.0f;
     testVerts[0].z = 11.11f;
-    testVerts[0].r = 15;
+    testVerts[0].r = 1;
     testVerts[0].g = 0;
     testVerts[0].b = 0; 
 
     testVerts[1].x = 0.0f;
     testVerts[1].y = 1.0f;
     testVerts[1].z = 0.0f;
-    testVerts[1].r = 0;
+    testVerts[1].r = 2;
     testVerts[1].g = 15;
     testVerts[1].b = 0; 
 
     testVerts[2].x = 0.0f;
     testVerts[2].y = 0.0f;
     testVerts[2].z = 1.0f;
-    testVerts[2].r = 0;
+    testVerts[2].r = 3;
     testVerts[2].g = 0;
     testVerts[2].b = 15;
 
@@ -206,21 +206,21 @@ void test_full_model_load(void){
     testVerts[0].x = 1.0f;
     testVerts[0].y = 0.0f;
     testVerts[0].z = 11.11f;
-    testVerts[0].r = 15;
+    testVerts[0].r = 4;
     testVerts[0].g = 0;
     testVerts[0].b = 0; 
 
     testVerts[1].x = 0.0f;
     testVerts[1].y = 1.0f;
     testVerts[1].z = 0.0f;
-    testVerts[1].r = 0;
+    testVerts[1].r = 5;
     testVerts[1].g = 15;
     testVerts[1].b = 0; 
 
     testVerts[2].x = 0.0f;
     testVerts[2].y = 0.0f;
     testVerts[2].z = 1.0f;
-    testVerts[2].r = 0;
+    testVerts[2].r = 6;
     testVerts[2].g = 0;
     testVerts[2].b = 15;
 
@@ -262,6 +262,23 @@ void test_full_model_load(void){
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), futInst->returnCode);
     uint8_t instID = futInst->data;
     delete futInst;
+
+    
+
+    // update instance
+    Rasterizer::Transform testInstUpd;
+    testInstUpd.posX = 4.0f;
+    testInstUpd.posY = 5.0f;
+    testInstUpd.posZ = 6.0f;
+    testInstUpd.rotX = 6.0f;
+    testInstUpd.rotY = 5.0f;
+    testInstUpd.rotZ = 4.0f;
+    testInstUpd.scaleX = 1.0f;
+    testInstUpd.scaleY = 1.0f;
+    testInstUpd.scaleZ = 1.0f;
+    auto futInstUpd = rasterizer.updateInstanceAsync(vertBuffID, triBuffID, instID, testInstUpd);
+    HAL_Delay(INTER_TEST_DELAY_MS);
+    TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), futInstUpd->returnCode);
 }
 
 
