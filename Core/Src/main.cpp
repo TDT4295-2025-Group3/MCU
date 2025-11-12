@@ -30,7 +30,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : main.c
+  * @file           : main.cpp
   * @brief          : Main program body
   ******************************************************************************
   * @attention
@@ -44,10 +44,10 @@
   *
   ******************************************************************************
   */
+
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "game.hpp"
 #include "ff.h"
 #include "ff_gen_drv.h"
 #include "sd_diskio.h"
@@ -57,6 +57,13 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
+#include <cstdio>
+#include "spi_stm.hpp"
+
+#ifdef SPI_TEST_MODE
+extern "C" int spi_test_main(void);
+#endif
 
 /* USER CODE END Includes */
 
@@ -67,6 +74,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+uint8_t txBuffer[256];   // test buffer
 
 /* USER CODE END PD */
 
@@ -78,6 +86,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 COM_InitTypeDef BspCOMInit;
+
+OSPI_HandleTypeDef hospi1;
+DMA_HandleTypeDef handle_GPDMA1_Channel0;
 SD_HandleTypeDef hsd_sdmmc1;
 
 static FATFS sdFatFs;
@@ -85,16 +96,22 @@ static char SDPath[4];
 static char gModelBasePath[64];
 
 /* USER CODE BEGIN PV */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void SystemPower_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_GPDMA1_Init(void);
 static void MX_ICACHE_Init(void);
+static void MX_OCTOSPI1_Init(void);
 static bool MX_SDMMC1_SD_Init(void);
 /* USER CODE BEGIN PFP */
+extern "C" int _write(int file, char *ptr, int len)
+{
+    HAL_UART_Transmit(&hcom_uart[COM1], (uint8_t*)ptr, len, HAL_MAX_DELAY);
+    return len;
+}
 namespace
 {
 constexpr uint32_t kSdmmcTransferClockDiv = 8U; // 48 MHz / (2 * 8) ~= 3 MHz
@@ -373,6 +390,17 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
+  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
+  BspCOMInit.BaudRate   = 115200;
+  BspCOMInit.WordLength = COM_WORDLENGTH_8B;
+  BspCOMInit.StopBits   = COM_STOPBITS_1;
+  BspCOMInit.Parity     = COM_PARITY_NONE;
+  BspCOMInit.HwFlowCtl  = COM_HWCONTROL_NONE;
+  if (BSP_COM_Init(COM1, &BspCOMInit) != BSP_ERROR_NONE)
+  {
+    Error_Handler();
+  }
+
   /* USER CODE END Init */
 
   /* Configure the System Power */
@@ -387,8 +415,18 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_GPDMA1_Init();
   MX_ICACHE_Init();
+  MX_OCTOSPI1_Init();
   /* USER CODE BEGIN 2 */
+
+  // automatic testing if enabled
+  #ifdef SPI_TEST_MODE
+  spi_test_main();
+  #endif
+  Rasterizer::SpiAsyncRasterizer rasterizer;
+  Rasterizer::SpiFuture* fut = nullptr;
+
   bool sdReady = false;
   bool runtimeMountOk = false;
   uint32_t lastBlinkMs = HAL_GetTick();
@@ -402,16 +440,14 @@ int main(void)
   /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
   BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
 
-  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
-  BspCOMInit.BaudRate   = 115200;
-  BspCOMInit.WordLength = COM_WORDLENGTH_8B;
-  BspCOMInit.StopBits   = COM_STOPBITS_1;
-  BspCOMInit.Parity     = COM_PARITY_NONE;
-  BspCOMInit.HwFlowCtl  = COM_HWCONTROL_NONE;
-  if (BSP_COM_Init(COM1, &BspCOMInit) != BSP_ERROR_NONE)
-  {
-    Error_Handler();
-  }
+
+
+  BSP_COM_SelectLogPort(COM1);
+
+  setvbuf(stdout, nullptr, _IONBF, 0);
+  printf("Console ready\r\n");
+
+
 
   const bool sdInitOk = MX_SDMMC1_SD_Init();
   if (sdInitOk)
@@ -451,7 +487,20 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1) {
+  while (1)
+  {
+
+
+    // wipe_all_start();
+
+
+    /* USER CODE BEGIN 2 */
+
+
+    /* USER CODE END 2 */
+
+
+
     /* USER CODE END WHILE */
     game.tick_once();
 
@@ -477,6 +526,7 @@ int main(void)
 
     HAL_Delay(1);
     /* USER CODE BEGIN 3 */
+    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
@@ -546,6 +596,34 @@ static void SystemPower_Config(void)
 }
 
 /**
+  * @brief GPDMA1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPDMA1_Init(void)
+{
+
+  /* USER CODE BEGIN GPDMA1_Init 0 */
+
+  /* USER CODE END GPDMA1_Init 0 */
+
+  /* Peripheral clock enable */
+  __HAL_RCC_GPDMA1_CLK_ENABLE();
+
+  /* GPDMA1 interrupt Init */
+    HAL_NVIC_SetPriority(GPDMA1_Channel0_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(GPDMA1_Channel0_IRQn);
+
+  /* USER CODE BEGIN GPDMA1_Init 1 */
+
+  /* USER CODE END GPDMA1_Init 1 */
+  /* USER CODE BEGIN GPDMA1_Init 2 */
+
+  /* USER CODE END GPDMA1_Init 2 */
+
+}
+
+/**
   * @brief ICACHE Initialization Function
   * @param None
   * @retval None
@@ -576,6 +654,89 @@ static void MX_ICACHE_Init(void)
   /* USER CODE END ICACHE_Init 2 */
 
 }
+
+/**
+  * @brief OCTOSPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_OCTOSPI1_Init(void)
+{
+
+  /* USER CODE BEGIN OCTOSPI1_Init 0 */
+  hospi1.Instance = OCTOSPI1;
+  hospi1.Init.FifoThreshold = 4;
+  hospi1.Init.MemoryType = HAL_OSPI_MEMTYPE_MACRONIX;
+  hospi1.Init.DeviceSize = 24;
+  hospi1.Init.ChipSelectHighTime = 1;
+  hospi1.Init.ClockPrescaler = 16;
+  hospi1.Init.SampleShifting = HAL_OSPI_SAMPLE_SHIFTING_NONE;
+  hospi1.Init.FreeRunningClock = HAL_OSPI_FREERUNCLK_DISABLE;
+  hospi1.Init.ChipSelectBoundary = 0;
+  hospi1.Init.WrapSize = HAL_OSPI_WRAP_NOT_SUPPORTED;
+  /* USER CODE END OCTOSPI1_Init 0 */
+
+  /* USER CODE BEGIN OCTOSPI1_Init 1 */
+
+  /* USER CODE END OCTOSPI1_Init 1 */
+  /* OCTOSPI1 parameter configuration*/
+  
+  if (HAL_OSPI_Init(&hospi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN OCTOSPI1_Init 2 */
+
+  /* USER CODE END OCTOSPI1_Init 2 */
+
+}
+
+OSPI_RegularCmdTypeDef ospi_cmd;
+
+
+// static void OSPI_ConfigRawWrite(uint32_t length)
+// {
+//     memset(&ospi_cmd, 0, sizeof(ospi_cmd));
+//     ospi_cmd.OperationType   = HAL_OSPI_OPTYPE_COMMON_CFG;
+//     ospi_cmd.FlashId         = HAL_OSPI_FLASH_ID_1;
+//     ospi_cmd.InstructionMode = HAL_OSPI_INSTRUCTION_1_LINE;    // not NONE
+//     ospi_cmd.Instruction     = 0x00;                          // dummy byte that FPGA should ignore
+//     ospi_cmd.InstructionSize = HAL_OSPI_INSTRUCTION_8_BITS;
+//     ospi_cmd.InstructionDtrMode = HAL_OSPI_INSTRUCTION_DTR_DISABLE;
+//     ospi_cmd.AddressMode     = HAL_OSPI_ADDRESS_NONE;       // no address
+//     ospi_cmd.AlternateBytesMode = HAL_OSPI_ALTERNATE_BYTES_NONE;
+//     ospi_cmd.DataMode        = HAL_OSPI_DATA_4_LINES;       // quad
+//     ospi_cmd.DummyCycles     = 0;
+//     ospi_cmd.NbData          = length;                      // number of bytes to transfer
+//     ospi_cmd.SIOOMode        = HAL_OSPI_SIOO_INST_EVERY_CMD;
+// }
+
+
+
+//pin 0 -> CN10.24
+//pin 1 -> CN7.34
+//pin 2 -> CN10.15
+//pin 3 -> CN10.13
+// static void Send_Buffer(uint8_t *buf, uint32_t len)
+// {
+//     OSPI_ConfigRawWrite(len);
+
+//     if (HAL_OSPI_Command(&hospi1, &ospi_cmd, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
+//     {
+//         Error_Handler();
+//     }
+
+//     if (HAL_OSPI_Transmit_DMA(&hospi1, buf) != HAL_OK)
+//     {
+//         Error_Handler();
+//     }
+// }
+
+// void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi)
+// {
+//     txDone = true;
+// }
+
 
 static bool MX_SDMMC1_SD_Init(void)
 {
@@ -617,11 +778,13 @@ static void MX_GPIO_Init(void)
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin : PC10 */
   GPIO_InitStruct.Pin = GPIO_PIN_10;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
