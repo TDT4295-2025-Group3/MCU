@@ -50,6 +50,8 @@ set(APP_SRC
         Core/Src/app/camera.hpp
         Core/Src/app/camera.cpp
         Core/Src/app/input.hpp
+        Core/Src/app/model_loader.hpp
+        Core/Src/app/model_loader.cpp
         Core/Src/device/spi_stm.hpp
 )
 
@@ -75,6 +77,10 @@ target_include_directories(Unity PUBLIC
 # --- STM32 firmware (cross) ---
 
 if (BUILD_STM32)
+
+    # --- ADD FatFs middleware build ---
+    add_subdirectory(Middlewares/FatFs)
+
     add_executable(${PROJECT_NAME}
             ${APP_SRC}
             Core/Src/device/spi_stm.cpp
@@ -87,6 +93,8 @@ if (BUILD_STM32)
             ${APP_INC}
             ${CMAKE_SOURCE_DIR}/Core/Src/device
             ${CMAKE_SOURCE_DIR}/Core/External/Unity/src
+            ${CMAKE_SOURCE_DIR}/Middlewares/FatFs/Inc
+            ${CMAKE_SOURCE_DIR}/Middlewares/FatFs/Inc/drivers
     )
 
     target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_STM32=1)
@@ -114,9 +122,10 @@ if (BUILD_STM32)
     # ⬇⬇⬇ Change to the PLAIN signature (no PRIVATE/PUBLIC/INTERFACE)
     target_link_libraries(${PROJECT_NAME}
             stm32cubemx
-            Unity
             
             # add other libs here, still plain
+            Unity
+            FatFs
     )
 endif()
 
@@ -177,7 +186,7 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
     target_include_directories(simulator PRIVATE
             ${APP_INC}
             ${CMAKE_SOURCE_DIR}/Core/Src/sim
-            ${CMAKE_SOURCE_DIR}/Core/Src/Device 
+            ${CMAKE_SOURCE_DIR}/Core/Src/device
     )
 
     # SDL3 is a host dependency; guard it from STM32 builds

@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <iostream>
 
 #include "game.hpp"
@@ -10,6 +11,9 @@ int main() {
     HostTimer timer;
 
     Game game{rasterizer, input, timer};
+    if (const char* basePath = std::getenv("MCU_MODEL_PATH")) {
+        game.setModelBasePath(basePath);
+    }
     game.init();
     while (true) {
         game.tick_once();

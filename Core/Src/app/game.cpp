@@ -2,15 +2,39 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdio>
+#include <cstring>
 #include <limits>
 
 #include "constants.hpp"
 #include "input.hpp"
+#include "model_loader.hpp"
 
 namespace {
 constexpr mcu_game::Vec3 PLAYER_HALF_EXTENTS{0.5f, 0.5f, 0.5f};
 constexpr float RAY_EPSILON = 1e-4f;
+constexpr std::size_t MODEL_PATH_BUFFER = 128;
+
+template <std::size_t N>
+bool build_model_path(const char* basePath, const char* relativePath, char (&out)[N]) {
+    if (!basePath || !relativePath) {
+        return false;
+    }
+
+    const std::size_t baseLen = std::strlen(basePath);
+    const bool needsSlash = (baseLen > 0) && (basePath[baseLen - 1] != '/') && (basePath[baseLen - 1] != '\\');
+    const char* fmt = needsSlash ? "%s/%s" : "%s%s";
+    const int written = std::snprintf(out, N, fmt, basePath, relativePath);
+    if (written <= 0 || written >= static_cast<int>(N)) {
+        std::printf("[Model] Path too long: base=%s rel=%s\n",
+                    basePath ? basePath : "<null>",
+                    relativePath ? relativePath : "<null>");
+        return false;
+    }
+
+    return true;
+}
 }
 
 static inline bool time_reached(uint32_t now, uint32_t target) {
@@ -18,145 +42,263 @@ static inline bool time_reached(uint32_t now, uint32_t target) {
     return static_cast<int32_t>(now - target) >= 0;
 }
 
+bool Game::loadModelGeometry(const char* relativePath,
+                             uint32_t& vertexId,
+                             uint32_t& triangleId,
+                             bool logSuccess,
+                             size_t* outVertexCount,
+                             size_t* outTriangleCount) {
+    vertexId = 0xFF;
+    triangleId = 0xFF;
+
+    if (!modelBasePath || !relativePath) {
+        return false;
+    }
+
+    char fullPath[MODEL_PATH_BUFFER];
+    if (!build_model_path(modelBasePath, relativePath, fullPath)) {
+        return false;
+    }
+
+    mcu_game::assets::ModelData modelData;
+    const auto result = mcu_game::assets::load_model(fullPath, modelData);
+    if (result != mcu_game::assets::ModelLoadResult::Ok) {
+        std::printf("[Model] load_model failed for %s: %s\n", fullPath, mcu_game::assets::to_string(result));
+        return false;
+    }
+
+    const size_t vertexCount = modelData.vertices.size();
+    const size_t triangleCount = modelData.triangles.size();
+    if (vertexCount > std::numeric_limits<uint16_t>::max() ||
+        triangleCount > std::numeric_limits<uint16_t>::max()) {
+        std::printf("[Model] %s exceeds rasterizer limits (%lu verts, %lu tris)\n",
+                    fullPath,
+                    static_cast<unsigned long>(vertexCount),
+                    static_cast<unsigned long>(triangleCount));
+        return false;
+    }
+
+    const auto vertResp = gfx.createVertex(modelData.vertices.data(), static_cast<uint16_t>(vertexCount));
+    if (!vertResp.isSuccess()) {
+        std::printf("[Model] createVertex failed for %s (status=%u)\n", fullPath, static_cast<unsigned>(vertResp.getStatus()));
+        return false;
+    }
+
+    const auto triResp = gfx.createTriangle(modelData.triangles.data(), static_cast<uint16_t>(triangleCount));
+    if (!triResp.isSuccess()) {
+        std::printf("[Model] createTriangle failed for %s (status=%u)\n", fullPath, static_cast<unsigned>(triResp.getStatus()));
+        return false;
+    }
+
+    vertexId = vertResp.getVertexId();
+    triangleId = triResp.getTriangleId();
+
+    if (outVertexCount) {
+        *outVertexCount = vertexCount;
+    }
+    if (outTriangleCount) {
+        *outTriangleCount = triangleCount;
+    }
+
+    if (logSuccess) {
+        std::printf("[Model] Loaded %s (%lu verts, %lu tris)\n", fullPath,
+                    static_cast<unsigned long>(vertexCount),
+                    static_cast<unsigned long>(triangleCount));
+    }
+
+    return true;
+}
+
+bool Game::loadModelInstance(const char* relativePath, const Rasterizer::Transform& transform, uint32_t& instanceId) {
+    if (!modelBasePath || !relativePath) {
+        return false;
+    }
+
+    uint32_t vertexId = 0xFF;
+    uint32_t triangleId = 0xFF;
+    size_t vertexCount = 0;
+    size_t triangleCount = 0;
+    if (!loadModelGeometry(relativePath, vertexId, triangleId, false, &vertexCount, &triangleCount)) {
+        return false;
+    }
+
+    const auto instResp = gfx.createInstance(vertexId, triangleId, transform);
+    if (!instResp.isSuccess()) {
+        char fullPath[MODEL_PATH_BUFFER];
+        if (!build_model_path(modelBasePath, relativePath, fullPath)) {
+            std::printf("[Model] createInstance failed for %s (status=%u)\n",
+                        relativePath,
+                        static_cast<unsigned>(instResp.getStatus()));
+        } else {
+            std::printf("[Model] createInstance failed for %s (status=%u)\n",
+                        fullPath,
+                        static_cast<unsigned>(instResp.getStatus()));
+        }
+        return false;
+    }
+
+    instanceId = instResp.getInstanceId();
+
+    char fullPath[MODEL_PATH_BUFFER];
+    if (!build_model_path(modelBasePath, relativePath, fullPath)) {
+        std::printf("[Model] Loaded %s (%lu verts, %lu tris)\n", relativePath,
+                    static_cast<unsigned long>(vertexCount),
+                    static_cast<unsigned long>(triangleCount));
+    } else {
+        std::printf("[Model] Loaded %s (%lu verts, %lu tris)\n", fullPath,
+                    static_cast<unsigned long>(vertexCount),
+                    static_cast<unsigned long>(triangleCount));
+    }
+    return true;
+}
+
 void Game::init() {
-    auto tick = timer.get_ticks_ms();
+    const auto tick = timer.get_ticks_ms();
+
+    player.reset();
+    camera.reset();
+    for (auto& platform : platforms) {
+        platform.instanceId = 0xFF;
+    }
+
+    instanceCubeId = 0xFF;
+    instancePyrId = 0xFF;
+    instancePlaneId = 0xFF;
+    cubeVertexId = 0xFF;
+    cubeTriangleId = 0xFF;
+
+    const bool cubeLoaded = loadModelGeometry("cube.obj", cubeVertexId, cubeTriangleId);
+    if (!cubeLoaded) {
+        std::printf("[Model] Falling back to built-in cube geometry\n");
+        Rasterizer::Vertex cubeVerts[8] = {
+            {-0.5f, -0.5f, -0.5f, 15,  0, 15},
+            { 0.5f, -0.5f, -0.5f, 15, 15, 0},
+            { 0.5f,  0.5f, -0.5f,  0, 15, 15},
+            {-0.5f,  0.5f, -0.5f, 15, 0,  15},
+            {-0.5f, -0.5f,  0.5f, 15, 15, 0},
+            { 0.5f, -0.5f,  0.5f,  0, 15, 15},
+            { 0.5f,  0.5f,  0.5f, 15,  0, 15},
+            {-0.5f,  0.5f,  0.5f, 15, 15,  0},
+        };
+        const auto createCubeVert = gfx.createVertex(cubeVerts, 8);
+        if (!createCubeVert.isSuccess()) {
+            std::printf("Failed to create cube vertex buffer (status=%u)\n", static_cast<unsigned>(createCubeVert.getStatus()));
+            return;
+        }
+        cubeVertexId = createCubeVert.getVertexId();
+
+        Rasterizer::Triangle cubeTris[12] = {
+            {4,5,6}, {4,6,7},
+            {1,0,3}, {1,3,2},
+            {3,7,6}, {3,6,2},
+            {0,1,5}, {0,5,4},
+            {1,2,6}, {1,6,5},
+            {0,7,3}, {0,4,7},
+        };
+        const auto createCubeTri = gfx.createTriangle(cubeTris, 12);
+        if (!createCubeTri.isSuccess()) {
+            std::printf("Failed to create cube triangle buffer (status=%u)\n", static_cast<unsigned>(createCubeTri.getStatus()));
+            return;
+        }
+        cubeTriangleId = createCubeTri.getTriangleId();
+    }
+
+    if (cubeVertexId == 0xFF || cubeTriangleId == 0xFF) {
+        std::printf("Cube geometry unavailable, aborting init\n");
+        return;
+    }
+
+    Rasterizer::Transform playerTransform {
+        0.0f, 0.5f, 0.0f,
+        0.0f, 0.0f, 0.0f,
+        1.0f, 1.0f, 1.0f
+    };
+    const auto cubeInstanceResp = gfx.createInstance(cubeVertexId, cubeTriangleId, playerTransform);
+    if (!cubeInstanceResp.isSuccess()) {
+        std::printf("Failed to create cube instance (status=%u)\n", static_cast<unsigned>(cubeInstanceResp.getStatus()));
+        return;
+    }
+    instanceCubeId = cubeInstanceResp.getInstanceId();
+
+    Rasterizer::Transform pyramidTransform {
+        -2.0f, 0.5f, 2.0f,
+        0.0f, 0.0f, 0.0f,
+        1.0f, 1.0f, 1.0f
+    };
+    if (!loadModelInstance("pyramid.obj", pyramidTransform, instancePyrId)) {
+        std::printf("[Model] Falling back to built-in pyramid geometry\n");
+        Rasterizer::Vertex pyrVerts[5] = {
+            {-0.5f, -0.5f, -0.5f,  0,  0,  0},
+            { 0.5f, -0.5f, -0.5f, 15,  0,  0},
+            { 0.5f, -0.5f,  0.5f, 15, 15,  0},
+            {-0.5f, -0.5f,  0.5f,  0, 15,  0},
+            { 0.0f,  0.5f,  0.0f, 15, 15, 15},
+        };
+        const auto createPyrVert = gfx.createVertex(pyrVerts, 5);
+        if (!createPyrVert.isSuccess()) {
+            std::printf("Failed to create pyramid vertex buffer (status=%u)\n", static_cast<unsigned>(createPyrVert.getStatus()));
+            return;
+        }
+
+        Rasterizer::Triangle pyrTris[6] = {
+            {1,0,4}, {2,1,4}, {3,2,4}, {0,3,4},
+            {0,1,2}, {0,2,3},
+        };
+        const auto createPyrTri = gfx.createTriangle(pyrTris, 6);
+        if (!createPyrTri.isSuccess()) {
+            std::printf("Failed to create pyramid triangle buffer (status=%u)\n", static_cast<unsigned>(createPyrTri.getStatus()));
+            return;
+        }
+
+        const auto createPyrInst = gfx.createInstance(createPyrVert.getVertexId(), createPyrTri.getTriangleId(), pyramidTransform);
+        if (!createPyrInst.isSuccess()) {
+            std::printf("Failed to create pyramid instance (status=%u)\n", static_cast<unsigned>(createPyrInst.getStatus()));
+            return;
+        }
+        instancePyrId = createPyrInst.getInstanceId();
+    }
+
+    Rasterizer::Transform planeTransform {
+        0.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f,
+        1.0f, 1.0f, 1.0f
+    };
+    if (!loadModelInstance("plane.obj", planeTransform, instancePlaneId)) {
+        std::printf("[Model] Falling back to built-in plane geometry\n");
+        Rasterizer::Vertex planeVerts[4] = {
+            {-4.0f, 0.0f, -4.0f, 8, 8, 8},
+            { 4.0f, 0.0f, -4.0f, 8, 8, 8},
+            { 4.0f, 0.0f,  4.0f, 8, 8, 8},
+            {-4.0f, 0.0f,  4.0f, 8, 8, 8},
+        };
+        const auto createPlaneVert = gfx.createVertex(planeVerts, 4);
+        if (!createPlaneVert.isSuccess()) {
+            std::printf("Failed to create plane vertex buffer (status=%u)\n", static_cast<unsigned>(createPlaneVert.getStatus()));
+            return;
+        }
+
+        Rasterizer::Triangle planeTris[2] = {
+            {0,1,2}, {0,2,3}
+        };
+        const auto createPlaneTri = gfx.createTriangle(planeTris, 2);
+        if (!createPlaneTri.isSuccess()) {
+            std::printf("Failed to create plane triangle buffer (status=%u)\n", static_cast<unsigned>(createPlaneTri.getStatus()));
+            return;
+        }
+
+        const auto createPlaneInst = gfx.createInstance(createPlaneVert.getVertexId(), createPlaneTri.getTriangleId(), planeTransform);
+        if (!createPlaneInst.isSuccess()) {
+            std::printf("Failed to create plane instance (status=%u)\n", static_cast<unsigned>(createPlaneInst.getStatus()));
+            return;
+        }
+        instancePlaneId = createPlaneInst.getInstanceId();
+    }
+
+    initialize_platforms(cubeVertexId, cubeTriangleId);
+
     next_tick_ms = tick + TICK_MS;
     next_frame_ms = tick + FRAME_MS;
     initialized = true;
-
-    // Reset player and camera
-    player.reset();
-    camera.reset();
-
-    // Cube vertex data
-    Rasterizer::Vertex cubeVerts[8] = {
-        {-0.5f, -0.5f, -0.5f, 15,  0, 15},  // 0
-        { 0.5f, -0.5f, -0.5f, 15, 15, 0},   // 1
-        { 0.5f,  0.5f, -0.5f,  0, 15, 15},  // 2
-        {-0.5f,  0.5f, -0.5f, 15, 0,  15},  // 3
-        {-0.5f, -0.5f,  0.5f, 15, 15, 0},   // 4
-        { 0.5f, -0.5f,  0.5f,  0, 15, 15},  // 5
-        { 0.5f,  0.5f,  0.5f, 15,  0, 15},  // 6
-        {-0.5f,  0.5f,  0.5f, 15, 15,  0},  // 7
-    };
-    auto createCubeVert = gfx.createVertex(cubeVerts, 8);
-    if (createCubeVert.getStatus() != Rasterizer::StatusCode::OK) {
-        printf("Failed to create vertex buffer\n");
-        return;
-    }
-    cubeVertexId = createCubeVert.getVertexId();
-
-    // 12 triangles (CCW, outward)
-    Rasterizer::Triangle cubeTris[12] = {
-        // +Z (front)
-        {4,5,6}, {4,6,7},
-        // -Z (back)
-        {1,0,3}, {1,3,2},
-        // +Y (top)
-        {3,7,6}, {3,6,2},
-        // -Y (bottom)
-        {0,1,5}, {0,5,4},
-        // +X (right)
-        {1,2,6}, {1,6,5},
-        // -X (left)
-        {0,7,3}, {0,4,7},
-    };
-    auto createCubeTri = gfx.createTriangle(cubeTris, 12);
-    if (createCubeTri.getStatus() != Rasterizer::StatusCode::OK) {
-        printf("Failed to create triangle buffer\n");
-        return;
-    }
-    cubeTriangleId = createCubeTri.getTriangleId();
-
-    // Create an instance (position=0, rotation=0, scale=1)
-    Rasterizer::Transform transform = {
-        0, 0.5f, 0,  // initial pos; will be updated each frame to player position
-        0, 0, 0,  // rot (rad)
-        1, 1, 1   // scale
-    };
-    auto createCubeInst = gfx.createInstance(cubeVertexId, cubeTriangleId, transform);
-    if (createCubeInst.getStatus() != Rasterizer::StatusCode::OK) {
-        printf("Failed to create instance\n");
-        return;
-    }
-    instanceCubeId = createCubeInst.getInstanceId();
-
-    // Pyramid
-    Rasterizer::Vertex pyrVerts[5] = {
-        {-0.5f, -0.5f, -0.5f,  0,  0,  0},  // 0
-        { 0.5f, -0.5f, -0.5f, 15,  0,  0},  // 1
-        { 0.5f, -0.5f,  0.5f, 15, 15,  0},  // 2
-        {-0.5f, -0.5f,  0.5f,  0, 15,  0},  // 3
-        { 0.0f,  0.5f,  0.0f, 15, 15, 15},  // 4 apex
-    };
-    auto createPyrVert = gfx.createVertex(pyrVerts, 5);
-    if (createPyrVert.getStatus() != Rasterizer::StatusCode::OK) {
-        printf("Failed to create pyramid vertex buffer\n");
-        return;
-    }
-
-    Rasterizer::Triangle pyrTris[6] = {
-        // sides (CCW outward)
-        {1,0,4}, {2,1,4}, {3,2,4}, {0,3,4},
-        // base (outward -Y)
-        {0,1,2}, {0,2,3},
-    };
-    auto createPyrTri = gfx.createTriangle(pyrTris, 6);
-    if (createPyrTri.getStatus() != Rasterizer::StatusCode::OK) {
-        printf("Failed to create pyramid triangle buffer\n");
-        return;
-    }
-
-    Rasterizer::Transform pyrT = {
-        3.0f, 0.5f, 2.5f,
-        0.0f, 0.0f, 0.0f,
-        1.0f, 1.0f, 1.0f
-    };
-    auto createPyrInst = gfx.createInstance(createPyrVert.getVertexId(), createPyrTri.getTriangleId(), pyrT);
-    if (createPyrInst.getStatus() != Rasterizer::StatusCode::OK) {
-        printf("Failed to create pyramid instance\n");
-        return;
-    }
-    instancePyrId = createPyrInst.getInstanceId();
-
-    // Ground plane: big quad on y = 0 spanning X-Z, gray color
-    Rasterizer::Vertex planeVerts[4] = {
-        {-4.0f, 0.0f, -4.0f, 8, 8, 8},
-        { 4.0f, 0.0f, -4.0f, 8, 8, 8},
-        { 4.0f, 0.0f,  4.0f, 8, 8, 8},
-        {-4.0f, 0.0f,  4.0f, 8, 8, 8},
-    };
-    auto createPlaneVert = gfx.createVertex(planeVerts, 4);
-    if (createPlaneVert.getStatus() != Rasterizer::StatusCode::OK) {
-        printf("Failed to create plane vertex buffer\n");
-        return;
-    }
-
-    Rasterizer::Triangle planeTris[2] = {
-        {0,1,2}, {0,2,3}
-    };
-    auto createPlaneTri = gfx.createTriangle(planeTris, 2);
-    if (createPlaneTri.getStatus() != Rasterizer::StatusCode::OK) {
-        printf("Failed to create plane triangle buffer\n");
-        return;
-    }
-
-    Rasterizer::Transform planeT = {
-        0.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.0f,
-        1.0f, 1.0f, 1.0f
-    };
-
-    auto createPlaneInst = gfx.createInstance(createPlaneVert.getVertexId(), createPlaneTri.getTriangleId(), planeT);
-    if (createPlaneInst.getStatus() != Rasterizer::StatusCode::OK) {
-        printf("Failed to create plane instance\n");
-        return;
-    }
-    
-    instancePlaneId = createPlaneInst.getInstanceId();
-
-    initialize_platforms(cubeVertexId, cubeTriangleId);
-    
 }
 
 void Game::tick_once() {
