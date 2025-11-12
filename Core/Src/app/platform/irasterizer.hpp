@@ -1,13 +1,15 @@
 #pragma once
 #include <cstdint>
+#include <atomic>
 
 namespace Rasterizer {
     enum class StatusCode : uint8_t {
-        OK = 0b0000,
-        OUT_OF_MEMORY = 0b0001,
-        INVALID_ID = 0b0010,
-        INVALID_OPCODE = 0b0011,
-        CORRUPT_INVALID_DATA = 0b0100,
+        CORRUPT_INVALID_DATA = 0b0000,
+        OK = 0b0001,
+        OUT_OF_MEMORY = 0b0010,
+        INVALID_ID = 0b0011,
+        INVALID_OPCODE = 0b0100,
+        SPI_ERROR = 0b1111,
     };
 
     enum class Operation: uint8_t {
@@ -16,6 +18,21 @@ namespace Rasterizer {
         CREATE_TRI = 0b0010,
         CREATE_INST = 0b0011,
         UPDATE_INST = 0b0100,
+    };
+
+    // Minimal future/promise pair
+    struct SpiFuture {
+        std::atomic<bool> done{false};
+        uint8_t returnCode = 0;
+        uint8_t data = 0;
+    };
+
+    using FutureCallback = void (*)(SpiFuture*, void*);
+
+    struct SpiPromise {
+        SpiFuture* fut = nullptr;
+        FutureCallback callback = nullptr;
+        void* userCtx = nullptr;
     };
 
     struct Vertex {
@@ -32,6 +49,7 @@ namespace Rasterizer {
         float rotX, rotY, rotZ;
         float scaleX, scaleY, scaleZ;
     };
+
 
     class BaseResponse {
     public:
@@ -131,16 +149,16 @@ namespace Rasterizer {
 
         /**
          * Creates a new vertex buffer.
-         * @param vertices array of vertices (max 4096)
-         * @param count number of vertices in the array (max 4096)
+         * @param vertices array of vertices
+         * @param count number of vertices in the array
          * @return status, ID assigned to the created vertex buffer
          */
         virtual CreateVertResponse createVertex(const Vertex* vertices, uint16_t count) = 0;
 
         /**
          * Create a new triangle buffer.
-         * @param triangles array of triangles (max 4096)
-         * @param count number of triangles in the array (max 4096)
+         * @param triangles array of triangles
+         * @param count number of triangles in the array
          * @return status, ID assigned to the created triangle buffer
          */
         virtual CreateTriResponse createTriangle(const Triangle* triangles, uint16_t count) = 0;
@@ -160,13 +178,25 @@ namespace Rasterizer {
          * @param transform new transform
          * @return status
          */
-        virtual UpdateInstResponse updateInstance(uint8_t instanceId, const Transform& transform) = 0;
+        virtual UpdateInstResponse updateInstance(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) = 0;
+
+        virtual SpiFuture* wipeAllAsync(FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+        virtual SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count,
+                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+        virtual SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count,
+                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+        virtual SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
+                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+        virtual SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform,
+                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
 
         /**
          * Camera transform update;
          * @param transform new transform
          * @return status
          */
-        virtual UpdateInstResponse updateCamera(const Transform& transform) = 0;
+        UpdateInstResponse updateCamera(const Transform& transform){
+            return updateInstance(0, 0, 0, transform); // assuming camera has instance ID 0
+        }
     };
 }
