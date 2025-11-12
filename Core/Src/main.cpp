@@ -60,6 +60,10 @@
 #include <string.h>
 #include <cstdio>
 #include "spi_stm.hpp"
+#include "app/game.hpp"
+#include "app/platform/iinput.hpp"
+#include "app/platform/itimer.hpp"
+#include "app/platform/irasterizer.hpp"
 
 #ifdef SPI_TEST_MODE
 extern "C" int spi_test_main(void);
@@ -159,14 +163,39 @@ public:
     return Rasterizer::CreateInstResponse(Rasterizer::StatusCode::OK, id);
   }
 
-  Rasterizer::UpdateInstResponse updateInstance(uint8_t, const Rasterizer::Transform&) override
+  Rasterizer::UpdateInstResponse updateInstance(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Rasterizer::Transform&) override
+  {
+    static_cast<void>(vertID);
+    static_cast<void>(triID);
+    static_cast<void>(instanceId);
+    return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
+  }
+
+  Rasterizer::UpdateInstResponse updateCamera(const Rasterizer::Transform&)
   {
     return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
   }
 
-  Rasterizer::UpdateInstResponse updateCamera(const Rasterizer::Transform&) override
+  Rasterizer::SpiFuture* wipeAllAsync(Rasterizer::FutureCallback, void*) override { return nullptr; }
+  Rasterizer::SpiFuture* createVertexAsync(const Rasterizer::Vertex*, uint16_t,
+                                           Rasterizer::FutureCallback, void*) override
   {
-    return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
+    return nullptr;
+  }
+  Rasterizer::SpiFuture* createTriangleAsync(const Rasterizer::Triangle*, uint16_t,
+                                             Rasterizer::FutureCallback, void*) override
+  {
+    return nullptr;
+  }
+  Rasterizer::SpiFuture* createInstanceAsync(uint8_t, uint8_t, const Rasterizer::Transform&,
+                                             Rasterizer::FutureCallback, void*) override
+  {
+    return nullptr;
+  }
+  Rasterizer::SpiFuture* updateInstanceAsync(uint8_t, uint8_t, uint8_t, const Rasterizer::Transform&,
+                                             Rasterizer::FutureCallback, void*) override
+  {
+    return nullptr;
   }
 
 private:
@@ -424,9 +453,6 @@ int main(void)
   #ifdef SPI_TEST_MODE
   spi_test_main();
   #endif
-  Rasterizer::SpiAsyncRasterizer rasterizer;
-  Rasterizer::SpiFuture* fut = nullptr;
-
   bool sdReady = false;
   bool runtimeMountOk = false;
   uint32_t lastBlinkMs = HAL_GetTick();
@@ -470,8 +496,8 @@ int main(void)
 
   NullInput input;
   HalTimer timer;
-  NullRasterizer rasterizer;
-  Game game{rasterizer, input, timer};
+  NullRasterizer nullRasterizer;
+  Game game{nullRasterizer, input, timer};
 
   if (sdReady)
   {
