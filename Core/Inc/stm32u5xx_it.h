@@ -55,8 +55,8 @@ void SVC_Handler(void);
 void DebugMon_Handler(void);
 void PendSV_Handler(void);
 void SysTick_Handler(void);
-void EXTI13_IRQHandler(void);
 void GPDMA1_Channel0_IRQHandler(void);
+void OTG_HS_IRQHandler(void);
 void OCTOSPI1_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 # -------------------------
 # Project & languages
 # -------------------------
-project(idontknow LANGUAGES C CXX ASM)
+project(STMU595VJT6 LANGUAGES C CXX ASM)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Build switches
@@ -22,10 +22,12 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
-# Default build type
-if (NOT CMAKE_BUILD_TYPE)
+# Define the build type
+if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
-endif ()
+endif()
+# Set the project name
+set(CMAKE_PROJECT_NAME STMU595VJT6)
 
 # Export compile_commands.json for clangd, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -53,6 +55,7 @@ set(APP_SRC
         Core/Src/app/model_loader.hpp
         Core/Src/app/model_loader.cpp
         Core/Src/device/spi_stm.hpp
+    Core/Src/device/seven_seg_display.cpp
 )
 
 set(APP_INC
@@ -135,14 +138,16 @@ endif()
 if (BUILD_STM32 AND BUILD_SPI_TESTS)
     # Build an ELF that runs the Unity-based SPI protocol tests on the MCU.
     add_executable(test
+        ${APP_SRC}
         Core/Test/SPITests/spiTestHarness.c
         Core/Test/SPITests/ProtocolTests.cpp
         Core/Src/device/spi_stm.cpp
+    Core/Src/device/seven_seg_display.cpp
         Core/Src/device/spi_stm.hpp
         Core/Src/main.cpp
         Core/Src/sysmem.c
         Core/Src/syscalls.c
-        startup_stm32u545xx.s
+        startup_stm32u595xx.s
     )
 
     # Include same directories as firmware so tests can access HAL headers and project headers
@@ -155,6 +160,8 @@ if (BUILD_STM32 AND BUILD_SPI_TESTS)
         ${CMAKE_SOURCE_DIR}/Core/Src/Device
         ${CMAKE_SOURCE_DIR}/Core/Src
         ${CMAKE_SOURCE_DIR}/Core/External/Unity/src
+        ${CMAKE_SOURCE_DIR}/Middlewares/FatFs/Inc
+        ${CMAKE_SOURCE_DIR}/Middlewares/FatFs/Inc/drivers
     )
 
     target_compile_definitions(test PRIVATE PLATFORM_STM32=1)
@@ -167,6 +174,7 @@ if (BUILD_STM32 AND BUILD_SPI_TESTS)
         stm32cubemx
         STM32_Drivers
         Unity
+        FatFs
     )
 endif()
 

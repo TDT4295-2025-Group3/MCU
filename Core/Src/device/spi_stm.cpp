@@ -506,6 +506,24 @@ static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform 
 
 
 namespace Rasterizer {
+    void SpiRasterizer::clear(uint32_t argb) {
+        (void)argb;
+        // SPI backend lacks direct clear command; no-op for now.
+    }
+
+    void SpiRasterizer::rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t argb) {
+        (void)x;
+        (void)y;
+        (void)w;
+        (void)h;
+        (void)argb;
+        // Hardware accelerator does not expose a rectangle primitive yet.
+    }
+
+    void SpiRasterizer::end_frame() {
+        // No frame boundary signal required by current protocol.
+    }
+
     Rasterizer::SpiFuture* SpiAsyncRasterizer::wipeAllAsync(FutureCallback callback, void* userCtx) {
         return wipe_all_async(callback, userCtx);
     }

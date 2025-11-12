@@ -33,7 +33,7 @@ extern "C" {
   */
 #define HAL_MODULE_ENABLED
 
-/*#define HAL_ADC_MODULE_ENABLED */
+#define HAL_ADC_MODULE_ENABLED
 /*#define HAL_COMP_MODULE_ENABLED */
 /*#define HAL_CORDIC_MODULE_ENABLED */
 /*#define HAL_CRC_MODULE_ENABLED */
@@ -50,7 +50,7 @@ extern "C" {
 /*#define HAL_GPU2D_MODULE_ENABLED */
 /*#define HAL_GTZC_MODULE_ENABLED */
 /*#define HAL_HASH_MODULE_ENABLED */
-/*#define HAL_HCD_MODULE_ENABLED */
+#define HAL_HCD_MODULE_ENABLED
 /*#define HAL_I2C_MODULE_ENABLED */
 #define HAL_ICACHE_MODULE_ENABLED
 /*#define HAL_IRDA_MODULE_ENABLED */
@@ -76,11 +76,11 @@ extern "C" {
 /*#define HAL_SDIO_MODULE_ENABLED */
 /*#define HAL_SMARTCARD_MODULE_ENABLED */
 /*#define HAL_SMBUS_MODULE_ENABLED */
-/*#define HAL_SPI_MODULE_ENABLED */
+#define HAL_SPI_MODULE_ENABLED
 /*#define HAL_SRAM_MODULE_ENABLED */
 /*#define HAL_TIM_MODULE_ENABLED */
 /*#define HAL_TSC_MODULE_ENABLED */
-#define HAL_UART_MODULE_ENABLED
+/*#define HAL_UART_MODULE_ENABLED */
 /*#define HAL_USART_MODULE_ENABLED */
 /*#define HAL_WWDG_MODULE_ENABLED */
 /*#define HAL_XSPI_MODULE_ENABLED */
@@ -99,7 +99,7 @@ extern "C" {
   *        (when HSE is used as system clock source, directly or through the PLL).
   */
 #if !defined  (HSE_VALUE)
-#define HSE_VALUE              16000000UL /*!< Value of the External oscillator in Hz */
+#define HSE_VALUE              48000000UL /*!< Value of the External oscillator in Hz */
 #endif /* HSE_VALUE */
 
 #if !defined  (HSE_STARTUP_TIMEOUT)

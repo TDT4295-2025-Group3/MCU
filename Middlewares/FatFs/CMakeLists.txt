@@ -27,5 +27,5 @@ target_include_directories(FatFs PUBLIC
 )
 target_compile_definitions(FatFs PUBLIC
     USE_HAL_DRIVER
-    STM32U545xx
+    STM32U595xx
 )

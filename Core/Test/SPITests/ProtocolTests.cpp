@@ -1,6 +1,7 @@
 #include "unity.h"
 #include "spi_stm.hpp"
 #include "main.h"
+#include "seven_seg_display.hpp"
 
 #define INTER_TEST_DELAY_MS 100
 
@@ -284,7 +285,16 @@ void test_full_model_load(void){
 
 extern "C" void run_spi_tests(void)
 {
+    static bool displayInitialized = false;
+    if (!displayInitialized)
+    {
+        SevenSeg::init();
+        displayInitialized = true;
+    }
+
+    SevenSeg::displayNumber(1);
     RUN_TEST(test_wipe_all);
+    SevenSeg::displayNumber(1234);
     RUN_TEST(test_create_vert);
     RUN_TEST(test_even_vert);
     RUN_TEST(test_create_tri);

@@ -29,12 +29,9 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32u5xx_hal.h"
 
-#include "stm32u5xx_nucleo.h"
-#include <stdio.h>
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -46,7 +43,6 @@ extern "C" {
 /* USER CODE BEGIN EC */
 extern OSPI_HandleTypeDef hospi1;
 extern OSPI_RegularCmdTypeDef ospi_cmd;
-
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

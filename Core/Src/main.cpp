@@ -1,3 +1,5 @@
+/* USER CODE BEGIN Header */
+
 /*********************************************************************************************
 *                                                                                           
 *   @@@@@@@@@@@@@@@@@@@@@@@@@@@                                                             
@@ -26,8 +28,6 @@
 *    @@@@@@@@@@@@@@@@@@@@@@@@@                                                              
 *
 *********************************************************************************************/
-
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : main.cpp
@@ -64,6 +64,7 @@
 #include "app/platform/iinput.hpp"
 #include "app/platform/itimer.hpp"
 #include "app/platform/irasterizer.hpp"
+#include "stm32u5xx_hal.h"
 
 #ifdef SPI_TEST_MODE
 extern "C" int spi_test_main(void);
@@ -78,7 +79,6 @@ extern "C" int spi_test_main(void);
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-uint8_t txBuffer[256];   // test buffer
 
 /* USER CODE END PD */
 
@@ -88,269 +88,64 @@ uint8_t txBuffer[256];   // test buffer
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
-COM_InitTypeDef BspCOMInit;
+ADC_HandleTypeDef hadc1;
 
 OSPI_HandleTypeDef hospi1;
 DMA_HandleTypeDef handle_GPDMA1_Channel0;
+OSPI_RegularCmdTypeDef ospi_cmd;
+
 SD_HandleTypeDef hsd_sdmmc1;
 
+SPI_HandleTypeDef hspi2;
+
+HCD_HandleTypeDef hhcd_USB_OTG_HS;
+
+/* USER CODE BEGIN PV */
 static FATFS sdFatFs;
 static char SDPath[4];
 static char gModelBasePath[64];
 
-/* USER CODE BEGIN PV */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void SystemPower_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_GPDMA1_Init(void);
-static void MX_ICACHE_Init(void);
 static void MX_OCTOSPI1_Init(void);
-static bool MX_SDMMC1_SD_Init(void);
+static void MX_USB_OTG_HS_HCD_Init(void);
+static void MX_ADC1_Init(void);
+static void MX_ICACHE_Init(void);
+static void MX_SPI2_Init(void);
+static void MX_SDMMC1_SD_Init(void);
 /* USER CODE BEGIN PFP */
-extern "C" int _write(int file, char *ptr, int len)
-{
-    HAL_UART_Transmit(&hcom_uart[COM1], (uint8_t*)ptr, len, HAL_MAX_DELAY);
-    return len;
-}
-namespace
-{
-constexpr uint32_t kSdmmcTransferClockDiv = 8U; // 48 MHz / (2 * 8) ~= 3 MHz
-constexpr char kModelDirectory[] = "models";
-
-class NullInput : public IInput
-{
-public:
-  KeyState poll() override { return {}; }
-};
-
-class HalTimer : public ITimer
-{
-public:
-  uint32_t get_ticks_ms() override { return HAL_GetTick(); }
-};
-
-class NullRasterizer : public Rasterizer::IRasterizer
-{
-public:
-  void clear(uint32_t) override {}
-  void rect(uint16_t, uint16_t, uint16_t, uint16_t, uint32_t) override {}
-  void end_frame() override {}
-
-  Rasterizer::WipeAllResponse wipeAll() override
-  {
-    return Rasterizer::WipeAllResponse(Rasterizer::StatusCode::OK);
-  }
-
-  Rasterizer::CreateVertResponse createVertex(const Rasterizer::Vertex*, uint16_t) override
-  {
-    const uint8_t id = nextVertexId++;
-    return Rasterizer::CreateVertResponse(Rasterizer::StatusCode::OK, id);
-  }
-
-  Rasterizer::CreateTriResponse createTriangle(const Rasterizer::Triangle*, uint16_t) override
-  {
-    const uint8_t id = nextTriangleId++;
-    return Rasterizer::CreateTriResponse(Rasterizer::StatusCode::OK, id);
-  }
-
-  Rasterizer::CreateInstResponse createInstance(uint8_t, uint8_t, const Rasterizer::Transform&) override
-  {
-    const uint8_t id = nextInstanceId++;
-    return Rasterizer::CreateInstResponse(Rasterizer::StatusCode::OK, id);
-  }
-
-  Rasterizer::UpdateInstResponse updateInstance(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Rasterizer::Transform&) override
-  {
-    static_cast<void>(vertID);
-    static_cast<void>(triID);
-    static_cast<void>(instanceId);
-    return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
-  }
-
-  Rasterizer::UpdateInstResponse updateCamera(const Rasterizer::Transform&)
-  {
-    return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
-  }
-
-  Rasterizer::SpiFuture* wipeAllAsync(Rasterizer::FutureCallback, void*) override { return nullptr; }
-  Rasterizer::SpiFuture* createVertexAsync(const Rasterizer::Vertex*, uint16_t,
-                                           Rasterizer::FutureCallback, void*) override
-  {
-    return nullptr;
-  }
-  Rasterizer::SpiFuture* createTriangleAsync(const Rasterizer::Triangle*, uint16_t,
-                                             Rasterizer::FutureCallback, void*) override
-  {
-    return nullptr;
-  }
-  Rasterizer::SpiFuture* createInstanceAsync(uint8_t, uint8_t, const Rasterizer::Transform&,
-                                             Rasterizer::FutureCallback, void*) override
-  {
-    return nullptr;
-  }
-  Rasterizer::SpiFuture* updateInstanceAsync(uint8_t, uint8_t, uint8_t, const Rasterizer::Transform&,
-                                             Rasterizer::FutureCallback, void*) override
-  {
-    return nullptr;
-  }
-
-private:
-  uint8_t nextVertexId = 0;
-  uint8_t nextTriangleId = 0;
-  uint8_t nextInstanceId = 0;
-};
-}
+static void MX_GPDMA1_Init(void);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-static bool SD_CardSelfTest(void)
+namespace
 {
-  if (FATFS_LinkDriver(&SD_Driver, SDPath) != 0)
+  constexpr uint32_t kSdmmcTransferClockDiv = 8U; // 48 MHz / (2 * 8) ~= 3 MHz
+  constexpr char kModelDirectory[] = "models";
+
+  class NullInput : public IInput
   {
-    printf("[SD] FATFS_LinkDriver failed\r\n");
-    return false;
-  }
+  public:
+    KeyState poll() override { return {}; }
+  };
 
-  bool mounted = false;
-  bool fileOpen = false;
-  bool fileCreated = false;
-  bool success = false;
-
-  FRESULT res = FR_OK;
-  FIL file{};
-  char filePath[32] = {0};
-  HAL_SD_CardInfoTypeDef cardInfo{};
-  constexpr char testData[] = "FatFs SD card test OK\r\n";
-  char readBuffer[sizeof(testData)] = {0};
-  UINT bytesWritten = 0;
-  UINT bytesRead = 0;
-
-  do
+  class HalTimer : public ITimer
   {
-    const HAL_SD_CardStateTypeDef cardStateBefore = HAL_SD_GetCardState(&hsd_sdmmc1);
-    printf("[SD] Card state before mount: %d\r\n", static_cast<int>(cardStateBefore));
+  public:
+    uint32_t get_ticks_ms() override { return HAL_GetTick(); }
+  };
+};
 
-    HAL_SD_CardInfoTypeDef preMountInfo{};
-    if (HAL_SD_GetCardInfo(&hsd_sdmmc1, &preMountInfo) == HAL_OK)
-    {
-      printf("[SD] Info before mount: RCA=0x%04lx, blocks=%lu, blockSize=%lu\r\n",
-             static_cast<unsigned long>(preMountInfo.RelCardAdd),
-             static_cast<unsigned long>(preMountInfo.LogBlockNbr),
-             static_cast<unsigned long>(preMountInfo.LogBlockSize));
-    }
-    else
-    {
-      printf("[SD] HAL_SD_GetCardInfo pre-mount failed, err=0x%08lx\r\n",
-             HAL_SD_GetError(&hsd_sdmmc1));
-    }
+/* USER CODE END PFP */
 
-    res = f_mount(&sdFatFs, SDPath, 1);
-    if (res != FR_OK)
-    {
-      printf("[SD] f_mount failed: %d\r\n", res);
-      printf("[SD] Card state after failed mount: %d (error=0x%08lx)\r\n",
-             static_cast<int>(HAL_SD_GetCardState(&hsd_sdmmc1)),
-             HAL_SD_GetError(&hsd_sdmmc1));
-      const DSTATUS diskStat = SD_Driver.disk_status(0);
-      printf("[SD] Disk status flags: 0x%02x\r\n", diskStat);
-      break;
-    }
-    mounted = true;
-
-    if (HAL_SD_GetCardInfo(&hsd_sdmmc1, &cardInfo) == HAL_OK)
-    {
-      const uint32_t blockSize = cardInfo.LogBlockSize;
-      const uint64_t capacityBytes = static_cast<uint64_t>(cardInfo.LogBlockNbr) * blockSize;
-      const unsigned long capacityMB = static_cast<unsigned long>(capacityBytes / (1024ULL * 1024ULL));
-      printf("[SD] Card detected: %lu blocks x %lu bytes (%lu MB)\r\n",
-             static_cast<unsigned long>(cardInfo.LogBlockNbr),
-             static_cast<unsigned long>(blockSize),
-             capacityMB);
-    }
-    else
-    {
-      printf("[SD] HAL_SD_GetCardInfo failed, err=0x%08lx\r\n",
-             HAL_SD_GetError(&hsd_sdmmc1));
-    }
-
-    std::snprintf(filePath, sizeof(filePath), "%stest.txt", SDPath);
-
-    res = f_open(&file, filePath, FA_CREATE_ALWAYS | FA_WRITE);
-    if (res != FR_OK)
-    {
-      printf("[SD] f_open(write) failed: %d\r\n", res);
-      break;
-    }
-    fileOpen = true;
-    fileCreated = true;
-
-    res = f_write(&file, testData, sizeof(testData) - 1, &bytesWritten);
-    if (res != FR_OK || bytesWritten != sizeof(testData) - 1)
-    {
-      printf("[SD] f_write failed: %d (bytes=%u)\r\n", res, bytesWritten);
-      break;
-    }
-
-    res = f_close(&file);
-    if (res != FR_OK)
-    {
-      printf("[SD] f_close(write) failed: %d\r\n", res);
-      break;
-    }
-    fileOpen = false;
-
-    res = f_open(&file, filePath, FA_READ);
-    if (res != FR_OK)
-    {
-      printf("[SD] f_open(read) failed: %d\r\n", res);
-      break;
-    }
-    fileOpen = true;
-
-    res = f_read(&file, readBuffer, sizeof(testData) - 1, &bytesRead);
-    if (res != FR_OK)
-    {
-      printf("[SD] f_read failed: %d\r\n", res);
-      break;
-    }
-
-    if (bytesRead != sizeof(testData) - 1 || std::memcmp(readBuffer, testData, sizeof(testData) - 1) != 0)
-    {
-      printf("[SD] Data mismatch (read %u bytes)\r\n", bytesRead);
-      break;
-    }
-
-    printf("[SD] Read back: %s", readBuffer);
-    success = true;
-  }
-  while (false);
-
-  if (fileOpen)
-  {
-    f_close(&file);
-  }
-
-  if (mounted)
-  {
-    if (fileCreated)
-    {
-      f_unlink(filePath);
-    }
-    f_mount(nullptr, SDPath, 0);
-  }
-
-  FATFS_UnLinkDriver(SDPath);
-
-  printf("[SD] Self-test %s\r\n", success ? "PASSED" : "FAILED");
-
-  return success;
-}
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
 
 static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
 {
@@ -419,21 +214,7 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
-  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
-  BspCOMInit.BaudRate   = 115200;
-  BspCOMInit.WordLength = COM_WORDLENGTH_8B;
-  BspCOMInit.StopBits   = COM_STOPBITS_1;
-  BspCOMInit.Parity     = COM_PARITY_NONE;
-  BspCOMInit.HwFlowCtl  = COM_HWCONTROL_NONE;
-  if (BSP_COM_Init(COM1, &BspCOMInit) != BSP_ERROR_NONE)
-  {
-    Error_Handler();
-  }
-
   /* USER CODE END Init */
-
-  /* Configure the System Power */
-  SystemPower_Config();
 
   /* Configure the system clock */
   SystemClock_Config();
@@ -445,59 +226,26 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_GPDMA1_Init();
-  MX_ICACHE_Init();
   MX_OCTOSPI1_Init();
+  MX_USB_OTG_HS_HCD_Init();
+  MX_ADC1_Init();
+  MX_ICACHE_Init();
+  MX_SPI2_Init();
+  // MX_SDMMC1_SD_Init(); //broken as per wednsday
   /* USER CODE BEGIN 2 */
-
   // automatic testing if enabled
   #ifdef SPI_TEST_MODE
   spi_test_main();
   #endif
   bool sdReady = false;
   bool runtimeMountOk = false;
-  uint32_t lastBlinkMs = HAL_GetTick();
-  bool errorBlinkShortPhase = false;
 
   /* USER CODE END 2 */
 
-  /* Initialize led */
-  BSP_LED_Init(LED_GREEN);
-
-  /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
-  BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
-
-
-
-  BSP_COM_SelectLogPort(COM1);
-
-  setvbuf(stdout, nullptr, _IONBF, 0);
-  printf("Console ready\r\n");
-
-
-
-  const bool sdInitOk = MX_SDMMC1_SD_Init();
-  if (sdInitOk)
-  {
-    sdReady = SD_CardSelfTest();
-
-    if (sdReady)
-    {
-      printf("[SD] Card communication OK\r\n");
-    }
-    else
-    {
-      printf("[SD] Card communication FAILED\r\n");
-    }
-  }
-  else
-  {
-    printf("[SD] Controller init failed\r\n");
-  }
-
+  Rasterizer::SpiRasterizer rasterizer;
   NullInput input;
   HalTimer timer;
-  NullRasterizer nullRasterizer;
-  Game game{nullRasterizer, input, timer};
+  Game game{rasterizer, input, timer};
 
   if (sdReady)
   {
@@ -509,50 +257,15 @@ int main(void)
   }
 
   game.init();
-  const bool sdOperational = sdReady && runtimeMountOk;
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-
-    // wipe_all_start();
-
-
-    /* USER CODE BEGIN 2 */
-
-
-    /* USER CODE END 2 */
-
-
-
-    /* USER CODE END WHILE */
     game.tick_once();
+    /* USER CODE END WHILE */
 
-    const uint32_t now = HAL_GetTick();
-    if (sdOperational)
-    {
-      if ((now - lastBlinkMs) >= 200U)
-      {
-        HAL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);
-        lastBlinkMs = now;
-      }
-    }
-    else
-    {
-      const uint32_t waitMs = errorBlinkShortPhase ? 150U : 1000U;
-      if ((now - lastBlinkMs) >= waitMs)
-      {
-        HAL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);
-        lastBlinkMs = now;
-        errorBlinkShortPhase = !errorBlinkShortPhase;
-      }
-    }
-
-    HAL_Delay(1);
     /* USER CODE BEGIN 3 */
-    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
@@ -568,19 +281,32 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE4) != HAL_OK)
+  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI|RCC_OSCILLATORTYPE_HSI48;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSI
+                              |RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_4;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV4;
+  RCC_OscInitStruct.PLL.PLLM = 3;
+  RCC_OscInitStruct.PLL.PLLN = 10;
+  RCC_OscInitStruct.PLL.PLLP = 5;
+  RCC_OscInitStruct.PLL.PLLQ = 2;
+  RCC_OscInitStruct.PLL.PLLR = 1;
+  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
+  RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -591,34 +317,78 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
                               |RCC_CLOCKTYPE_PCLK3;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV8;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
   {
     Error_Handler();
   }
 }
 
 /**
-  * @brief Power Configuration
+  * @brief ADC1 Initialization Function
+  * @param None
   * @retval None
   */
-static void SystemPower_Config(void)
+static void MX_ADC1_Init(void)
 {
 
-  /*
-   * Switch to SMPS regulator instead of LDO
-   */
-  if (HAL_PWREx_ConfigSupply(PWR_SMPS_SUPPLY) != HAL_OK)
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Common config
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+  hadc1.Init.Resolution = ADC_RESOLUTION_14B;
+  hadc1.Init.GainCompensation = 0;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.LowPowerAutoWait = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.TriggerFrequencyMode = ADC_TRIGGER_FREQ_HIGH;
+  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc1.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
+  hadc1.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
+  hadc1.Init.OversamplingMode = DISABLE;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
   }
-/* USER CODE BEGIN PWR */
-/* USER CODE END PWR */
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_5CYCLE;
+  sConfig.SingleDiff = ADC_DIFFERENTIAL_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -665,12 +435,8 @@ static void MX_ICACHE_Init(void)
 
   /* USER CODE END ICACHE_Init 1 */
 
-  /** Enable instruction cache in 1-way (direct mapped cache)
+  /** Enable instruction cache (default 2-ways set associative cache)
   */
-  if (HAL_ICACHE_ConfigAssociativityMode(ICACHE_1WAY) != HAL_OK)
-  {
-    Error_Handler();
-  }
   if (HAL_ICACHE_Enable() != HAL_OK)
   {
     Error_Handler();
@@ -700,14 +466,24 @@ static void MX_OCTOSPI1_Init(void)
   hospi1.Init.FreeRunningClock = HAL_OSPI_FREERUNCLK_DISABLE;
   hospi1.Init.ChipSelectBoundary = 0;
   hospi1.Init.WrapSize = HAL_OSPI_WRAP_NOT_SUPPORTED;
+
   /* USER CODE END OCTOSPI1_Init 0 */
+
+  OSPIM_CfgTypeDef sOspiManagerCfg = {0};
 
   /* USER CODE BEGIN OCTOSPI1_Init 1 */
 
   /* USER CODE END OCTOSPI1_Init 1 */
   /* OCTOSPI1 parameter configuration*/
-  
+
   if (HAL_OSPI_Init(&hospi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sOspiManagerCfg.ClkPort = 1;
+  sOspiManagerCfg.NCSPort = 1;
+  sOspiManagerCfg.IOLowPort = HAL_OSPIM_IOPORT_1_LOW;
+  if (HAL_OSPIM_Config(&hospi1, &sOspiManagerCfg, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
   {
     Error_Handler();
   }
@@ -717,55 +493,21 @@ static void MX_OCTOSPI1_Init(void)
 
 }
 
-OSPI_RegularCmdTypeDef ospi_cmd;
-
-
-// static void OSPI_ConfigRawWrite(uint32_t length)
-// {
-//     memset(&ospi_cmd, 0, sizeof(ospi_cmd));
-//     ospi_cmd.OperationType   = HAL_OSPI_OPTYPE_COMMON_CFG;
-//     ospi_cmd.FlashId         = HAL_OSPI_FLASH_ID_1;
-//     ospi_cmd.InstructionMode = HAL_OSPI_INSTRUCTION_1_LINE;    // not NONE
-//     ospi_cmd.Instruction     = 0x00;                          // dummy byte that FPGA should ignore
-//     ospi_cmd.InstructionSize = HAL_OSPI_INSTRUCTION_8_BITS;
-//     ospi_cmd.InstructionDtrMode = HAL_OSPI_INSTRUCTION_DTR_DISABLE;
-//     ospi_cmd.AddressMode     = HAL_OSPI_ADDRESS_NONE;       // no address
-//     ospi_cmd.AlternateBytesMode = HAL_OSPI_ALTERNATE_BYTES_NONE;
-//     ospi_cmd.DataMode        = HAL_OSPI_DATA_4_LINES;       // quad
-//     ospi_cmd.DummyCycles     = 0;
-//     ospi_cmd.NbData          = length;                      // number of bytes to transfer
-//     ospi_cmd.SIOOMode        = HAL_OSPI_SIOO_INST_EVERY_CMD;
-// }
-
-
-
-//pin 0 -> CN10.24
-//pin 1 -> CN7.34
-//pin 2 -> CN10.15
-//pin 3 -> CN10.13
-// static void Send_Buffer(uint8_t *buf, uint32_t len)
-// {
-//     OSPI_ConfigRawWrite(len);
-
-//     if (HAL_OSPI_Command(&hospi1, &ospi_cmd, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
-//     {
-//         Error_Handler();
-//     }
-
-//     if (HAL_OSPI_Transmit_DMA(&hospi1, buf) != HAL_OK)
-//     {
-//         Error_Handler();
-//     }
-// }
-
-// void HAL_OSPI_TxCpltCallback(OSPI_HandleTypeDef *hospi)
-// {
-//     txDone = true;
-// }
-
-
-static bool MX_SDMMC1_SD_Init(void)
+/**
+  * @brief SDMMC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SDMMC1_SD_Init(void)
 {
+
+  /* USER CODE BEGIN SDMMC1_Init 0 */
+
+  /* USER CODE END SDMMC1_Init 0 */
+
+  /* USER CODE BEGIN SDMMC1_Init 1 */
+
+  /* USER CODE END SDMMC1_Init 1 */
   hsd_sdmmc1.Instance = SDMMC1;
   hsd_sdmmc1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
   hsd_sdmmc1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
@@ -774,21 +516,100 @@ static bool MX_SDMMC1_SD_Init(void)
   hsd_sdmmc1.Init.ClockDiv = kSdmmcTransferClockDiv;
   if (HAL_SD_Init(&hsd_sdmmc1) != HAL_OK)
   {
-    printf("[SD] HAL_SD_Init error: 0x%08lx\r\n", HAL_SD_GetError(&hsd_sdmmc1));
-    return false;
+    Error_Handler();
   }
+  /* USER CODE BEGIN SDMMC1_Init 2 */
+  /* USER CODE END SDMMC1_Init 2 */
+}
 
-  const uint32_t sdmmcClkHz = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_SDMMC);
-  uint32_t transferClkHz = 0U;
-  if (sdmmcClkHz != 0U)
+/**
+  * @brief SPI2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI2_Init(void)
+{
+
+  /* USER CODE BEGIN SPI2_Init 0 */
+
+  /* USER CODE END SPI2_Init 0 */
+
+  SPI_AutonomousModeConfTypeDef HAL_SPI_AutonomousMode_Cfg_Struct = {0};
+
+  /* USER CODE BEGIN SPI2_Init 1 */
+
+  /* USER CODE END SPI2_Init 1 */
+  /* SPI2 parameter configuration*/
+  hspi2.Instance = SPI2;
+  hspi2.Init.Mode = SPI_MODE_MASTER;
+  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi2.Init.DataSize = SPI_DATASIZE_16BIT;
+  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi2.Init.NSS = SPI_NSS_HARD_OUTPUT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi2.Init.FirstBit = SPI_FIRSTBIT_LSB;
+  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi2.Init.CRCPolynomial = 0x7;
+  hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi2.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
+  hspi2.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
+  hspi2.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
+  hspi2.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_00CYCLE;
+  hspi2.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
+  hspi2.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
+  hspi2.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+  hspi2.Init.ReadyMasterManagement = SPI_RDY_MASTER_MANAGEMENT_INTERNALLY;
+  hspi2.Init.ReadyPolarity = SPI_RDY_POLARITY_HIGH;
+  if (HAL_SPI_Init(&hspi2) != HAL_OK)
   {
-    transferClkHz = (kSdmmcTransferClockDiv == 0U)
-                      ? sdmmcClkHz
-                      : (sdmmcClkHz / (2U * kSdmmcTransferClockDiv));
+    Error_Handler();
   }
-  printf("[SD] Transfer clock configured ~ %lu Hz\r\n", static_cast<unsigned long>(transferClkHz));
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerState = SPI_AUTO_MODE_DISABLE;
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerSelection = SPI_GRP1_GPDMA_CH0_TCF_TRG;
+  HAL_SPI_AutonomousMode_Cfg_Struct.TriggerPolarity = SPI_TRIG_POLARITY_RISING;
+  if (HAL_SPIEx_SetConfigAutonomousMode(&hspi2, &HAL_SPI_AutonomousMode_Cfg_Struct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI2_Init 2 */
 
-  return true;
+  /* USER CODE END SPI2_Init 2 */
+
+}
+
+/**
+  * @brief USB_OTG_HS Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USB_OTG_HS_HCD_Init(void)
+{
+
+  /* USER CODE BEGIN USB_OTG_HS_Init 0 */
+
+  /* USER CODE END USB_OTG_HS_Init 0 */
+
+  /* USER CODE BEGIN USB_OTG_HS_Init 1 */
+
+  /* USER CODE END USB_OTG_HS_Init 1 */
+  hhcd_USB_OTG_HS.Instance = USB_OTG_HS;
+  hhcd_USB_OTG_HS.Init.Host_channels = 16;
+  hhcd_USB_OTG_HS.Init.speed = HCD_SPEED_HIGH;
+  hhcd_USB_OTG_HS.Init.dma_enable = DISABLE;
+  hhcd_USB_OTG_HS.Init.phy_itface = USB_OTG_HS_EMBEDDED_PHY;
+  hhcd_USB_OTG_HS.Init.Sof_enable = DISABLE;
+  hhcd_USB_OTG_HS.Init.low_power_enable = DISABLE;
+  hhcd_USB_OTG_HS.Init.use_external_vbus = ENABLE;
+  if (HAL_HCD_Init(&hhcd_USB_OTG_HS) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USB_OTG_HS_Init 2 */
+
+  /* USER CODE END USB_OTG_HS_Init 2 */
+
 }
 
 /**
@@ -804,15 +625,38 @@ static void MX_GPIO_Init(void)
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_LPGPIO1_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
-  /*Configure GPIO pin : PC10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13
+                          |GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
+
+  /*Configure LPGPIO pins : Pin14 Pin15 Pin1 Pin2 */
+  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_1|GPIO_PIN_2;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(LPGPIO1, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PD10 PD11 PD12 PD13
+                           PD14 PD15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13
+                          |GPIO_PIN_14|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB6 PB7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
