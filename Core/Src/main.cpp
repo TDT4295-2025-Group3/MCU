@@ -119,6 +119,9 @@ static void MX_SPI2_Init(void);
 static void MX_SDMMC1_SD_Init(void);
 /* USER CODE BEGIN PFP */
 static void MX_GPDMA1_Init(void);
+static HAL_StatusTypeDef Max7221_WriteRegister(uint8_t reg, uint8_t value);
+static void Max7221_Init(void);
+static void Max7221_DisplayNumber(uint32_t value);
 
 /* USER CODE END PFP */
 
@@ -194,6 +197,54 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
   printf("[SD] Runtime mount OK (base=%s)\r\n", modelBasePath);
   return true;
 }
+
+static HAL_StatusTypeDef Max7221_WriteRegister(uint8_t reg, uint8_t value)
+{
+  uint8_t frame[2] = {reg, value};
+  HAL_GPIO_WritePin(SPI2_NCS_GPIO_Port, SPI2_NCS_Pin, GPIO_PIN_RESET);
+  const HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi2, frame, sizeof(frame), HAL_MAX_DELAY);
+  HAL_GPIO_WritePin(SPI2_NCS_GPIO_Port, SPI2_NCS_Pin, GPIO_PIN_SET);
+
+  if (status != HAL_OK)
+  {
+    printf("[MAX7221] SPI transmit failed: %d\r\n", status);
+  }
+
+  return status;
+}
+
+static void Max7221_Init(void)
+{
+  /* Configure while the driver is in shutdown to avoid spurious updates. */
+  Max7221_WriteRegister(0x0C, 0x00U); /* Shutdown register -> shutdown mode */
+  Max7221_WriteRegister(0x0F, 0x00U); /* Disable display test */
+  Max7221_WriteRegister(0x09, 0xFFU); /* Code B decode for all digits */
+  Max7221_WriteRegister(0x0B, 0x07U); /* Scan limit: display digits 0-7 */
+  Max7221_WriteRegister(0x0A, 0x08U); /* Medium intensity */
+
+  for (uint8_t digit = 1U; digit <= 8U; ++digit)
+  {
+    Max7221_WriteRegister(digit, 0x0FU); /* Blank all digits */
+  }
+
+  Max7221_WriteRegister(0x0C, 0x01U); /* Leave shutdown -> normal operation */
+}
+
+static void Max7221_DisplayNumber(uint32_t value)
+{
+  for (uint8_t digit = 1U; digit <= 8U; ++digit)
+  {
+    if ((value == 0U) && (digit > 1U))
+    {
+      Max7221_WriteRegister(digit, 0x0FU); /* Code B blank */
+    }
+    else
+    {
+      Max7221_WriteRegister(digit, static_cast<uint8_t>(value % 10U));
+      value /= 10U;
+    }
+  }
+}
 /* USER CODE END 0 */
 
 /**
@@ -238,16 +289,8 @@ int main(void)
   spi_test_main();
   #endif
 
-//7-seg test
-  uint8_t on[2] = {0x0F, 0x01};
-  uint8_t off[2] = {0x0F, 0x00};
-  while(1){
-    HAL_SPI_Transmit(&hspi2, off, 2, 100);
-    HAL_Delay(1000);
-    HAL_SPI_Transmit(&hspi2, on, 2, 100);
-    HAL_Delay(1000);
-    printf("7-seg toggle\r\n");
-  }
+  Max7221_Init();
+  Max7221_DisplayNumber(0U);
 
 
   bool sdReady = false;
@@ -302,7 +345,8 @@ void SystemClock_Config(void)
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSI
-                              |RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_MSI;
+                              |RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_MSI
+                              |RCC_OSCILLATORTYPE_MSIK;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
@@ -310,6 +354,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_4;
+  RCC_OscInitStruct.MSIKClockRange = RCC_MSIKRANGE_5;
+  RCC_OscInitStruct.MSIKState = RCC_MSIK_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV4;
@@ -332,7 +378,7 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK3;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV8;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV16;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_HCLK_DIV1;
 
@@ -474,7 +520,7 @@ static void MX_OCTOSPI1_Init(void)
   hospi1.Init.MemoryType = HAL_OSPI_MEMTYPE_MACRONIX;
   hospi1.Init.DeviceSize = 24;
   hospi1.Init.ChipSelectHighTime = 1;
-  hospi1.Init.ClockPrescaler = 16;
+  hospi1.Init.ClockPrescaler = 32;
   hospi1.Init.SampleShifting = HAL_OSPI_SAMPLE_SHIFTING_NONE;
   hospi1.Init.FreeRunningClock = HAL_OSPI_FREERUNCLK_DISABLE;
   hospi1.Init.ChipSelectBoundary = 0;
@@ -555,17 +601,17 @@ static void MX_SPI2_Init(void)
   /* SPI2 parameter configuration*/
   hspi2.Instance = SPI2;
   hspi2.Init.Mode = SPI_MODE_MASTER;
-  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi2.Init.DataSize = SPI_DATASIZE_16BIT;
+  hspi2.Init.Direction = SPI_DIRECTION_2LINES_TXONLY;
+  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi2.Init.NSS = SPI_NSS_HARD_OUTPUT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-  hspi2.Init.FirstBit = SPI_FIRSTBIT_LSB;
+  hspi2.Init.NSS = SPI_NSS_SOFT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi2.Init.CRCPolynomial = 0x7;
-  hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi2.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
   hspi2.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
   hspi2.Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
   hspi2.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
@@ -647,6 +693,9 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SPI2_NCS_GPIO_Port, SPI2_NCS_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13
                           |GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
 
@@ -655,6 +704,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(LPGPIO1, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SPI2_NCS_Pin */
+  GPIO_InitStruct.Pin = SPI2_NCS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SPI2_NCS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD10 PD11 PD12 PD13
                            PD14 PD15 */

@@ -87,7 +87,8 @@ if (BUILD_STM32)
             ${APP_SRC}
             Core/Src/device/spi_stm.cpp
             Core/Src/device/spi_stm.hpp
-            Core/Src/device/seven_seg_display.cpp
+        Core/Src/device/seven_seg_display.cpp
+        Core/Src/device/seven_seg_display_c.cpp
 
     )
 
@@ -143,7 +144,8 @@ if (BUILD_STM32 AND BUILD_SPI_TESTS)
         Core/Test/SPITests/spiTestHarness.c
         Core/Test/SPITests/ProtocolTests.cpp
         Core/Src/device/spi_stm.cpp
-    Core/Src/device/seven_seg_display.cpp
+        Core/Src/device/seven_seg_display.cpp
+        Core/Src/device/seven_seg_display_c.cpp
         Core/Src/device/spi_stm.hpp
         Core/Src/main.cpp
         Core/Src/sysmem.c
