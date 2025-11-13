@@ -256,6 +256,19 @@ int main(void)
   #ifdef SPI_TEST_MODE
   spi_test_main();
   #endif
+
+//7-seg test
+  uint8_t on[2] = {0x0F, 0x01};
+  uint8_t off[2] = {0x0F, 0x00};
+  while(1){
+    HAL_SPI_Transmit(&hspi2, off, 2, 100);
+    HAL_Delay(1000);
+    HAL_SPI_Transmit(&hspi2, on, 2, 100);
+    HAL_Delay(1000);
+    printf("7-seg toggle\r\n");
+  }
+
+
   const bool sdReady = SD_HardwareReady();
   bool runtimeMountOk = false;
 
