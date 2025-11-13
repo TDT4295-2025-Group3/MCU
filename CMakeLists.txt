@@ -55,7 +55,6 @@ set(APP_SRC
         Core/Src/app/model_loader.hpp
         Core/Src/app/model_loader.cpp
         Core/Src/device/spi_stm.hpp
-    Core/Src/device/seven_seg_display.cpp
 )
 
 set(APP_INC
@@ -88,6 +87,8 @@ if (BUILD_STM32)
             ${APP_SRC}
             Core/Src/device/spi_stm.cpp
             Core/Src/device/spi_stm.hpp
+            Core/Src/device/seven_seg_display.cpp
+
     )
 
     add_subdirectory(cmake/stm32cubemx)
