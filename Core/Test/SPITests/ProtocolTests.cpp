@@ -2,6 +2,7 @@
 #include "spi_stm.hpp"
 #include "main.h"
 #include "seven_seg_display.hpp"
+#include <cstring>
 
 #define INTER_TEST_DELAY_MS 100
 
@@ -34,6 +35,11 @@ void test_create_vert(void){
     auto fut = rasterizer.createVertexAsync(testVerts, 3);
     // Simulate doing other work
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result[4];
+    // place returncode and data into string for display
+    snprintf(result, sizeof(result), "%1u-%1u", fut->returnCode, fut->data);
+    SevenSeg::displayString(result);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     TEST_ASSERT_EQUAL(0x00, fut->data); // ID 0 expected for first vertexBuff
@@ -62,6 +68,11 @@ void test_even_vert(void){
     auto fut = rasterizer.createVertexAsync(testVerts, 3);
     // Simulate doing other work
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result[4];
+    // place returncode and data into string for display
+    snprintf(result, sizeof(result), "%1u-%1u", fut->returnCode, fut->data);
+    SevenSeg::displayString(result);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     TEST_ASSERT_EQUAL(0x01, fut->data); // ID 1 expected for second vertexBuff
@@ -78,6 +89,11 @@ void test_create_tri(void){
     auto fut = rasterizer.createTriangleAsync(testTri, 1);
     // Simulate doing other work
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result[4];
+    // place returncode and data into string for display
+    snprintf(result, sizeof(result), "%1u-%1u", fut->returnCode, fut->data);
+    SevenSeg::displayString(result);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     TEST_ASSERT_EQUAL(0x00, fut->data); // ID 0 expected for first triBuff
@@ -97,6 +113,11 @@ void test_create_even_tri(void){
     auto fut = rasterizer.createTriangleAsync(testTri, 2);
     // Simulate doing other work
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result[4];
+    // place returncode and data into string for display
+    snprintf(result, sizeof(result), "%1u-%1u", fut->returnCode, fut->data);
+    SevenSeg::displayString(result);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     TEST_ASSERT_EQUAL(0x01, fut->data); // ID 1 expected for second triBuff
@@ -119,6 +140,11 @@ void test_create_instance(void){
     auto fut = rasterizer.createInstanceAsync(0,0,testInst); //hardcoded to use vertbuff and tribuff from prev. tests
     // Simulate doing other work
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result[4];
+    // place returncode and data into string for display
+    snprintf(result, sizeof(result), "%1u-%1u", fut->returnCode, fut->data);
+    SevenSeg::displayString(result);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     TEST_ASSERT_EQUAL(0x01, fut->data); // ID 1 expected for first instID, 0 reserved for camera
@@ -141,6 +167,11 @@ void test_update_instance(void){
     auto fut = rasterizer.updateInstanceAsync(0, 0, 1, testInst);
     // Simulate doing other work
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result[4];
+    // place returncode and data into string for display
+    snprintf(result, sizeof(result), "%1u-%1u", fut->returnCode, fut->data);
+    SevenSeg::displayString(result);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     delete fut;
@@ -162,6 +193,11 @@ void test_update_camera(void){
     auto fut = rasterizer.updateInstanceAsync(0, 0, 0, testCam); //instanceID 0 reserved for camera
     // Simulate doing other work
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result[4];
+    // place returncode and data into string for display
+    snprintf(result, sizeof(result), "%1u-%1u", fut->returnCode, fut->data);
+    SevenSeg::displayString(result);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     delete fut;
@@ -181,6 +217,11 @@ void test_many_vertBuffers(void){
         auto fut = rasterizer.createVertexAsync(testVerts, 1);
         // Simulate doing other work
         HAL_Delay(INTER_TEST_DELAY_MS);
+        char result[4];
+    // place returncode and data into string for display
+    snprintf(result, sizeof(result), "%1u-%1u", fut->returnCode, fut->data);
+    SevenSeg::displayString(result);
+    HAL_Delay(2000U);
         TEST_ASSERT_EQUAL(true, fut->done.load());
         TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
         TEST_ASSERT_EQUAL(i+2, fut->data); // ID i+2 expected for ith vertexBuff due to previous tests
@@ -194,6 +235,11 @@ void test_wipe_all(void){
     auto fut = rasterizer.wipeAllAsync();
     // Simulate doing other work
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result[4];
+    // place returncode and data into string for display
+    snprintf(result, sizeof(result), "%1u-%1u", fut->returnCode, fut->data);
+    SevenSeg::displayString(result);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(true, fut->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), fut->returnCode);
     delete fut;
@@ -227,6 +273,11 @@ void test_full_model_load(void){
 
     auto futVert = rasterizer.createVertexAsync(testVerts, 3);
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result[4];
+    // place returncode and data into string for display
+    snprintf(result, sizeof(result), "%1u-%1u", futVert->returnCode, futVert->data);
+    SevenSeg::displayString(result);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(true, futVert->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), futVert->returnCode);
     uint8_t vertBuffID = futVert->data;
@@ -240,6 +291,11 @@ void test_full_model_load(void){
 
     auto futTri = rasterizer.createTriangleAsync(testTri, 1);
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result2[4];
+    // place returncode and data into string for display
+    snprintf(result2, sizeof(result2), "%1u-%1u", futTri->returnCode, futTri->data);
+    SevenSeg::displayString(result2);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(true, futTri->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), futTri->returnCode);
     uint8_t triBuffID = futTri->data;
@@ -259,6 +315,11 @@ void test_full_model_load(void){
 
     auto futInst = rasterizer.createInstanceAsync(vertBuffID, triBuffID, testInst);
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result3[4];
+    // place returncode and data into string for display
+    snprintf(result3, sizeof(result3), "%1u-%1u", futInst->returnCode, futInst->data);
+    SevenSeg::displayString(result3);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(true, futInst->done.load());
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), futInst->returnCode);
     uint8_t instID = futInst->data;
@@ -279,34 +340,47 @@ void test_full_model_load(void){
     testInstUpd.scaleZ = 1.0f;
     auto futInstUpd = rasterizer.updateInstanceAsync(vertBuffID, triBuffID, instID, testInstUpd);
     HAL_Delay(INTER_TEST_DELAY_MS);
+    char result4[4];
+    // place returncode and data into string for display
+    snprintf(result4, sizeof(result4), "%1u-%1u", futInstUpd->returnCode, futInstUpd->data);
+    SevenSeg::displayString(result4);
+    HAL_Delay(2000U);
     TEST_ASSERT_EQUAL(static_cast<uint8_t>(Rasterizer::StatusCode::OK), futInstUpd->returnCode);
 }
 
 
 extern "C" void run_spi_tests(void)
 {
-    static bool displayInitialized = false;
-    if (!displayInitialized)
-    {
-        SevenSeg::init();
-        displayInitialized = true;
-    }
-
+    SevenSeg::displayString("HELP");
+    HAL_Delay(2000U); // wait 2 seconds before starting tests
     SevenSeg::displayNumber(1);
     RUN_TEST(test_wipe_all);
-    SevenSeg::displayNumber(1234);
+    SevenSeg::displayNumber(2);
     RUN_TEST(test_create_vert);
+    SevenSeg::displayNumber(3);
     RUN_TEST(test_even_vert);
+    SevenSeg::displayNumber(4);
     RUN_TEST(test_create_tri);
+    SevenSeg::displayNumber(5);
     RUN_TEST(test_create_even_tri);
+    SevenSeg::displayNumber(6);
     RUN_TEST(test_create_instance);
+    SevenSeg::displayNumber(7);
     RUN_TEST(test_update_instance);
+    SevenSeg::displayNumber(8);
     RUN_TEST(test_many_vertBuffers);
+    SevenSeg::displayNumber(9);
     RUN_TEST(test_full_model_load);
+    SevenSeg::displayNumber(10);
     RUN_TEST(test_wipe_all);
+    SevenSeg::displayNumber(11);
     RUN_TEST(test_create_vert);
+    SevenSeg::displayNumber(12);
     RUN_TEST(test_create_tri);
+    SevenSeg::displayNumber(13);
     RUN_TEST(test_create_instance);
+    SevenSeg::displayNumber(14);
     RUN_TEST(test_update_instance);
+    SevenSeg::displayNumber(15);
     RUN_TEST(test_wipe_all);
 }
