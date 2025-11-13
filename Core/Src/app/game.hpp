@@ -16,9 +16,15 @@ public:
     void init();
     void tick_once();
     void setModelBasePath(const char* basePath) { modelBasePath = basePath; }
+    void setShowHitboxDebug(bool enable) {
+        showHitboxDebug = enable;
+        updateHitboxDebugInstance();
+    }
+    bool isShowingHitboxDebug() const { return showHitboxDebug; }
 private:
     void tick_logic();
     void tick_graphics();
+    void updateHitboxDebugInstance();
     bool loadModelGeometry(const char* relativePath,
                            uint32_t& vertexId,
                            uint32_t& triangleId,
@@ -56,6 +62,10 @@ private:
 
     static constexpr std::size_t PLATFORM_COUNT = 3;
     std::array<Platform, PLATFORM_COUNT> platforms{};
+    static constexpr std::size_t DEBUG_CUBE_COUNT = 4;
+    std::array<uint32_t, DEBUG_CUBE_COUNT> debugCubeInstanceIds{};
+    bool showHitboxDebug = true;
+    uint32_t hitboxDebugInstanceId = 0xFF;
     mcu_game::Vec3 groundCenter{0.0f, -0.05f, 0.0f};
     mcu_game::Vec3 groundHalfExtents{8.0f, 0.05f, 8.0f};
 private:

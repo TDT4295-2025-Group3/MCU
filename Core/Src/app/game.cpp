@@ -15,6 +15,8 @@ namespace {
 constexpr mcu_game::Vec3 PLAYER_HALF_EXTENTS{0.5f, 0.5f, 0.5f};  // Matches invisible hitbox prism
 constexpr float RAY_EPSILON = 1e-4f;
 constexpr std::size_t MODEL_PATH_BUFFER = 128;
+constexpr float DEBUG_CUBE_DISTANCE = 8.0f;
+constexpr float PLAYER_VISUAL_Y_OFFSET = -0.1f;  // Sink visual mesh slightly into collision box
 
 template <std::size_t N>
 bool build_model_path(const char* basePath, const char* relativePath, char (&out)[N]) {
@@ -71,9 +73,9 @@ bool Game::loadModelGeometry(const char* relativePath,
     const size_t triangleCount = modelData.triangles.size();
     // Removed obsolete cube instance creation
     // Streamlined player mesh initialization
-    const auto playerInstanceResp = gfx.createInstance(static_cast<uint8_t>(playerVertexId),
-                                                       static_cast<uint8_t>(playerTriangleId),
-                                                       {0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f});
+    // const auto playerInstanceResp = gfx.createInstance(static_cast<uint8_t>(playerVertexId),
+    //                                                    static_cast<uint8_t>(playerTriangleId),
+    //                                                    {0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f});
     const auto vertResp = gfx.createVertex(modelData.vertices.data(), static_cast<uint16_t>(vertexCount));
     if (!vertResp.isSuccess()) {
         std::printf("[Model] createVertex failed for %s (status=%u)\n", fullPath, static_cast<unsigned>(vertResp.getStatus()));
@@ -149,6 +151,12 @@ bool Game::loadModelInstance(const char* relativePath, const Rasterizer::Transfo
 }
 
 void Game::init() {
+    const auto wipeResp = gfx.wipeAll();
+    if (!wipeResp.isSuccess()) {
+        std::printf("[Rasterizer] wipeAll failed (status=%u)\n", static_cast<unsigned>(wipeResp.getStatus()));
+        return;
+    }
+
     const auto tick = timer.get_ticks_ms();
 
     player.reset();
@@ -166,6 +174,8 @@ void Game::init() {
     hitboxTriangleId = 0xFF;
     cubeVertexId = 0xFF;
     cubeTriangleId = 0xFF;
+    debugCubeInstanceIds.fill(0xFF);
+    hitboxDebugInstanceId = 0xFF;
 
     const bool cubeLoaded = loadModelGeometry("cube.obj", cubeVertexId, cubeTriangleId);
     if (!cubeLoaded) {
@@ -208,6 +218,57 @@ void Game::init() {
         return;
     }
 
+    {
+        // Place static debug cubes around the initial camera view to verify FPGA rendering
+        const mcu_game::Vec3 cameraPos = camera.getPosition();
+        mcu_game::Vec3 forward = camera.getForward();
+        forward.y = 0.0f;
+        if (mcu_game::length_sq(forward) < 1e-6f) {
+            forward = {0.0f, 0.0f, 1.0f};
+        } else {
+            forward = mcu_game::normalize(forward);
+        }
+        mcu_game::Vec3 right = camera.getRight();
+        right.y = 0.0f;
+        if (mcu_game::length_sq(right) < 1e-6f) {
+            right = {1.0f, 0.0f, 0.0f};
+        } else {
+            right = mcu_game::normalize(right);
+        }
+
+        const float baseHeight = groundCenter.y + groundHalfExtents.y + PLAYER_HALF_EXTENTS.y;
+
+        const mcu_game::Vec3 offsets[DEBUG_CUBE_COUNT] = {
+            forward * DEBUG_CUBE_DISTANCE,
+            forward * -DEBUG_CUBE_DISTANCE,
+            right * DEBUG_CUBE_DISTANCE,
+            right * -DEBUG_CUBE_DISTANCE
+        };
+
+        for (std::size_t i = 0; i < DEBUG_CUBE_COUNT; ++i) {
+            mcu_game::Vec3 worldPos = cameraPos + offsets[i];
+            worldPos.y = baseHeight;
+
+            Rasterizer::Transform debugTransform{
+                worldPos.x, worldPos.y, worldPos.z,
+                0.0f, 0.0f, 0.0f,
+                1.0f, 1.0f, 1.0f
+            };
+
+            auto instResp = gfx.createInstance(static_cast<uint8_t>(cubeVertexId),
+                                               static_cast<uint8_t>(cubeTriangleId),
+                                               debugTransform);
+            if (!instResp.isSuccess()) {
+                std::printf("[Model] Failed to create debug cube %zu (status=%u)\n",
+                            i,
+                            static_cast<unsigned>(instResp.getStatus()));
+                debugCubeInstanceIds[i] = 0xFF;
+            } else {
+                debugCubeInstanceIds[i] = instResp.getInstanceId();
+            }
+        }
+    }
+
     // Hitbox prism reuses cube geometry but stays invisible (no rasterizer instance)
     hitboxVertexId = cubeVertexId;
     hitboxTriangleId = cubeTriangleId;
@@ -220,8 +281,7 @@ void Game::init() {
     }
 
     Rasterizer::Transform playerTransform {
-        0.0f, PLAYER_HALF_EXTENTS.y,
-        0.0f,
+        0.0f, PLAYER_HALF_EXTENTS.y + PLAYER_VISUAL_Y_OFFSET, 0.0f,
         0.0f, camera.getYaw(), 0.0f,
         1.0f, 1.0f, 1.0f
     };
@@ -326,9 +386,25 @@ void Game::init() {
 
     initialize_platforms(cubeVertexId, cubeTriangleId);
 
+    const Rasterizer::Transform initialCameraTransform{
+        camera.getPosition().x,
+        camera.getPosition().y,
+        camera.getPosition().z,
+        camera.getPitch(),
+        camera.getYaw(),
+        0.0f,
+        1.0f, 1.0f, 1.0f
+    };
+    const auto cameraResp = gfx.updateCamera(initialCameraTransform);
+    if (!cameraResp.isSuccess()) {
+        std::printf("[Rasterizer] updateCamera failed (status=%u)\n", static_cast<unsigned>(cameraResp.getStatus()));
+        return;
+    }
+
     next_tick_ms = tick + TICK_MS;
     next_frame_ms = tick + FRAME_MS;
     initialized = true;
+    updateHitboxDebugInstance();
 }
 
 void Game::tick_once() {
@@ -363,7 +439,7 @@ void Game::tick_graphics() {
         // Update player render instance to follow current player position
         Rasterizer::Transform t {
             player.getPosition().x,
-            player.getPosition().y + PLAYER_HALF_EXTENTS.y,
+            player.getPosition().y + PLAYER_HALF_EXTENTS.y + PLAYER_VISUAL_Y_OFFSET,
             player.getPosition().z,
             0.0f, camera.getYaw(), 0.0f,
             1.0f, 1.0f, 1.0f
@@ -373,6 +449,8 @@ void Game::tick_graphics() {
                            static_cast<uint8_t>(playerInstanceId),
                            t);
     }
+
+    updateHitboxDebugInstance();
 
     // Pyramid remains static where placed in init
 
@@ -388,6 +466,69 @@ void Game::tick_graphics() {
     gfx.updateCamera(camT);
 
     gfx.end_frame();
+}
+
+void Game::updateHitboxDebugInstance() {
+    if (!initialized) {
+        return;
+    }
+
+    if (showHitboxDebug) {
+        if (hitboxDebugInstanceId == 0xFF && hitboxVertexId != 0xFF && hitboxTriangleId != 0xFF) {
+            Rasterizer::Transform t{
+                player.getPosition().x,
+                player.getPosition().y + PLAYER_HALF_EXTENTS.y,
+                player.getPosition().z,
+                0.0f, 0.0f, 0.0f,
+                PLAYER_HALF_EXTENTS.x * 2.0f,
+                PLAYER_HALF_EXTENTS.y * 2.0f,
+                PLAYER_HALF_EXTENTS.z * 2.0f
+            };
+
+            auto instResp = gfx.createInstance(static_cast<uint8_t>(hitboxVertexId),
+                                               static_cast<uint8_t>(hitboxTriangleId),
+                                               t);
+            if (instResp.isSuccess()) {
+                hitboxDebugInstanceId = instResp.getInstanceId();
+            } else {
+                std::printf("[Model] Failed to create hitbox debug instance (status=%u)\n",
+                            static_cast<unsigned>(instResp.getStatus()));
+                hitboxDebugInstanceId = 0xFF;
+            }
+        }
+
+        if (hitboxDebugInstanceId != 0xFF) {
+            Rasterizer::Transform t{
+                player.getPosition().x,
+                player.getPosition().y + PLAYER_HALF_EXTENTS.y,
+                player.getPosition().z,
+                0.0f, 0.0f, 0.0f,
+                PLAYER_HALF_EXTENTS.x * 2.0f,
+                PLAYER_HALF_EXTENTS.y * 2.0f,
+                PLAYER_HALF_EXTENTS.z * 2.0f
+            };
+
+            gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
+                               static_cast<uint8_t>(hitboxTriangleId),
+                               static_cast<uint8_t>(hitboxDebugInstanceId),
+                               t);
+        }
+    } else {
+        if (hitboxDebugInstanceId != 0xFF) {
+            Rasterizer::Transform hide{
+                player.getPosition().x,
+                player.getPosition().y + PLAYER_HALF_EXTENTS.y - 100.0f,
+                player.getPosition().z,
+                0.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f
+            };
+
+            gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
+                               static_cast<uint8_t>(hitboxTriangleId),
+                               static_cast<uint8_t>(hitboxDebugInstanceId),
+                               hide);
+        }
+    }
 }
 
 void Game::tick_logic() {
