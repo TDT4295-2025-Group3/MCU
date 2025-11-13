@@ -147,6 +147,25 @@ namespace
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+static bool SD_HardwareReady()
+{
+  if (hsd_sdmmc1.State == HAL_SD_STATE_RESET)
+  {
+    printf("[SD] HAL SD handle not initialized, skipping mount\r\n");
+    return false;
+  }
+
+#if defined(SDMMC1)
+  if (__HAL_RCC_SDMMC1_IS_CLK_ENABLED() == 0U)
+  {
+    printf("[SD] SDMMC1 clock disabled, skipping mount\r\n");
+    return false;
+  }
+#endif
+
+  return true;
+}
+
 static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
 {
   if (FATFS_LinkDriver(&SD_Driver, SDPath) != 0)
@@ -237,7 +256,7 @@ int main(void)
   #ifdef SPI_TEST_MODE
   spi_test_main();
   #endif
-  bool sdReady = false;
+  const bool sdReady = SD_HardwareReady();
   bool runtimeMountOk = false;
 
   /* USER CODE END 2 */
@@ -254,6 +273,14 @@ int main(void)
     {
       game.setModelBasePath(gModelBasePath);
     }
+    else
+    {
+      printf("[SD] Mount failed; using built-in assets\r\n");
+    }
+  }
+  else
+  {
+    printf("[SD] Hardware unavailable; using built-in assets\r\n");
   }
 
   game.init();

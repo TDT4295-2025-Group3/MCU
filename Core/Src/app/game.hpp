@@ -38,9 +38,13 @@ private:
     mcu_game::Player player{};
     mcu_game::Camera camera{};
 
-    uint32_t instanceCubeId = 0xFF;
+    uint32_t playerInstanceId = 0xFF;
     uint32_t instancePyrId  = 0xFF;
     uint32_t instancePlaneId = 0xFF;
+    uint32_t playerVertexId = 0xFF;     // Visible player mesh
+    uint32_t playerTriangleId = 0xFF;
+    uint32_t hitboxVertexId = 0xFF;     // Invisible collision prism (cube geometry)
+    uint32_t hitboxTriangleId = 0xFF;
     uint32_t cubeVertexId = 0xFF;
     uint32_t cubeTriangleId = 0xFF;
 

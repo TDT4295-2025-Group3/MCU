@@ -12,7 +12,7 @@
 #include "model_loader.hpp"
 
 namespace {
-constexpr mcu_game::Vec3 PLAYER_HALF_EXTENTS{0.5f, 0.5f, 0.5f};
+constexpr mcu_game::Vec3 PLAYER_HALF_EXTENTS{0.5f, 0.5f, 0.5f};  // Matches invisible hitbox prism
 constexpr float RAY_EPSILON = 1e-4f;
 constexpr std::size_t MODEL_PATH_BUFFER = 128;
 
@@ -69,15 +69,11 @@ bool Game::loadModelGeometry(const char* relativePath,
 
     const size_t vertexCount = modelData.vertices.size();
     const size_t triangleCount = modelData.triangles.size();
-    if (vertexCount > std::numeric_limits<uint16_t>::max() ||
-        triangleCount > std::numeric_limits<uint16_t>::max()) {
-        std::printf("[Model] %s exceeds rasterizer limits (%lu verts, %lu tris)\n",
-                    fullPath,
-                    static_cast<unsigned long>(vertexCount),
-                    static_cast<unsigned long>(triangleCount));
-        return false;
-    }
-
+    // Removed obsolete cube instance creation
+    // Streamlined player mesh initialization
+    const auto playerInstanceResp = gfx.createInstance(static_cast<uint8_t>(playerVertexId),
+                                                       static_cast<uint8_t>(playerTriangleId),
+                                                       {0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f});
     const auto vertResp = gfx.createVertex(modelData.vertices.data(), static_cast<uint16_t>(vertexCount));
     if (!vertResp.isSuccess()) {
         std::printf("[Model] createVertex failed for %s (status=%u)\n", fullPath, static_cast<unsigned>(vertResp.getStatus()));
@@ -161,9 +157,13 @@ void Game::init() {
         platform.instanceId = 0xFF;
     }
 
-    instanceCubeId = 0xFF;
+    playerInstanceId = 0xFF;
     instancePyrId = 0xFF;
     instancePlaneId = 0xFF;
+    playerVertexId = 0xFF;
+    playerTriangleId = 0xFF;
+    hitboxVertexId = 0xFF;
+    hitboxTriangleId = 0xFF;
     cubeVertexId = 0xFF;
     cubeTriangleId = 0xFF;
 
@@ -208,17 +208,47 @@ void Game::init() {
         return;
     }
 
+    // Hitbox prism reuses cube geometry but stays invisible (no rasterizer instance)
+    hitboxVertexId = cubeVertexId;
+    hitboxTriangleId = cubeTriangleId;
+
+    const bool playerGeomLoaded = loadModelGeometry("player.obj", playerVertexId, playerTriangleId);
+    if (!playerGeomLoaded) {
+        playerVertexId = cubeVertexId;
+        playerTriangleId = cubeTriangleId;
+        std::printf("[Model] Falling back to cube geometry for player visual mesh\n");
+    }
+
     Rasterizer::Transform playerTransform {
-        0.0f, 0.5f, 0.0f,
-        0.0f, 0.0f, 0.0f,
+        0.0f, PLAYER_HALF_EXTENTS.y,
+        0.0f,
+        0.0f, camera.getYaw(), 0.0f,
         1.0f, 1.0f, 1.0f
     };
-    const auto cubeInstanceResp = gfx.createInstance(cubeVertexId, cubeTriangleId, playerTransform);
-    if (!cubeInstanceResp.isSuccess()) {
-        std::printf("Failed to create cube instance (status=%u)\n", static_cast<unsigned>(cubeInstanceResp.getStatus()));
-        return;
+
+    const auto playerInstanceResp = gfx.createInstance(static_cast<uint8_t>(playerVertexId),
+                                                       static_cast<uint8_t>(playerTriangleId),
+                                                       playerTransform);
+    if (!playerInstanceResp.isSuccess()) {
+        std::printf("Failed to create player instance (status=%u)\n",
+                    static_cast<unsigned>(playerInstanceResp.getStatus()));
+
+        const auto fallbackInstance = gfx.createInstance(static_cast<uint8_t>(cubeVertexId),
+                                                         static_cast<uint8_t>(cubeTriangleId),
+                                                         playerTransform);
+        if (!fallbackInstance.isSuccess()) {
+            std::printf("Failed to create fallback cube instance for player (status=%u)\n",
+                        static_cast<unsigned>(fallbackInstance.getStatus()));
+            return;
+        }
+
+        playerInstanceId = fallbackInstance.getInstanceId();
+        playerVertexId = cubeVertexId;
+        playerTriangleId = cubeTriangleId;
+        std::printf("[Model] Using cube instance for player\n");
+    } else {
+        playerInstanceId = playerInstanceResp.getInstanceId();
     }
-    instanceCubeId = cubeInstanceResp.getInstanceId();
 
     Rasterizer::Transform pyramidTransform {
         -2.0f, 0.5f, 2.0f,
@@ -329,14 +359,19 @@ void Game::tick_once() {
 void Game::tick_graphics() {
     gfx.clear(0xFF101018);
 
-    if (instanceCubeId != 0xFF) {
-        // Update cube instance to player position
+    if (playerInstanceId != 0xFF) {
+        // Update player render instance to follow current player position
         Rasterizer::Transform t {
-            player.getPosition().x, player.getPosition().y + 0.5f, player.getPosition().z,
-            0.0f, 0.0f, 0.0f,
+            player.getPosition().x,
+            player.getPosition().y + PLAYER_HALF_EXTENTS.y,
+            player.getPosition().z,
+            0.0f, camera.getYaw(), 0.0f,
             1.0f, 1.0f, 1.0f
         };
-        gfx.updateInstance(0, 0, instanceCubeId, t);
+        gfx.updateInstance(static_cast<uint8_t>(playerVertexId),
+                           static_cast<uint8_t>(playerTriangleId),
+                           static_cast<uint8_t>(playerInstanceId),
+                           t);
     }
 
     // Pyramid remains static where placed in init
