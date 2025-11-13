@@ -65,6 +65,8 @@
 #include "app/platform/itimer.hpp"
 #include "app/platform/irasterizer.hpp"
 #include "stm32u5xx_hal.h"
+#include "tusb_input.hpp"
+#include "usbh.h"
 
 #ifdef SPI_TEST_MODE
 extern "C" int spi_test_main(void);
@@ -299,9 +301,13 @@ int main(void)
   /* USER CODE END 2 */
 
   Rasterizer::SpiRasterizer rasterizer;
-  NullInput input;
+  // NullInput input;
+
+  // Controller input
+  tuh_init(0);
+
   HalTimer timer;
-  Game game{rasterizer, input, timer};
+  Game game{rasterizer, TinyUSBInput::getInstance(), timer};
 
   if (sdReady)
   {
@@ -320,6 +326,8 @@ int main(void)
   {
     game.tick_once();
     /* USER CODE END WHILE */
+    tuh_task();
+    TinyUSBInput::getInstance().driverTask();
 
     /* USER CODE BEGIN 3 */
   }
