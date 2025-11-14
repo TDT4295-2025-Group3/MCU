@@ -18,15 +18,15 @@ KeyState HostInput::poll() {
     }
     const bool *k = SDL_GetKeyboardState(nullptr);
     KeyState ks{};
-    ks.up = k[SDL_SCANCODE_UP];
-    ks.down = k[SDL_SCANCODE_DOWN];
-    ks.left = k[SDL_SCANCODE_LEFT];
-    ks.right = k[SDL_SCANCODE_RIGHT];
-    // camera look
-    ks.w = k[SDL_SCANCODE_W];
-    ks.s = k[SDL_SCANCODE_S];
-    ks.a = k[SDL_SCANCODE_A];
-    ks.d = k[SDL_SCANCODE_D];
+    if (k[SDL_SCANCODE_RIGHT]) ks.x += 1.0f;
+    if (k[SDL_SCANCODE_LEFT])  ks.x -= 1.0f;
+
+    if (k[SDL_SCANCODE_UP])   ks.y += 1.0f;   // forward
+    if (k[SDL_SCANCODE_DOWN]) ks.y -= 1.0f;   // backward
+
+    // camera look axes (W/S = pitch, A/D = yaw)
+    if (k[SDL_SCANCODE_D]) ks.cam_x += 1.0f;   // yaw right
+    if (k[SDL_SCANCODE_A]) ks.cam_x -= 1.0f;   // yaw left
     // jump
     ks.space = k[SDL_SCANCODE_SPACE];
     return ks;

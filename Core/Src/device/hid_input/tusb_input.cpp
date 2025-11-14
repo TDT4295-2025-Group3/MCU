@@ -32,7 +32,7 @@ KeyState TinyUSBInput::poll() {
                        _hid_keyboard.isKeyDown(KBKey::A) ? 1.0f : 0.0f);
             ks.y = (_hid_keyboard.isKeyDown(KBKey::W) ? 1.0f : 0.0f) - (
                        _hid_keyboard.isKeyDown(KBKey::S) ? 1.0f : 0.0f);
-            ks.space = _hid_keyboard.isKeyDown(KBKey::Spacebar);
+            ks.space = _hid_keyboard.isKeyDown(KBKey::Space);
             break;
         default:
             break;
