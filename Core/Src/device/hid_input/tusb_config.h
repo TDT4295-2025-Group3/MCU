@@ -39,8 +39,9 @@ extern "C" {
 // TODO - my configuration
 #define CFG_TUSB_MCU OPT_MCU_STM32U5
 // #define BOARD_DEVICE_RHPORT_SPEED OPT_MODE_FULL_SPEED
-#define CFG_TUSB_RHPORT0_MODE   OPT_MODE_HOST
-#define BOARD_TUH_MAX_SPEED   OPT_MODE_FULL_SPEED
+#define CFG_TUSB_RHPORT0_MODE   OPT_MODE_NONE
+#define CFG_TUSB_RHPORT1_MODE   OPT_MODE_HOST
+#define BOARD_TUH_MAX_SPEED   OPT_MODE_HIGH_SPEED
 // #define BOARD_DEVICE_RHPORT_NUM 1
 
 
@@ -92,18 +93,18 @@ extern "C" {
 #endif
 
 // Default is max speed that hardware controller could support with on-chip PHY
-#define CFG_TUH_MAX_SPEED     OPT_MODE_FULL_SPEED
+#define CFG_TUH_MAX_SPEED     BOARD_TUH_MAX_SPEED
 
 //------------------------- Board Specific --------------------------
 
 // RHPort number used for host can be defined by board.mk, default to port 0
 #ifndef BOARD_TUH_RHPORT
-#define BOARD_TUH_RHPORT      0
+#define BOARD_TUH_RHPORT      1
 #endif
 
 // RHPort max operational speed can defined by board.mk
 #ifndef BOARD_TUH_MAX_SPEED
-#define BOARD_TUH_MAX_SPEED   OPT_MODE_DEFAULT_SPEED
+#define BOARD_TUH_MAX_SPEED   OPT_MODE_HIGH_SPEED
 #endif
 
 //--------------------------------------------------------------------

@@ -165,6 +165,12 @@ class DS4Driver : public HIDDriver<DS4_InputUSBReport, DS4_OutputUSBReport, 8> {
 public:
     DS4Driver();
 
+    void queueInitReport();
+
+    void requeueOutputReport(const DS4_OutputUSBReport& report) {
+        outputBuffer.push(report);
+    }
+
     /**
      * Check if a button is currently being held down.
      * @param button The button to check.

@@ -7,15 +7,23 @@
 #include "hid_driver.hpp"
 
 DS4Driver::DS4Driver() : HIDDriver() {
+    queueInitReport();
+}
+
+void DS4Driver::queueInitReport() {
+    memset(&currentInput, 0, sizeof(currentInput));
+    memset(&previousInput, 0, sizeof(previousInput));
+
+    memset(&outputDraft, 0, sizeof(outputDraft));
     outputDraft.ReportID = 0x05;
     outputDraft.EnableRumbleUpdate = 1;
     outputDraft.EnableLedUpdate = 1;
 
-    // We start with LED off
-    outputDraft.LedRed = 0x00;
-    outputDraft.LedGreen = 0x00;
-    outputDraft.LedBlue = 0x00;
+    dirty = false;
 
+    outputBuffer = {};
+
+    // Start with LED off and rumble motors idle
     outputBuffer.push(outputDraft);
 }
 

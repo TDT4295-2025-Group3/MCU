@@ -41,13 +41,16 @@ public:
 
     void clearController() {
         _controller_type = UNDEFINED;
+        _usb_dev_addr = 0;
+        _usb_instance = 0;
+        _ds4FrameCount = 0;
+        _ds4LastOutputTick = 0;
+        _ds4SupportsOutput = false;
+        _ds4DisplayedWait = false;
+        _ds4DisplayedReady = false;
     }
 
-    void mountController(HIDInputType type, uint8_t dev_addr, uint8_t instance) {
-        _controller_type = type;
-        _usb_dev_addr = dev_addr;
-        _usb_instance = instance;
-    }
+    void mountController(HIDInputType type, uint8_t dev_addr, uint8_t instance, bool hasOutEndpoint = true);
 
     void driverTask();
 
@@ -64,4 +67,9 @@ private:
     uint8_t _usb_dev_addr, _usb_instance;
 
     HIDInputType _controller_type = UNDEFINED;
+    uint16_t _ds4FrameCount = 0;
+    uint32_t _ds4LastOutputTick = 0;
+    bool _ds4SupportsOutput = false;
+    bool _ds4DisplayedWait = false;
+    bool _ds4DisplayedReady = false;
 };
