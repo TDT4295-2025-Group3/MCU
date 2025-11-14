@@ -11,7 +11,7 @@ int main() {
     HostRasterizer rasterizer{320, 240};
     HostTimer timer;
 
-    std::unique_ptr<DS4Controller> ds4_controller;
+    std::unique_ptr<DS4Driver> ds4_controller;
     bool useDS4 = true;
 
     int hid_res = hid_init();
@@ -44,7 +44,7 @@ int main() {
     }
 
     if (useDS4) {
-        ds4_controller = std::make_unique<DS4Controller>();
+        ds4_controller = std::make_unique<DS4Driver>();
         input = std::make_unique<DS4Input>(*ds4_controller);
     }else {
         input = std::make_unique<HostInput>();

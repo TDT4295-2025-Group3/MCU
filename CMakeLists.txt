@@ -93,8 +93,8 @@ if (BUILD_STM32)
     set(TINYUSB_INC
             ${TINYUSB_DIR}
             ${TINYUSB_DIR}/common
-            ${TINYUSB_DIR}/class/hid
             ${TINYUSB_DIR}/host
+            ${TINYUSB_DIR}/class/hid
             ${TINYUSB_DIR}/portable/synopsys/dwc2
     )
 
@@ -103,6 +103,7 @@ if (BUILD_STM32)
             ${TINYUSB_DIR}/common/tusb_fifo.c
             ${TINYUSB_DIR}/class/hid/hid_host.c
             ${TINYUSB_DIR}/host/usbh.c
+            ${TINYUSB_DIR}/host/usbh.h
             ${TINYUSB_DIR}/host/hub.c
             ${TINYUSB_DIR}/portable/synopsys/dwc2/hcd_dwc2.c
             ${TINYUSB_DIR}/portable/synopsys/dwc2/dwc2_common.c

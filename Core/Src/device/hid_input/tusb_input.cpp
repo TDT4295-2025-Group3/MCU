@@ -1,7 +1,7 @@
 #include "tusb_input.hpp"
-
-#include "hid_host.h"
 #include "usbh.h"
+#include "hid_host.h"
+#include "stm32u5xx_hal.h"
 /**
  * Class to actually handle TinyUSB-based callbacks and implement TinyUSBInput.
  *
@@ -133,4 +133,8 @@ extern "C" void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, u
     if (!tuh_hid_receive_report(dev_addr, instance)) {
         printf("Cannot request to receive more reports\r\n");
     }
+}
+
+extern "C" uint32_t tusb_time_millis_api(void) {
+    return HAL_GetTick();
 }
