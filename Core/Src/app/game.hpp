@@ -39,7 +39,7 @@ private:
                            const mcu_game::Vec3& delta,
                            float& outTime,
                            mcu_game::Vec3& outNormal) const;
-    void initialize_platforms(uint32_t cubeVertexId, uint32_t cubeTriangleId);
+    void initialize_platforms();
     bool initialized = false;
     mcu_game::Player player{};
     mcu_game::Camera camera{};
@@ -53,11 +53,14 @@ private:
     uint32_t hitboxTriangleId = 0xFF;
     uint32_t cubeVertexId = 0xFF;
     uint32_t cubeTriangleId = 0xFF;
+    uint32_t platformVertexId = 0xFF;   // Visible platform mesh
+    uint32_t platformTriangleId = 0xFF;
 
     struct Platform {
         mcu_game::Vec3 center{0.0f, 0.0f, 0.0f};
         mcu_game::Vec3 halfExtents{0.5f, 0.5f, 0.5f};
         uint32_t instanceId = 0xFF;
+        uint32_t hitboxInstanceId = 0xFF;
     };
 
     static constexpr std::size_t PLATFORM_COUNT = 3;

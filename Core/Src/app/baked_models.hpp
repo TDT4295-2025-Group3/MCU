@@ -9,6 +9,7 @@ namespace mcu_game::assets::baked {
 
 enum class MeshId : uint8_t {
     Player,
+    Platform,
 };
 
 struct MeshData {

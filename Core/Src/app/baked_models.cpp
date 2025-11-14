@@ -603,6 +603,70 @@ static constexpr Rasterizer::Triangle PLAYER_TRIANGLES[] = {
 constexpr std::size_t PLAYER_VERTEX_COUNT = sizeof(PLAYER_VERTICES) / sizeof(PLAYER_VERTICES[0]);
 constexpr std::size_t PLAYER_TRIANGLE_COUNT = sizeof(PLAYER_TRIANGLES) / sizeof(PLAYER_TRIANGLES[0]);
 constexpr MeshData PLAYER_MESH{PLAYER_VERTICES, PLAYER_VERTEX_COUNT, PLAYER_TRIANGLES, PLAYER_TRIANGLE_COUNT};
+
+static constexpr Rasterizer::Vertex PLATFORM_VERTICES[] = {
+    {-1.581445f, -0.244628f, 1.581163f, 4, 6, 2},
+    {-1.522408f, -0.038292f, -1.527282f, 6, 8, 3},
+    {-0.368018f, -1.51667f, -0.325777f, 3, 2, 1},
+    {0.266264f, -1.404838f, -0.751671f, 5, 3, 2},
+    {1.522232f, -0.038174f, 1.527323f, 6, 8, 3},
+    {1.527224f, -0.038189f, -1.522346f, 4, 7, 2},
+    {-1.251433f, -1.087603f, 0.000301f, 6, 4, 3},
+    {-2.1972f, -0.128581f, 0.000539f, 5, 7, 3},
+    {-1.389901f, -0.540518f, -1.390327f, 7, 7, 4},
+    {-0.000539f, -0.128582f, -2.1972f, 5, 7, 3},
+    {1.390328f, -0.540518f, -1.389901f, 6, 6, 3},
+    {1.251434f, -1.087603f, -0.000301f, 6, 4, 3},
+    {2.1972f, -0.128582f, -0.000539f, 5, 7, 3},
+    {1.389901f, -0.540518f, 1.390328f, 7, 7, 4},
+    {0.000302f, -1.087603f, 1.251433f, 6, 4, 3},
+    {0.000539f, -0.128581f, 2.1972f, 5, 7, 3},
+    {0.553546f, -1.415362f, 0.455737f, 3, 2, 1},
+    {-0.44159f, -1.424823f, 0.540026f, 3, 2, 1},
+    {-1.417971f, 0.005456f, 1.417301f, 4, 7, 2},
+};
+
+static constexpr Rasterizer::Triangle PLATFORM_TRIANGLES[] = {
+    {0, 7, 6},
+    {7, 8, 6},
+    {8, 9, 3},
+    {9, 10, 3},
+    {10, 12, 11},
+    {12, 13, 11},
+    {13, 15, 14},
+    {15, 0, 14},
+    {11, 3, 10},
+    {2, 16, 17},
+    {14, 16, 13},
+    {3, 2, 8},
+    {6, 17, 0},
+    {18, 4, 5},
+    {15, 18, 0},
+    {7, 1, 8},
+    {8, 1, 9},
+    {9, 5, 10},
+    {10, 5, 12},
+    {12, 4, 13},
+    {13, 4, 15},
+    {11, 13, 16},
+    {11, 16, 3},
+    {9, 1, 5},
+    {3, 16, 2},
+    {14, 0, 17},
+    {14, 17, 16},
+    {6, 8, 2},
+    {6, 2, 17},
+    {5, 1, 18},
+    {12, 5, 4},
+    {7, 0, 18},
+    {7, 18, 1},
+    {15, 4, 18},
+};
+
+constexpr std::size_t PLATFORM_VERTEX_COUNT = sizeof(PLATFORM_VERTICES) / sizeof(PLATFORM_VERTICES[0]);
+constexpr std::size_t PLATFORM_TRIANGLE_COUNT = sizeof(PLATFORM_TRIANGLES) / sizeof(PLATFORM_TRIANGLES[0]);
+constexpr MeshData PLATFORM_MESH{PLATFORM_VERTICES, PLATFORM_VERTEX_COUNT, PLATFORM_TRIANGLES, PLATFORM_TRIANGLE_COUNT};
+
 constexpr MeshData EMPTY_MESH{nullptr, 0, nullptr, 0};
 
 }  // namespace
@@ -611,6 +675,8 @@ const MeshData& getMesh(MeshId id) {
     switch (id) {
         case MeshId::Player:
             return PLAYER_MESH;
+        case MeshId::Platform:
+            return PLATFORM_MESH;
     }
     return EMPTY_MESH;
 }
@@ -619,6 +685,8 @@ const char* getMeshName(MeshId id) {
     switch (id) {
         case MeshId::Player:
             return "Player";
+        case MeshId::Platform:
+            return "Platform";
     }
     return "Unknown";
 }

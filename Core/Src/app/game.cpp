@@ -21,8 +21,13 @@ constexpr float RAY_EPSILON = 1e-4f;
 constexpr std::size_t MODEL_PATH_BUFFER = 128;
 constexpr float DEBUG_CUBE_DISTANCE = 18.0f;
 constexpr float PLAYER_VISUAL_Y_OFFSET = -0.5f;  // Sink visual mesh slightly into collision box
+constexpr float PLATFORM_VISUAL_SCALE = 1.25f;    // Inflate platform visuals without touching hitboxes
 
 // float yaw_value = 0.0f;
+uint8_t red_color = 0;
+uint8_t green_color = 0;
+uint8_t blue_color = 0;
+// uint8_t update_color = 0;
 
 template <std::size_t N>
 bool build_model_path(const char* basePath, const char* relativePath, char (&out)[N]) {
@@ -183,6 +188,7 @@ void Game::init() {
     camera.reset();
     for (auto& platform : platforms) {
         platform.instanceId = 0xFF;
+        platform.hitboxInstanceId = 0xFF;
     }
 
     playerInstanceId = 0xFF;
@@ -360,6 +366,25 @@ void Game::init() {
         playerInstanceId = playerInstanceResp.getInstanceId();
     }
 
+    const bool platformGeomLoaded = loadModelGeometry("platform.obj", platformVertexId, platformTriangleId, false);
+    if (!platformGeomLoaded) {
+        std::printf("[Model] Falling back to baked platform geometry\n");
+        if (!mcu_game::assets::baked::createBuffers(mcu_game::assets::baked::MeshId::Platform,
+                                                    gfx,
+                                                    platformVertexId,
+                                                    platformTriangleId)) {
+            std::printf("Failed to create platform geometry from baked data, using cube geometry instead\n");
+            platformVertexId = cubeVertexId;
+            platformTriangleId = cubeTriangleId;
+        }
+    }
+
+    if (platformVertexId == 0xFF || platformTriangleId == 0xFF) {
+        std::printf("Platform geometry unavailable, using cube geometry\n");
+        platformVertexId = cubeVertexId;
+        platformTriangleId = cubeTriangleId;
+    }
+
     Rasterizer::Transform pyramidTransform {
         -2.0f, 0.5f, 2.0f,
         0.0f, 0.0f, 0.0f,
@@ -438,7 +463,7 @@ void Game::init() {
         instancePlaneId = createPlaneInst.getInstanceId();
     }
 
-    initialize_platforms(cubeVertexId, cubeTriangleId);
+    initialize_platforms();
 
     const Rasterizer::Transform initialCameraTransform{
         camera.getPosition().x,
@@ -449,7 +474,7 @@ void Game::init() {
         0.0f,
         1.0f, 1.0f, 1.0f
     };
-    const auto cameraResp = gfx.updateCamera(initialCameraTransform);
+    const auto cameraResp = gfx.updateCamera(0, 0, 0, initialCameraTransform);
     if (!cameraResp.isSuccess()) {
         std::printf("[Rasterizer] updateCamera failed (status=%u)\n", static_cast<unsigned>(cameraResp.getStatus()));
         return;
@@ -517,13 +542,23 @@ void Game::tick_graphics() {
         camera.getPitch(), camera.getYaw(), 0.0f,  // add yaw_value for debugging here
         1.0f, 1.0f, 1.0f
     };
-    gfx.updateCamera(camT);
+
+    gfx.updateCamera(red_color, green_color, blue_color, camT);
+
+    // if (update_color % 256 == 0) {
+    //     red_color = (red_color + 1) % 16;
+    //     green_color = (green_color + 2) % 16;
+    //     blue_color = (blue_color + 3) % 16;
+    // }
+    // update_color++;
+    
 
     // yaw_value += 2 * 3.14159265f / (10*60.0f);
 
     gfx.end_frame();
 }
 
+// Only for debug hitbox visualization
 void Game::updateHitboxDebugInstance() {
     if (!initialized) {
         return;
@@ -569,6 +604,40 @@ void Game::updateHitboxDebugInstance() {
                                static_cast<uint8_t>(hitboxDebugInstanceId),
                                t);
         }
+
+        if (hitboxVertexId != 0xFF && hitboxTriangleId != 0xFF) {
+            for (auto& platform : platforms) {
+            Rasterizer::Transform hitboxTransform{
+                platform.center.x,
+                platform.center.y,
+                platform.center.z,
+                0.0f, 0.0f, 0.0f,
+                platform.halfExtents.x * 2.0f,
+                platform.halfExtents.y * 2.0f,
+                platform.halfExtents.z * 2.0f
+            };
+
+            if (platform.hitboxInstanceId == 0xFF) {
+                auto instResp = gfx.createInstance(static_cast<uint8_t>(hitboxVertexId),
+                                                   static_cast<uint8_t>(hitboxTriangleId),
+                                                   hitboxTransform);
+                if (instResp.isSuccess()) {
+                    platform.hitboxInstanceId = instResp.getInstanceId();
+                } else {
+                    std::printf("[Model] Failed to create platform hitbox instance (status=%u)\n",
+                                static_cast<unsigned>(instResp.getStatus()));
+                    platform.hitboxInstanceId = 0xFF;
+                }
+            }
+
+            if (platform.hitboxInstanceId != 0xFF) {
+                gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
+                                   static_cast<uint8_t>(hitboxTriangleId),
+                                   static_cast<uint8_t>(platform.hitboxInstanceId),
+                                   hitboxTransform);
+            }
+        }
+        }
     } else {
         if (hitboxDebugInstanceId != 0xFF) {
             Rasterizer::Transform hide{
@@ -583,6 +652,27 @@ void Game::updateHitboxDebugInstance() {
                                static_cast<uint8_t>(hitboxTriangleId),
                                static_cast<uint8_t>(hitboxDebugInstanceId),
                                hide);
+        }
+
+        if (hitboxVertexId != 0xFF && hitboxTriangleId != 0xFF) {
+            for (auto& platform : platforms) {
+                if (platform.hitboxInstanceId == 0xFF) {
+                    continue;
+                }
+
+                Rasterizer::Transform hide{
+                    platform.center.x,
+                    platform.center.y - 100.0f,
+                    platform.center.z,
+                    0.0f, 0.0f, 0.0f,
+                    0.0f, 0.0f, 0.0f
+                };
+
+                gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
+                                   static_cast<uint8_t>(hitboxTriangleId),
+                                   static_cast<uint8_t>(platform.hitboxInstanceId),
+                                   hide);
+            }
         }
     }
 }
@@ -620,7 +710,7 @@ void Game::tick_logic() {
     camera.update(in.lookYawDelta, in.lookPitchDelta, player, dt);
 }
 
-void Game::initialize_platforms(uint32_t vertexId, uint32_t triangleId) {
+void Game::initialize_platforms() {
     struct PlatformDef {
         mcu_game::Vec3 center;
         mcu_game::Vec3 size;
@@ -633,29 +723,102 @@ void Game::initialize_platforms(uint32_t vertexId, uint32_t triangleId) {
         {{-4.0f, 2.5f, 0.0f}, {2.0f, 0.5f, 1.5f}},
     };
 
+    const bool platformMeshReady = (platformVertexId != cubeVertexId) || (platformTriangleId != cubeTriangleId);
+    bool usePlatformMesh = platformMeshReady;
+    mcu_game::Vec3 meshCenter{0.0f, 0.0f, 0.0f};
+    mcu_game::Vec3 meshHalfExtents{0.5f, 0.5f, 0.5f};
+
+    if (usePlatformMesh) {
+        const auto& mesh = mcu_game::assets::baked::getMesh(mcu_game::assets::baked::MeshId::Platform);
+        if (!mesh.vertices || mesh.vertexCount == 0) {
+            std::printf("[Platform] Baked mesh data missing, reverting to cube geometry\n");
+            usePlatformMesh = false;
+        } else {
+            mcu_game::Vec3 min{mesh.vertices[0].x, mesh.vertices[0].y, mesh.vertices[0].z};
+            mcu_game::Vec3 max = min;
+            for (std::size_t v = 1; v < mesh.vertexCount; ++v) {
+                const auto& vert = mesh.vertices[v];
+                min.x = std::min(min.x, vert.x);
+                min.y = std::min(min.y, vert.y);
+                min.z = std::min(min.z, vert.z);
+                max.x = std::max(max.x, vert.x);
+                max.y = std::max(max.y, vert.y);
+                max.z = std::max(max.z, vert.z);
+            }
+
+            meshCenter = (min + max) * 0.5f;
+            meshHalfExtents = (max - min) * 0.5f;
+
+            if (meshHalfExtents.x <= 1e-4f || meshHalfExtents.y <= 1e-4f || meshHalfExtents.z <= 1e-4f) {
+                std::printf("[Platform] Baked mesh bounds degenerate, reverting to cube geometry\n");
+                usePlatformMesh = false;
+            }
+        }
+    }
+
+    const auto safeScale = [](float targetHalf, float baseHalf) {
+        constexpr float EPS = 1e-4f;
+        if (baseHalf <= EPS) {
+            return 1.0f;
+        }
+        return targetHalf / baseHalf;
+    };
+
     for (std::size_t i = 0; i < PLATFORM_COUNT; ++i) {
         platforms[i].center = defs[i].center;
         platforms[i].halfExtents = defs[i].size * 0.5f;
 
-        Rasterizer::Transform t{
-            // position
-            platforms[i].center.x,
-            platforms[i].center.y,
-            platforms[i].center.z,
-            // rotation
-            0.0f, 0.0f, 0.0f,
-            // scale
-            platforms[i].halfExtents.x * 2.0f,
-            platforms[i].halfExtents.y * 2.0f,
-            platforms[i].halfExtents.z * 2.0f
-        };
+        if (usePlatformMesh) {
+            const float baseScaleX = safeScale(platforms[i].halfExtents.x, meshHalfExtents.x);
+            const float baseScaleY = safeScale(platforms[i].halfExtents.y, meshHalfExtents.y);
+            const float baseScaleZ = safeScale(platforms[i].halfExtents.z, meshHalfExtents.z);
+            const float scaleX = baseScaleX * PLATFORM_VISUAL_SCALE;
+            const float scaleY = baseScaleY * PLATFORM_VISUAL_SCALE;
+            const float scaleZ = baseScaleZ * PLATFORM_VISUAL_SCALE;
 
-        auto inst = gfx.createInstance(vertexId, triangleId, t);
-        if (inst.getStatus() == Rasterizer::StatusCode::OK) {
-            platforms[i].instanceId = inst.getInstanceId();
+            Rasterizer::Transform visual{
+                platforms[i].center.x - meshCenter.x * scaleX,
+                platforms[i].center.y - meshCenter.y * scaleY,
+                platforms[i].center.z - meshCenter.z * scaleZ,
+                0.0f, 0.0f, 0.0f,
+                scaleX,
+                scaleY,
+                scaleZ
+            };
+
+            auto inst = gfx.createInstance(static_cast<uint8_t>(platformVertexId),
+                                           static_cast<uint8_t>(platformTriangleId),
+                                           visual);
+            if (inst.getStatus() == Rasterizer::StatusCode::OK) {
+                platforms[i].instanceId = inst.getInstanceId();
+            } else {
+                platforms[i].instanceId = 0xFF;
+                std::printf("Failed to create platform %zu visual instance (status=%u)\n",
+                            i,
+                            static_cast<unsigned>(inst.getStatus()));
+            }
         } else {
-            platforms[i].instanceId = 0xFF;
-            printf("Failed to create platform %zu instance\n", i);
+            Rasterizer::Transform cubeTransform{
+                platforms[i].center.x,
+                platforms[i].center.y,
+                platforms[i].center.z,
+                0.0f, 0.0f, 0.0f,
+                platforms[i].halfExtents.x * 2.0f,
+                platforms[i].halfExtents.y * 2.0f,
+                platforms[i].halfExtents.z * 2.0f
+            };
+
+            auto inst = gfx.createInstance(static_cast<uint8_t>(cubeVertexId),
+                                           static_cast<uint8_t>(cubeTriangleId),
+                                           cubeTransform);
+            if (inst.getStatus() == Rasterizer::StatusCode::OK) {
+                platforms[i].instanceId = inst.getInstanceId();
+            } else {
+                platforms[i].instanceId = 0xFF;
+                std::printf("Failed to create platform %zu fallback instance (status=%u)\n",
+                            i,
+                            static_cast<unsigned>(inst.getStatus()));
+            }
         }
     }
 }
