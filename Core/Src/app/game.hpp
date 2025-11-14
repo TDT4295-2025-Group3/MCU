@@ -64,7 +64,7 @@ private:
     std::array<Platform, PLATFORM_COUNT> platforms{};
     static constexpr std::size_t DEBUG_CUBE_COUNT = 4;
     std::array<uint32_t, DEBUG_CUBE_COUNT> debugCubeInstanceIds{};
-    bool showHitboxDebug = true;
+    bool showHitboxDebug = false; // Whether to show hitbox when debugging
     uint32_t hitboxDebugInstanceId = 0xFF;
     mcu_game::Vec3 groundCenter{0.0f, -0.05f, 0.0f};
     mcu_game::Vec3 groundHalfExtents{8.0f, 0.05f, 8.0f};

@@ -8,7 +8,7 @@ namespace mcu_game {
 struct CameraConfig {
     float minPitch = -1.22f; // radians (~-70 deg)
     float maxPitch =  1.22f; // radians (~+70 deg)
-    float distance = 5.0f;  // follow distance
+    float distance = 7.0f;  // follow distance
     float heightOffset = 1.5f; // look at point above player origin
     float yawSensitivity = 1.0f;   // multiplier for input yaw delta
     float pitchSensitivity = 1.0f; // multiplier for input pitch delta
