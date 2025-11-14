@@ -188,8 +188,8 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
   if (mountRes != FR_OK)
   {
     printf("[SD] f_mount runtime failed: %d\r\n", mountRes);
-    SevenSeg::displayNumber(7);
-    HAL_Delay(10000U);
+    // SevenSeg::displayNumber(7);
+    // HAL_Delay(10000U);
     FATFS_UnLinkDriver(SDPath);
     return false;
   }

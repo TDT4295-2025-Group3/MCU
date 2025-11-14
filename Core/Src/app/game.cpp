@@ -926,7 +926,7 @@ void Game::init() {
 
     Rasterizer::Transform playerTransform {
         0.0f, PLAYER_HALF_EXTENTS.y + PLAYER_VISUAL_Y_OFFSET, 0.0f,
-        0.0f, 0.0f, 0.0f,
+        0.0f, player.getYaw(), 0.0f,
         1.0f, 1.0f, 1.0f
     };
 
@@ -1095,7 +1095,7 @@ void Game::tick_graphics() {
             player.getPosition().x,
             player.getPosition().y + PLAYER_HALF_EXTENTS.y + PLAYER_VISUAL_Y_OFFSET,
             player.getPosition().z,
-            0.0f, 0.0f, 0.0f,
+            0.0f, player.getYaw(), 0.0f,
             1.0f, 1.0f, 1.0f
         };
         gfx.updateInstance(static_cast<uint8_t>(playerVertexId),
@@ -1192,7 +1192,7 @@ void Game::tick_logic() {
 
     // Map keys to InputState and camera deltas
     mcu_game::InputState in{};
-    // Arrow keys drive player relative to camera: up = forward (positive moveZ), right = +moveX
+    // Arrow keys drive player relative to camera forward/right
     in.moveZ += ks.up ? 1.0f : 0.0f;
     in.moveZ -= ks.down ? 1.0f : 0.0f;
     in.moveX += ks.right ? 1.0f : 0.0f;
