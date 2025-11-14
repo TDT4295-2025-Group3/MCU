@@ -369,7 +369,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV4;
   RCC_OscInitStruct.PLL.PLLM = 3;
   RCC_OscInitStruct.PLL.PLLN = 10;
-  RCC_OscInitStruct.PLL.PLLP = 5;
+  RCC_OscInitStruct.PLL.PLLP = 10;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 1;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
@@ -662,11 +662,11 @@ static void MX_USB_OTG_HS_HCD_Init(void)
 
   /* USER CODE END USB_OTG_HS_Init 1 */
   hhcd_USB_OTG_HS.Instance = USB_OTG_HS;
-  hhcd_USB_OTG_HS.Init.Host_channels = 16;
-  hhcd_USB_OTG_HS.Init.speed = HCD_SPEED_HIGH;
+  hhcd_USB_OTG_HS.Init.Host_channels = 4;
+  hhcd_USB_OTG_HS.Init.speed = HCD_SPEED_FULL;
   hhcd_USB_OTG_HS.Init.dma_enable = DISABLE;
   hhcd_USB_OTG_HS.Init.phy_itface = USB_OTG_HS_EMBEDDED_PHY;
-  hhcd_USB_OTG_HS.Init.Sof_enable = DISABLE;
+  hhcd_USB_OTG_HS.Init.Sof_enable = ENABLE;
   hhcd_USB_OTG_HS.Init.low_power_enable = DISABLE;
   hhcd_USB_OTG_HS.Init.use_external_vbus = ENABLE;
   if (HAL_HCD_Init(&hhcd_USB_OTG_HS) != HAL_OK)
