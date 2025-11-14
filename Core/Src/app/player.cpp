@@ -1,22 +1,64 @@
 #include "player.hpp"
 #include "camera.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 namespace mcu_game {
 
 void Player::update(const InputState &in, const Camera &cam, float dt) {
-    // Horizontal movement direction derived from camera yaw (ignore pitch)
-    // Project camera forward onto XZ plane
-    auto camForward = cam.getForward();
-    Vec3 forward = { camForward.x, 0.0f, camForward.z };
-    if (length_sq(forward) < 1e-6f) forward = {0,0,1};
-    forward = normalize(forward);
-    Vec3 right = normalize(cross({0,1,0}, forward)); // right-handed
+    constexpr float PI = 3.14159265359f;
 
-    Vec3 desiredDir = forward * in.moveZ + right * in.moveX; // camera-relative
-    if (length_sq(desiredDir) > 1e-6f) desiredDir = normalize(desiredDir);
+    // Players forward direction is aligned with camera forward/right
+    // This ensures movement input is relative to the camera's orientation
 
-    float control = grounded ? 1.0f : playerConfig.airControlFactor;
-    Vec3 targetVel = desiredDir * (playerConfig.moveSpeed * control);
+    // Forward vector in XZ-plane
+    Vec3 camForward = cam.getForward();
+    Vec3 forward{camForward.x, 0.0f, camForward.z};
+    if (length_sq(forward) < 1e-6f) {
+        forward = {0.0f, 0.0f, 1.0f};
+    } else {
+        forward = normalize(forward);
+    }
+
+    // Right vector in XZ-plane
+    Vec3 right = cross({0.0f, 1.0f, 0.0f}, forward);
+    if (length_sq(right) < 1e-6f) {
+        right = {1.0f, 0.0f, 0.0f};
+    } else {
+        right = normalize(right);
+    }
+
+    // Input vector in camera space
+    Vec3 inputDir = forward * in.moveZ + right * in.moveX;
+    const bool hasInput = length_sq(inputDir) > 1e-6f;
+    Vec3 desiredMoveDir = hasInput ? normalize(inputDir) : Vec3{0, 0, 0}; // normalized desired move direction
+
+    // Use input direction for orientation
+    // Fall back to current horizontal velocity when sliding
+    Vec3 orientDir = desiredMoveDir;
+    if (!hasInput) {
+        Vec3 horizVel{velocity.x, 0.0f, velocity.z};
+        if (length_sq(horizVel) > 1e-6f) {
+            orientDir = normalize(horizVel);
+        }
+    }
+
+    // Update player yaw to face orientDir
+    if (length_sq(orientDir) > 1e-6f) {
+        float desiredYaw = std::atan2(-orientDir.x, orientDir.z);
+        float yawDelta = desiredYaw - yaw;
+        if (yawDelta > PI) yawDelta -= 2.0f * PI;
+        if (yawDelta < -PI) yawDelta += 2.0f * PI;
+        const float maxStep = playerConfig.turnSpeed * dt;
+        yawDelta = std::clamp(yawDelta, -maxStep, maxStep);
+        yaw += yawDelta;
+        if (yaw > PI) yaw -= 2.0f * PI;
+        if (yaw < -PI) yaw += 2.0f * PI;
+    }
+
+    float control = grounded ? 1.0f : playerConfig.airControlFactor; // movement control in air is different from ground
+    Vec3 targetVel = desiredMoveDir * (playerConfig.moveSpeed * control); // desired target velocity
 
     // Accelerate towards target velocity (simple critically damped style)
     // Use friction on ground when no input
@@ -28,8 +70,8 @@ void Player::update(const InputState &in, const Camera &cam, float dt) {
         velocity.z = newHoriz.z;
     } else {
         // Air control limited: simply approach target
-    velocity.x = lerp(velocity.x, targetVel.x, control * dt * 2.0f);
-    velocity.z = lerp(velocity.z, targetVel.z, control * dt * 2.0f);
+        velocity.x = lerp(velocity.x, targetVel.x, control * dt * 2.0f);
+        velocity.z = lerp(velocity.z, targetVel.z, control * dt * 2.0f);
     }
 
     // Jump
@@ -45,6 +87,8 @@ void Player::update(const InputState &in, const Camera &cam, float dt) {
     // Integrate
     position += velocity * dt;
 
+    // Assume no longer grounded
+    // Collision system will set it back if still on ground
     grounded = false;
 }
 

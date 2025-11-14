@@ -43,6 +43,7 @@ enable_language(C CXX ASM)
 # Shared sources/includes
 # -------------------------
 set(APP_SRC
+    Core/Src/app/baked_models.cpp
         Core/Src/app/game.cpp
         Core/Src/app/game.hpp
         Core/Src/app/constants.hpp

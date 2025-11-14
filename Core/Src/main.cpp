@@ -151,11 +151,36 @@ namespace
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+static bool SD_HardwareReady()
+{
+  if (hsd_sdmmc1.State == HAL_SD_STATE_RESET)
+  {
+    printf("[SD] HAL SD handle not initialized, skipping mount\r\n");
+    SevenSeg::displayNumber(1);
+    // HAL_Delay(10000U);
+    return false;
+  }
+
+#if defined(SDMMC1)
+  if (__HAL_RCC_SDMMC1_IS_CLK_ENABLED() == 0U)
+  {
+    printf("[SD] SDMMC1 clock disabled, skipping mount\r\n");
+    // SevenSeg::displayNumber(3);
+    // HAL_Delay(10000U);
+    return false;
+  }
+#endif
+
+  return true;
+}
+
 static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
 {
   if (FATFS_LinkDriver(&SD_Driver, SDPath) != 0)
   {
     printf("[SD] FATFS_LinkDriver runtime failed\r\n");
+    // SevenSeg::displayNumber(5);
+    // HAL_Delay(10000U);
     return false;
   }
 
@@ -163,6 +188,8 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
   if (mountRes != FR_OK)
   {
     printf("[SD] f_mount runtime failed: %d\r\n", mountRes);
+    // SevenSeg::displayNumber(7);
+    // HAL_Delay(10000U);
     FATFS_UnLinkDriver(SDPath);
     return false;
   }
@@ -172,6 +199,8 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
   if ((dirWritten <= 0) || (dirWritten >= static_cast<int>(sizeof(dirPath))))
   {
     printf("[SD] models directory path too long\r\n");
+    // SevenSeg::displayNumber(9);
+    // HAL_Delay(10000U);
     f_mount(nullptr, SDPath, 0);
     FATFS_UnLinkDriver(SDPath);
     return false;
@@ -181,6 +210,8 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
   if (dirRes != FR_OK && dirRes != FR_EXIST)
   {
     printf("[SD] f_mkdir('%s') failed: %d\r\n", dirPath, dirRes);
+    // SevenSeg::displayNumber(11);
+    // HAL_Delay(10000U);
     f_mount(nullptr, SDPath, 0);
     FATFS_UnLinkDriver(SDPath);
     return false;
@@ -190,12 +221,16 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
   if ((baseWritten <= 0) || (baseWritten >= static_cast<int>(maxLen)))
   {
     printf("[SD] Model base path buffer too small\r\n");
+    // SevenSeg::displayNumber(13);
+    // HAL_Delay(10000U);
     f_mount(nullptr, SDPath, 0);
     FATFS_UnLinkDriver(SDPath);
     return false;
   }
 
   printf("[SD] Runtime mount OK (base=%s)\r\n", modelBasePath);
+  // SevenSeg::displayNumber(2);
+  // HAL_Delay(10000U);
   return true;
 }
 
@@ -250,7 +285,7 @@ int main(void)
   HAL_GPIO_WritePin(GPIOB, USB_Enable_Pin, GPIO_PIN_RESET);
 
 
-  bool sdReady = false;
+  const bool sdReady = SD_HardwareReady();
   bool runtimeMountOk = false;
 
   /* USER CODE END 2 */
@@ -274,6 +309,18 @@ int main(void)
     {
       game.setModelBasePath(gModelBasePath);
     }
+    else
+    {
+      printf("[SD] Mount failed; using built-in assets\r\n");
+      // SevenSeg::displayNumber(15);
+      // HAL_Delay(10000U);
+    }
+  }
+  else
+  {
+    printf("[SD] Hardware unavailable; using built-in assets\r\n");
+    // SevenSeg::displayNumber(17);
+    // HAL_Delay(10000U);
   }
 
   game.init();

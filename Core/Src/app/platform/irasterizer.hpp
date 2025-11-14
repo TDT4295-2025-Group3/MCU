@@ -195,8 +195,8 @@ namespace Rasterizer {
          * @param transform new transform
          * @return status
          */
-        UpdateInstResponse updateCamera(const Transform& transform){
-            return updateInstance(0, 0, 0, transform); // assuming camera has instance ID 0
+        UpdateInstResponse updateCamera(uint8_t red, uint8_t blue, uint8_t green, const Transform& transform){
+            return updateInstance(red & 0x0F, (green & 0x0F) << 4 | (blue & 0x0F), 0, transform); // assuming camera has instance ID 0
         }
     };
 }
