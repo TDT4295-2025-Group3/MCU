@@ -1,6 +1,7 @@
 #include "host_input_timer.hpp"
 #include <chrono>
 #include <stdexcept>
+#include <SDL3/SDL_events.h>
 
 uint32_t HostTimer::get_ticks_ms() {
     auto now = std::chrono::steady_clock::now();
@@ -29,5 +30,16 @@ KeyState HostInput::poll() {
     if (k[SDL_SCANCODE_A]) ks.cam_x -= 1.0f;   // yaw left
     // jump
     ks.space = k[SDL_SCANCODE_SPACE];
+    return ks;
+}
+
+KeyState DS4Input::poll() {
+
+    KeyState ks{};
+    ks.cam_x = _hid_ds4.getStickPosition(DS4Stick::Right).x;;
+    ks.cam_y = _hid_ds4.getStickPosition(DS4Stick::Right).y;
+    ks.x = _hid_ds4.getStickPosition(DS4Stick::Left).x;
+    ks.y = _hid_ds4.getStickPosition(DS4Stick::Left).y;
+    ks.space = _hid_ds4.isKeyDown(DS4Button::Cross);
     return ks;
 }

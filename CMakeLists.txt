@@ -241,5 +241,8 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
         target_include_directories(simulator PRIVATE ${SDL3_INCLUDE_DIRS})
     endif()
 
+    find_package(hidapi REQUIRED)
+    target_link_libraries(simulator PRIVATE hidapi::hidapi)
+
     target_compile_definitions(simulator PRIVATE PLATFORM_PC=1)
 endif()
