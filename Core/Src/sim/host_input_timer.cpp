@@ -27,6 +27,8 @@ KeyState HostInput::poll() {
     if (k[SDL_SCANCODE_DOWN]) ks.y -= 1.0f;   // backward
 
     // camera look axes (W/S = pitch, A/D = yaw)
+    if (k[SDL_SCANCODE_W]) ks.cam_y -= 1.0f;   // pitch up
+    if (k[SDL_SCANCODE_S]) ks.cam_y += 1.0f;   // pitch down
     if (k[SDL_SCANCODE_D]) ks.cam_x += 1.0f;   // yaw right
     if (k[SDL_SCANCODE_A]) ks.cam_x -= 1.0f;   // yaw left
     // jump
