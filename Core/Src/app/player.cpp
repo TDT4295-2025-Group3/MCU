@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cmath>
 #include "game_model_loader.hpp"
+#include <cstddef>
+#include <cstdio>
 
 namespace mcu_game
 {

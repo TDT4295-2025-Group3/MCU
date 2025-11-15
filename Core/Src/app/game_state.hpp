@@ -2,6 +2,7 @@
 
 #include "camera.hpp"
 #include "collider.hpp"
+#include <vector>
 
 namespace mcu_game
 {

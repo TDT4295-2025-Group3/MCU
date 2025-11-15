@@ -458,21 +458,21 @@ static void pack_create_instance_message(uint8_t *buffer, uint8_t vertbuffID, ui
     pack_bits(buffer, &bit_offset, vertbuffID, 8);
     pack_bits(buffer, &bit_offset, tribuffID, 8);
 
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posX), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posY), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posZ), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->position.x), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->position.y), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->position.z), 32);
 
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotX)), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotY)), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotZ)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotation.x)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotation.y)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotation.z)), 32);
 
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotX)), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotY)), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotZ)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotation.x)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotation.y)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotation.z)), 32);
 
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleX), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleY), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleZ), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scale.x), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scale.y), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scale.z), 32);
 }
 
 static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform *instanceData, uint8_t vertID, uint8_t triID, uint8_t instID) {
@@ -487,21 +487,21 @@ static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform 
     pack_bits(buffer, &bit_offset, triID, 8);
     pack_bits(buffer, &bit_offset, instID, 8);
 
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posX), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posY), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->posZ), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->position.x), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->position.y), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->position.z), 32);
 
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotX)), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotY)), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotZ)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotation.x)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotation.y)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(sin(instanceData->rotation.z)), 32);
 
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotX)), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotY)), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotZ)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotation.x)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotation.y)), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(cos(instanceData->rotation.z)), 32);
 
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleX), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleY), 32);
-    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scaleZ), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scale.x), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scale.y), 32);
+    pack_bits(buffer, &bit_offset, (uint32_t)floatToQ16_16(instanceData->scale.z), 32);
 }
 
 

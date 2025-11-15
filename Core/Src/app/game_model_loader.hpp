@@ -2,7 +2,8 @@
 
 #include "baked_models.hpp"
 #include "model_loader.hpp"
-#include <string.h>
+#include <cstdio>
+#include <string>
 
 bool loadModelGeometry(Rasterizer::IRasterizer &gfx,
                        const char *relativePath,
