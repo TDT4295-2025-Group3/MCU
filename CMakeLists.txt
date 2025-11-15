@@ -91,6 +91,27 @@ if (BUILD_STM32)
 
     set(TINYUSB_DIR ${CMAKE_SOURCE_DIR}/tinyusb/src)
 
+    # Ensure TinyUSB sources are available even if the submodule was not initialized.
+    if(NOT EXISTS "${TINYUSB_DIR}/tusb.c")
+        include(FetchContent)
+        set(TINYUSB_FALLBACK_TAG "0.15.0" CACHE STRING "TinyUSB fallback git tag")
+        FetchContent_Declare(
+            tinyusb
+            GIT_REPOSITORY https://github.com/hathach/tinyusb.git
+            GIT_TAG ${TINYUSB_FALLBACK_TAG}
+            GIT_SHALLOW TRUE
+        )
+        FetchContent_GetProperties(tinyusb)
+        if(NOT tinyusb_POPULATED)
+            FetchContent_Populate(tinyusb)
+        endif()
+        set(TINYUSB_DIR "${tinyusb_SOURCE_DIR}/src")
+    endif()
+
+    if(NOT EXISTS "${TINYUSB_DIR}/tusb.c")
+        message(FATAL_ERROR "TinyUSB sources are missing at ${TINYUSB_DIR}. Run 'git submodule update --init --recursive' or ensure fallback fetch succeeded.")
+    endif()
+
     set(TINYUSB_INC
             ${TINYUSB_DIR}
             ${TINYUSB_DIR}/common
@@ -243,8 +264,29 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
         target_include_directories(simulator PRIVATE ${SDL3_INCLUDE_DIRS})
     endif()
 
-    find_package(hidapi REQUIRED)
-    target_link_libraries(simulator PRIVATE hidapi::hidapi)
+    find_package(hidapi CONFIG QUIET)
+    if(NOT hidapi_FOUND)
+        find_package(PkgConfig QUIET)
+        if(PkgConfig_FOUND)
+            pkg_check_modules(HIDAPI IMPORTED_TARGET hidapi-hidraw)
+            if(NOT HIDAPI_FOUND)
+                pkg_check_modules(HIDAPI IMPORTED_TARGET hidapi-libusb)
+            endif()
+            if(NOT HIDAPI_FOUND)
+                pkg_check_modules(HIDAPI IMPORTED_TARGET hidapi)
+            endif()
+        endif()
+    endif()
+
+    if(hidapi_FOUND)
+        target_link_libraries(simulator PRIVATE hidapi::hidapi)
+    elseif(HIDAPI_FOUND)
+        target_link_libraries(simulator PRIVATE PkgConfig::HIDAPI)
+        target_compile_definitions(simulator PRIVATE ${HIDAPI_CFLAGS_OTHER})
+        target_include_directories(simulator PRIVATE ${HIDAPI_INCLUDE_DIRS})
+    else()
+        message(FATAL_ERROR "hidapi is required for the simulator target. Install hidapi (e.g. 'sudo apt install libhidapi-dev') or disable BUILD_SIMULATOR.")
+    endif()
 
     target_compile_definitions(simulator PRIVATE PLATFORM_PC=1)
 endif()

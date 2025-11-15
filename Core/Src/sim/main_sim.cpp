@@ -2,17 +2,22 @@
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <system_error>
 
 #include "game.hpp"
 #include "host_input_timer.hpp"
 #include "host_rasterizer.hpp"
+#include "hid_driver.hpp"
 #include <hidapi.h>
 
 int main() {
-    std::unique_ptr<IInput> input;
-    HostRasterizer rasterizer{320, 240};
+    HostInput keyboardInput;
+    std::unique_ptr<DS4Driver> ds4Controller;
+    std::unique_ptr<DS4Input> ds4Input;
+    IInput* activeInput = &keyboardInput;
+    HostRasterizer rasterizer{800, 600};
     HostTimer timer;
 
     std::string modelBasePath;
@@ -41,18 +46,6 @@ int main() {
         }
     }
 
-    Game game{rasterizer, input, timer};
-    if (!modelBasePath.empty()) {
-        game.setModelBasePath(modelBasePath.c_str());
-        if (basePathFromEnv) {
-            std::cout << "[Model] Using MCU_MODEL_PATH=" << modelBasePath << '\n';
-        } else {
-            std::cout << "[Model] Using inferred model directory: " << modelBasePath << '\n';
-        }
-    } else {
-        std::cout << "[Model] No model directory configured. Set MCU_MODEL_PATH or place models/ alongside the simulator binary." << '\n';
-    }
-    std::unique_ptr<DS4Driver> ds4_controller;
     bool useDS4 = true;
 
     int hid_res = hid_init();
@@ -85,10 +78,22 @@ int main() {
     }
 
     if (useDS4) {
-        ds4_controller = std::make_unique<DS4Driver>();
-        input = std::make_unique<DS4Input>(*ds4_controller);
-    }else {
-        input = std::make_unique<HostInput>();
+        ds4Controller = std::make_unique<DS4Driver>();
+        ds4Input = std::make_unique<DS4Input>(*ds4Controller);
+        activeInput = ds4Input.get();
+        ds4Controller->queueInitReport();
+    }
+
+    Game game{rasterizer, *activeInput, timer};
+    if (!modelBasePath.empty()) {
+        game.setModelBasePath(modelBasePath.c_str());
+        if (basePathFromEnv) {
+            std::cout << "[Model] Using MCU_MODEL_PATH=" << modelBasePath << '\n';
+        } else {
+            std::cout << "[Model] Using inferred model directory: " << modelBasePath << '\n';
+        }
+    } else {
+        std::cout << "[Model] No model directory configured. Set MCU_MODEL_PATH or place models/ alongside the simulator binary." << '\n';
     }
 
     game.init();
@@ -96,10 +101,10 @@ int main() {
     uint8_t ds4_buffer[64];
 
     while (true) {
-        if (ds4_controller) {
+        if (ds4Controller) {
             // read input from DS4, push all outputs
             DS4_OutputUSBReport outputReport;
-            while (ds4_controller->getReadyOutputReport(outputReport)) {
+            while (ds4Controller->getReadyOutputReport(outputReport)) {
                 hid_write(handle, reinterpret_cast<uint8_t *>(&outputReport), sizeof(DS4_OutputUSBReport));
             }
 
@@ -107,7 +112,7 @@ int main() {
             if (hid_res == -1 || hid_res == 0) continue;
             auto report = reinterpret_cast<DS4_InputUSBReport *>(ds4_buffer);
             if (report->ReportID != 0x01) continue; // not an input report
-            ds4_controller->processInput(*report);
+            ds4Controller->processInput(*report);
         }
         game.tick_once();
     }
