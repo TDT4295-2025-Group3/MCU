@@ -1,4 +1,7 @@
 #pragma once
+#include "game_state.hpp"
+#include "platform/irasterizer.hpp"
+#include "input.hpp"
 
 namespace mcu_game
 {
@@ -6,8 +9,8 @@ namespace mcu_game
     {
     public:
         virtual ~Entity() = default;
-        virtual void init(Rasterizer::IRasterizer &gfx, GameState &gameState) = 0;
-        virtual void update(const InputState &in, float deltaTime) = 0;
-        virtual void render(Rasterizer::IRasterizer &gfx, GameState &gameState) = 0;
+        virtual bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) = 0;
+        virtual void update(const InputState &in, float deltaTime, GameState &gameState) = 0;
+        virtual void render(Rasterizer::IRasterizer &gfx) = 0;
     };
 } // namespace mcu_game

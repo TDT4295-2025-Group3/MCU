@@ -1,14 +1,15 @@
 #pragma once
 
+#include "camera.hpp"
+#include "collider.hpp"
+
 namespace mcu_game
 {
     struct GameState
     {
         Camera &camera;
+        std::vector<BoxCollider> boxColliders;
 
-        Platform *platforms;
-        std::size_t platformCount;
-
-        bool &showHitboxDebug;
+        GameState(Camera &cam) : camera(cam) {}
     };
 } // namespace mcu_game

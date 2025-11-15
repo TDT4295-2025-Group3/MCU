@@ -8,55 +8,58 @@
 #include <array>
 #include <cstddef>
 
-class Game {
+class Game
+{
 public:
-    Game(Rasterizer::IRasterizer& gfx, IInput& in, ITimer& time, const char* modelBasePath = nullptr)
+    Game(Rasterizer::IRasterizer &gfx, IInput &in, ITimer &time, const char *modelBasePath = nullptr)
         : gfx(gfx), input(in), timer(time), modelBasePath(modelBasePath) {}
 
     void init();
     void tick_once();
-    void setModelBasePath(const char* basePath) { modelBasePath = basePath; }
-    void setShowHitboxDebug(bool enable) {
+    void setModelBasePath(const char *basePath) { modelBasePath = basePath; }
+    void setShowHitboxDebug(bool enable)
+    {
         showHitboxDebug = enable;
         updateHitboxDebugInstance();
     }
     bool isShowingHitboxDebug() const { return showHitboxDebug; }
+
 private:
     void tick_logic();
     void tick_graphics();
     void updateHitboxDebugInstance();
-    bool loadModelGeometry(const char* relativePath,
-                           uint32_t& vertexId,
-                           uint32_t& triangleId,
+    bool loadModelGeometry(const char *relativePath,
+                           uint32_t &vertexId,
+                           uint32_t &triangleId,
                            bool logSuccess = true,
-                           size_t* outVertexCount = nullptr,
-                           size_t* outTriangleCount = nullptr);
-    bool loadModelInstance(const char* relativePath, const Rasterizer::Transform& transform, uint32_t& instanceId);
-    void handle_player_collisions(const mcu_game::Vec3& previousPosition);
-    bool sweep_against_box(const mcu_game::Vec3& boxCenter,
-                           const mcu_game::Vec3& boxHalfExtents,
-                           const mcu_game::Vec3& start,
-                           const mcu_game::Vec3& delta,
-                           float& outTime,
-                           mcu_game::Vec3& outNormal) const;
+                           size_t *outVertexCount = nullptr,
+                           size_t *outTriangleCount = nullptr);
+    bool loadModelInstance(const char *relativePath, const Rasterizer::Transform &transform, uint32_t &instanceId);
+    void handle_player_collisions(const mcu_game::Vec3 &previousPosition);
+    bool sweep_against_box(const mcu_game::Vec3 &boxCenter,
+                           const mcu_game::Vec3 &boxHalfExtents,
+                           const mcu_game::Vec3 &start,
+                           const mcu_game::Vec3 &delta,
+                           float &outTime,
+                           mcu_game::Vec3 &outNormal) const;
     void initialize_platforms();
     bool initialized = false;
     mcu_game::Player player{};
     mcu_game::Camera camera{};
+    mcu_game::GameState gameState{camera};
 
     uint32_t playerInstanceId = 0xFF;
-    uint32_t instancePyrId  = 0xFF;
+    uint32_t instancePyrId = 0xFF;
     uint32_t instancePlaneId = 0xFF;
-    uint32_t playerVertexId = 0xFF;     // Visible player mesh
-    uint32_t playerTriangleId = 0xFF;
-    uint32_t hitboxVertexId = 0xFF;     // Invisible collision prism (cube geometry)
+    uint32_t hitboxVertexId = 0xFF; // Invisible collision prism (cube geometry)
     uint32_t hitboxTriangleId = 0xFF;
     uint32_t cubeVertexId = 0xFF;
     uint32_t cubeTriangleId = 0xFF;
-    uint32_t platformVertexId = 0xFF;   // Visible platform mesh
+    uint32_t platformVertexId = 0xFF; // Visible platform mesh
     uint32_t platformTriangleId = 0xFF;
 
-    struct Platform {
+    struct Platform
+    {
         mcu_game::Vec3 center{0.0f, 0.0f, 0.0f};
         mcu_game::Vec3 halfExtents{0.5f, 0.5f, 0.5f};
         uint32_t instanceId = 0xFF;
@@ -71,11 +74,12 @@ private:
     uint32_t hitboxDebugInstanceId = 0xFF;
     mcu_game::Vec3 groundCenter{0.0f, -0.05f, 0.0f};
     mcu_game::Vec3 groundHalfExtents{8.0f, 0.05f, 8.0f};
+
 private:
-    Rasterizer::IRasterizer& gfx;
-    IInput&      input;
-    ITimer&      timer;
+    Rasterizer::IRasterizer &gfx;
+    IInput &input;
+    ITimer &timer;
     uint32_t next_tick_ms;
     uint32_t next_frame_ms;
-    const char* modelBasePath = nullptr;
+    const char *modelBasePath = nullptr;
 };
