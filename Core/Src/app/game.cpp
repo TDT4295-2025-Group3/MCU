@@ -16,12 +16,12 @@
 //#include "seven_seg_display.hpp"
 
 namespace {
-constexpr mcu_game::Vec3 PLAYER_HALF_EXTENTS{0.5f, 0.5f, 0.5f};  // Matches invisible hitbox prism
+constexpr mcu_game::Vec3 PLAYER_HALF_EXTENTS{0.4f, 1.1f, 0.4f};  // size of hitboxes (x, y, z)
 constexpr float RAY_EPSILON = 1e-4f;
 constexpr std::size_t MODEL_PATH_BUFFER = 128;
 constexpr float DEBUG_CUBE_DISTANCE = 18.0f;
-constexpr float PLAYER_VISUAL_Y_OFFSET = -0.5f;  // Sink visual mesh slightly into collision box
-constexpr float PLATFORM_VISUAL_SCALE = 1.25f;    // Inflate platform visuals without touching hitboxes
+constexpr float PLAYER_VISUAL_Y_OFFSET = -1.1f;  // Player model offset to align with hitbox
+constexpr float PLATFORM_VISUAL_SCALE = 1.25f;    // Inflate platform sizes
 
 // float yaw_value = 0.0f;
 uint8_t red_color = 0;
@@ -909,8 +909,88 @@ void Game::handle_player_collisions(const mcu_game::Vec3& previousPosition) {
     mcu_game::Vec3 workingVelocity = player.getVelocity();
     bool grounded = false;
 
+    // Helper to choose push direction when resolving penetration
+    const auto chooseDir = [](float delta, float vel) {
+        if (std::fabs(delta) > 1e-5f) {
+            return delta >= 0.0f ? 1.0f : -1.0f;
+        }
+        if (std::fabs(vel) > 1e-5f) {
+            return vel >= 0.0f ? 1.0f : -1.0f;
+        }
+        return 1.0f;
+    };
+
+    // Resolve penetration of player against a box collider
+    const auto resolvePenetration = [&](const mcu_game::Vec3& center, const mcu_game::Vec3& half) -> bool {
+        const mcu_game::Vec3 delta = workingCenter - center;
+        const float overlapX = (half.x + PLAYER_HALF_EXTENTS.x) - std::fabs(delta.x);
+        const float overlapY = (half.y + PLAYER_HALF_EXTENTS.y) - std::fabs(delta.y);
+        const float overlapZ = (half.z + PLAYER_HALF_EXTENTS.z) - std::fabs(delta.z);
+
+        if (overlapX <= 0.0f || overlapY <= 0.0f || overlapZ <= 0.0f) {
+            return false;
+        }
+
+        float minOverlap = overlapX;
+        int axis = 0;
+        if (overlapY < minOverlap) {
+            minOverlap = overlapY;
+            axis = 1;
+        }
+        if (overlapZ < minOverlap) {
+            minOverlap = overlapZ;
+            axis = 2;
+        }
+
+        const float pushDistance = minOverlap + RAY_EPSILON;
+
+        // Push out along the chosen axis
+        if (axis == 0) {
+            const float dir = chooseDir(delta.x, workingVelocity.x);
+            workingCenter.x += dir * pushDistance;
+            if ((dir > 0.0f && workingVelocity.x < 0.0f) ||
+                (dir < 0.0f && workingVelocity.x > 0.0f)) {
+                workingVelocity.x = 0.0f;
+            }
+        } else if (axis == 1) {
+            const float dir = chooseDir(delta.y, workingVelocity.y);
+            workingCenter.y += dir * pushDistance;
+            if (dir > 0.0f) {
+                grounded = true;
+                if (workingVelocity.y < 0.0f) {
+                    workingVelocity.y = 0.0f;
+                }
+            } else {
+                if (workingVelocity.y > 0.0f) {
+                    workingVelocity.y = 0.0f;
+                }
+            }
+        } else {
+            const float dir = chooseDir(delta.z, workingVelocity.z);
+            workingCenter.z += dir * pushDistance;
+            if ((dir > 0.0f && workingVelocity.z < 0.0f) ||
+                (dir < 0.0f && workingVelocity.z > 0.0f)) {
+                workingVelocity.z = 0.0f;
+            }
+        }
+
+        return true;
+    };
+
+    // If there is no remaining motion, just resolve penetration
     if (mcu_game::length_sq(remainingMotion) < 1e-8f) {
-        // No displacement, but still ensure we are not below ground
+        for (int iter = 0; iter < 4; ++iter) {
+            bool corrected = false;
+            for (const auto& platform : platforms) {
+                if (platform.instanceId == 0xFF) continue;
+                corrected |= resolvePenetration(platform.center, platform.halfExtents);
+            }
+            corrected |= resolvePenetration(groundCenter, groundHalfExtents);
+            if (!corrected) {
+                break;
+            }
+        }
+
         if (workingCenter.y - PLAYER_HALF_EXTENTS.y < groundCenter.y + groundHalfExtents.y) {
             workingCenter.y = groundCenter.y + groundHalfExtents.y + PLAYER_HALF_EXTENTS.y;
             grounded = true;
@@ -983,6 +1063,19 @@ void Game::handle_player_collisions(const mcu_game::Vec3& previousPosition) {
     }
 
     workingCenter += remainingMotion;
+
+    // Final penetration resolution pass
+    for (int iter = 0; iter < 4; ++iter) {
+        bool corrected = false;
+        for (const auto& platform : platforms) {
+            if (platform.instanceId == 0xFF) continue;
+            corrected |= resolvePenetration(platform.center, platform.halfExtents);
+        }
+        corrected |= resolvePenetration(groundCenter, groundHalfExtents);
+        if (!corrected) {
+            break;
+        }
+    }
 
     // Player should never go below ground plane (y=0)
     const float groundTop = groundCenter.y + groundHalfExtents.y + PLAYER_HALF_EXTENTS.y;
