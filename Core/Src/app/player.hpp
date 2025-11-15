@@ -3,6 +3,7 @@
 #include "math.hpp"
 #include "input.hpp"
 #include "entity.hpp"
+#include "anim/anim.hpp"
 
 namespace mcu_game
 {
@@ -48,8 +49,18 @@ namespace mcu_game
         bool grounded{false};
         PlayerConfig playerConfig{};
 
-        uint32_t vertexId = 0xFF;
-        uint32_t triangleId = 0xFF;
+        Animator animator{};
+
+        uint32_t vertexIdleId = 0xFF;
+        uint32_t triangleIdleId = 0xFF;
+        uint32_t vertexRun1Id = 0xFF;
+        uint32_t triangleRun1Id = 0xFF;
+        uint32_t vertexRun2Id = 0xFF;
+        uint32_t triangleRun2Id = 0xFF;
+        uint32_t vertexJumpUpId = 0xFF;
+        uint32_t triangleJumpUpId = 0xFF;
+        uint32_t vertexJumpDownId = 0xFF;
+        uint32_t triangleJumpDownId = 0xFF;
         uint32_t instanceId = 0xFF;
     };
 

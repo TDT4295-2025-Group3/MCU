@@ -17,22 +17,133 @@ namespace mcu_game
         velocity = {0, 0, 0};
         grounded = false; // placed slightly above ground so will fall and settle
 
-        if (!createBuffersWithFallback(gfx, "player.obj",
-                                       assets::baked::MeshId::Player,
-                                       vertexId,
-                                       triangleId,
+        if (!createBuffersWithFallback(gfx, "playerIdle.obj",
+                                       assets::baked::MeshId::PlayerIdle,
+                                       vertexIdleId,
+                                       triangleIdleId,
                                        true))
-        {
-            std::printf("Player geometry unavailable, aborting init\n");
             return false;
-        }
 
-        const auto playerInstanceResp = gfx.createInstance(static_cast<uint8_t>(vertexId),
-                                                           static_cast<uint8_t>(triangleId),
+        if (!createBuffersWithFallback(gfx, "playerRun1.obj",
+                                       assets::baked::MeshId::PlayerRun1,
+                                       vertexRun1Id,
+                                       triangleRun1Id,
+                                       true))
+            return false;
+
+        if (!createBuffersWithFallback(gfx, "playerRun2.obj",
+                                       assets::baked::MeshId::PlayerRun2,
+                                       vertexRun2Id,
+                                       triangleRun2Id,
+                                       true))
+            return false;
+
+        if (!createBuffersWithFallback(gfx, "playerJumpUp.obj",
+                                       assets::baked::MeshId::PlayerJumpUp,
+                                       vertexJumpUpId,
+                                       triangleJumpUpId,
+                                       true))
+            return false;
+
+        if (!createBuffersWithFallback(gfx, "playerJumpDown.obj",
+                                       assets::baked::MeshId::PlayerJumpDown,
+                                       vertexJumpDownId,
+                                       triangleJumpDownId,
+                                       true))
+            return false;
+
+        const auto playerInstanceResp = gfx.createInstance(static_cast<uint8_t>(vertexIdleId),
+                                                           static_cast<uint8_t>(triangleIdleId),
                                                            transform);
         if (!playerInstanceResp.isSuccess())
             return false;
         instanceId = playerInstanceResp.getInstanceId();
+
+        animator.addAnimation(Animation{
+            "Idle",
+            {
+                {true, vertexIdleId, triangleIdleId,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.4f},
+
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.1f, 0.96f, 1.1f,
+                 0.4f},
+
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.0f},
+            },
+            true});
+        animator.addAnimation(Animation{
+            "Run",
+            {
+                {true, vertexRun1Id, triangleRun1Id,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 0.97f, 1.0f,
+                 0.1f},
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.1f},
+                {true, vertexIdleId, triangleIdleId,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 1.0f, 1.0f, 1.0f,
+                 0.1f},
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 0.94f, 1.0f,
+                 0.1f},
+                {true, vertexRun2Id, triangleRun2Id,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 1.0f, 1.0f, 1.0f,
+                 0.1f},
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.1f},
+                {true, vertexIdleId, triangleIdleId,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 0.97f, 1.0f,
+                 0.1f},
+            },
+            true});
+        animator.addAnimation(Animation{
+            "JumpUp",
+            {
+                {true, vertexJumpUpId, triangleJumpUpId,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.2f},
+            },
+            true});
+        animator.addAnimation(Animation{
+            "JumpDown",
+            {
+                {true, vertexJumpDownId, triangleJumpDownId,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.2f},
+            },
+            true});
+
+        animator.playAnimation("Idle");
+
         return true;
     }
 
@@ -70,6 +181,26 @@ namespace mcu_game
         Vec3 inputDir = forward * in.moveZ + right * in.moveX;
         const bool hasInput = length_sq(inputDir) > 1e-6f;
         Vec3 desiredMoveDir = hasInput ? normalize(inputDir) : Vec3{0, 0, 0}; // normalized desired move direction
+
+        if (hasInput && grounded)
+        {
+            animator.playAnimation("Run");
+        }
+        else if (!hasInput && grounded)
+        {
+            animator.playAnimation("Idle");
+        }
+        else if (!grounded)
+        {
+            if (velocity.y > 0.0f)
+            {
+                animator.playAnimation("JumpUp");
+            }
+            else
+            {
+                animator.playAnimation("JumpDown");
+            }
+        }
 
         // Use input direction for orientation
         // Fall back to current horizontal velocity when sliding
@@ -138,14 +269,36 @@ namespace mcu_game
         // Assume no longer grounded
         // Collision system will set it back if still on ground
         grounded = false;
+
+        animator.update(deltaTime);
     }
 
     void Player::render(Rasterizer::IRasterizer &gfx)
     {
-        if (vertexId == 0xFF || triangleId == 0xFF)
-            return;
+        const Keyframe &keyframe = animator.getCurrentKeyframe();
 
-        gfx.updateInstance(vertexId, triangleId, instanceId, transform);
+        Rasterizer::Transform animTransform = transform;
+        if (keyframe.useTranslation)
+        {
+            animTransform.position.x += keyframe.translationX;
+            animTransform.position.y += keyframe.translationY;
+            animTransform.position.z += keyframe.translationZ;
+        }
+
+        if (keyframe.useRotation)
+        {
+            animTransform.rotation.x += keyframe.rotationX;
+            animTransform.rotation.y += keyframe.rotationY;
+            animTransform.rotation.z += keyframe.rotationZ;
+        }
+        if (keyframe.useScale)
+        {
+            animTransform.scale.x *= keyframe.scaleX;
+            animTransform.scale.y *= keyframe.scaleY;
+            animTransform.scale.z *= keyframe.scaleZ;
+        }
+
+        gfx.updateInstance(keyframe.vertexId, keyframe.triangleId, instanceId, animTransform);
     }
 
     void Player::landOn(float surfaceY)

@@ -455,13 +455,15 @@ Rasterizer::CreateInstResponse HostRasterizer::createInstance(uint8_t vertexId, 
     return Rasterizer::CreateInstResponse(Rasterizer::StatusCode::OK, instId + 1);
 }
 
-Rasterizer::UpdateInstResponse HostRasterizer::updateInstance(uint8_t vertexId, uint8_t triangleId,
-                                                              uint8_t instanceId,
-                                                              const Rasterizer::Transform &transform)
+Rasterizer::UpdateInstResponse HostRasterizer::updateInstance(
+    uint8_t vertexId,
+    uint8_t triangleId,
+    uint8_t instanceId,
+    const Rasterizer::Transform &transform)
 {
+    // Instance ID 0 is reserved for the camera
     if (instanceId == 0)
     {
-        // Camera updates use instance ID 0 in the shared interface.
         S3L_Transform3D camT{};
         Impl::toS3LTransform(transform, camT);
         impl->scene.camera.transform = camT;
@@ -476,15 +478,55 @@ Rasterizer::UpdateInstResponse HostRasterizer::updateInstance(uint8_t vertexId, 
 
     auto &inst = impl->instances[internalId];
 
-    if ((vertexId != 0xFF && inst.vertexId != vertexId) ||
-        (triangleId != 0xFF && inst.triangleId != triangleId))
+    // Resolve new vertex/triangle IDs, using 0xFF as "keep current"
+    uint8_t newVertexId = (vertexId == 0xFF) ? inst.vertexId : vertexId;
+    uint8_t newTriangleId = (triangleId == 0xFF) ? inst.triangleId : triangleId;
+
+    // Validate IDs
+    if (newVertexId == 0xFF || newTriangleId == 0xFF)
+    {
+        return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::INVALID_ID);
+    }
+    if (!impl->vused[newVertexId] || !impl->tused[newTriangleId])
     {
         return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::INVALID_ID);
     }
 
+    auto &vx = impl->s3lVerts[newVertexId];
+    auto &ix = impl->s3lTris[newTriangleId];
+    if (vx.empty() || ix.empty())
+    {
+        return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::CORRUPT_INVALID_DATA);
+    }
+
+    // Only re-init the model if the mesh actually changed
+    bool meshChanged = (newVertexId != inst.vertexId) || (newTriangleId != inst.triangleId);
+    if (meshChanged)
+    {
+        // Preserve existing config (including backfaceCulling) across re-init
+        auto oldConfig = impl->models[internalId].config;
+
+        S3L_model3DInit(
+            vx.data(),
+            static_cast<S3L_Index>(vx.size() / 3),
+            ix.data(),
+            static_cast<S3L_Index>(ix.size() / 3),
+            &impl->models[internalId]);
+
+        impl->models[internalId].config = oldConfig;
+
+        // Keep lookup tables and instance info in sync
+        inst.vertexId = newVertexId;
+        inst.triangleId = newTriangleId;
+        impl->modelToVId[internalId] = newVertexId;
+        impl->modelToIId[internalId] = newTriangleId;
+    }
+
+    // Update transform
     inst.transform = transform;
     Impl::toS3LTransform(transform, impl->transforms[internalId]);
     impl->models[internalId].transform = impl->transforms[internalId];
+
     return Rasterizer::UpdateInstResponse(Rasterizer::StatusCode::OK);
 }
 

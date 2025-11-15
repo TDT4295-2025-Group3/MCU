@@ -40,8 +40,8 @@ def parse_face(parts):
     """Parse OBJ face like: f v/t/n v/t/n v/t/n."""
     idx = []
     for token in parts:
-        vertex_index = token.split("/")[0]  # only use vertex indices
-        idx.append(int(vertex_index) - 1)  # convert to 0-based
+        vertex_index = token.split("/")[0]
+        idx.append(int(vertex_index) - 1)
     return idx
 
 
@@ -50,6 +50,21 @@ def triangulate(face):
 
     for i in range(1, len(face) - 1):
         yield (face[0], face[i], face[i + 1])
+
+
+def sanitize_name(stem: str) -> str:
+    """Sanitize filename stem to a valid C++ identifier base."""
+    cleaned = []
+    for ch in stem:
+        if ch.isalnum() or ch == "_":
+            cleaned.append(ch)
+        else:
+            cleaned.append("_")
+    if not cleaned:
+        cleaned = ["model"]
+    if cleaned[0].isdigit():
+        cleaned.insert(0, "_")
+    return "".join(cleaned).upper()
 
 
 # ---------------------------------------------------------
@@ -76,19 +91,34 @@ def load_obj(filename):
     return verts, tris
 
 
-def write_output(verts, tris):
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as out:
-        out.write("Rasterizer::Vertex playerVerts[] = {\n")
+def write_output(verts, tris, base_name):
+    vert_name = f"{base_name}_VERT"
+    tri_name = f"{base_name}_TRI"
+    mesh_name = f"{base_name}_MESH"
+
+    with open(OUTPUT_FILE, "a", encoding="utf-8") as out:
+
+        # Vertex buffer
+        out.write(f"static constexpr Rasterizer::Vertex {vert_name}[] = {{\n")
         for x, y, z, r, g, b in verts:
             out.write(f"    {{{x}f, {y}f, {z}f, {r}, {g}, {b}}},\n")
         out.write("};\n\n")
 
-        out.write("Rasterizer::Triangle playerTris[] = {\n")
+        # Triangle buffer
+        out.write(f"static constexpr Rasterizer::Triangle {tri_name}[] = {{\n")
         for a, b, c in tris:
             out.write(f"    {{{a}, {b}, {c}}},\n")
-        out.write("};\n")
+        out.write("};\n\n")
 
-    print(f"Output written to {OUTPUT_FILE}")
+        # Mesh descriptor
+        out.write(
+            f"static constexpr MeshData {mesh_name}{{\n"
+            f"    {vert_name}, {len(verts)},\n"
+            f"    {tri_name}, {len(tris)}\n"
+            f"}};\n\n"
+        )
+
+    print(f"Appended {base_name} to {OUTPUT_FILE}")
 
 
 def main():
@@ -105,19 +135,20 @@ def main():
         print(f"No .obj files found in {OBJ_FOLDER}")
         return
 
-    print("Choose OBJ file:")
-    for idx, fname in enumerate(files):
-        print(f"{idx}. {fname}")
+    # Ensure clean output file
+    if OUTPUT_FILE.exists():
+        OUTPUT_FILE.unlink()
 
-    try:
-        choice = int(input("Select file number: "))
-        obj_path = OBJ_FOLDER / files[choice]
-    except (ValueError, IndexError):
-        print("Invalid selection.")
-        return
+    for fname in files:
+        obj_path = OBJ_FOLDER / fname
+        stem = Path(fname).stem
+        base_name = sanitize_name(stem)
 
-    verts, tris = load_obj(obj_path)
-    write_output(verts, tris)
+        print(f"Processing {fname}")
+        verts, tris = load_obj(obj_path)
+        write_output(verts, tris, base_name)
+
+    print(f"All models written to {OUTPUT_FILE}")
 
 
 if __name__ == "__main__":
