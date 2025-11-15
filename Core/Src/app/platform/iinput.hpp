@@ -2,11 +2,12 @@
 
 struct KeyState {
     // Arrow keys for player movement (camera-relative motion handled in game logic)
-    bool up{}, down{}, left{}, right{};
+    // x: left (-1) to right (+1), y: down (-1) to up (+1)
+    float x{}, y{};
 
     // Camera look controls (digital).
-    // WASD: W/S = pitch up/down, A/D = yaw left/right
-    bool w{}, a{}, s{}, d{};
+    // cam_x: yaw left/right, cam_y: pitch up/down
+    float cam_x{}, cam_y{};
 
     // Jump
     bool space{};

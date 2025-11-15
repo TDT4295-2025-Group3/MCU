@@ -30,7 +30,7 @@ void Player::update(const InputState &in, const Camera &cam, float dt) {
     }
 
     // Input vector in camera space
-    Vec3 inputDir = forward * in.moveZ + right * in.moveX;
+    Vec3 inputDir = forward * in.moveZ + -1*right * in.moveX;
     const bool hasInput = length_sq(inputDir) > 1e-6f;
     Vec3 desiredMoveDir = hasInput ? normalize(inputDir) : Vec3{0, 0, 0}; // normalized desired move direction
 
@@ -46,7 +46,7 @@ void Player::update(const InputState &in, const Camera &cam, float dt) {
 
     // Update player yaw to face orientDir
     if (length_sq(orientDir) > 1e-6f) {
-        float desiredYaw = std::atan2(-orientDir.x, orientDir.z);
+        float desiredYaw = std::atan2(orientDir.x, orientDir.z);
         float yawDelta = desiredYaw - yaw;
         if (yawDelta > PI) yawDelta -= 2.0f * PI;
         if (yawDelta < -PI) yawDelta += 2.0f * PI;

@@ -65,6 +65,9 @@
 #include "app/platform/itimer.hpp"
 #include "app/platform/irasterizer.hpp"
 #include "stm32u5xx_hal.h"
+#include "tusb_input.hpp"
+#include "tusb.h"
+#include "usbh.h"
 #include "seven_seg_display.hpp"
 
 #ifdef SPI_TEST_MODE
@@ -120,9 +123,6 @@ static void MX_SPI2_Init(void);
 static void MX_SDMMC1_SD_Init(void);
 /* USER CODE BEGIN PFP */
 static void MX_GPDMA1_Init(void);
-static HAL_StatusTypeDef Max7221_WriteRegister(uint8_t reg, uint8_t value);
-static void Max7221_Init(void);
-static void Max7221_DisplayNumber(uint32_t value);
 
 /* USER CODE END PFP */
 
@@ -234,53 +234,6 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
   return true;
 }
 
-static HAL_StatusTypeDef Max7221_WriteRegister(uint8_t reg, uint8_t value)
-{
-  uint8_t frame[2] = {reg, value};
-  HAL_GPIO_WritePin(SPI2_NCS_GPIO_Port, SPI2_NCS_Pin, GPIO_PIN_RESET);
-  const HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi2, frame, sizeof(frame), HAL_MAX_DELAY);
-  HAL_GPIO_WritePin(SPI2_NCS_GPIO_Port, SPI2_NCS_Pin, GPIO_PIN_SET);
-
-  if (status != HAL_OK)
-  {
-    printf("[MAX7221] SPI transmit failed: %d\r\n", status);
-  }
-
-  return status;
-}
-
-static void Max7221_Init(void)
-{
-  /* Configure while the driver is in shutdown to avoid spurious updates. */
-  Max7221_WriteRegister(0x0C, 0x00U); /* Shutdown register -> shutdown mode */
-  Max7221_WriteRegister(0x0F, 0x00U); /* Disable display test */
-  Max7221_WriteRegister(0x09, 0xFFU); /* Code B decode for all digits */
-  Max7221_WriteRegister(0x0B, 0x07U); /* Scan limit: display digits 0-7 */
-  Max7221_WriteRegister(0x0A, 0x08U); /* Medium intensity */
-
-  for (uint8_t digit = 1U; digit <= 8U; ++digit)
-  {
-    Max7221_WriteRegister(digit, 0x0FU); /* Blank all digits */
-  }
-
-  Max7221_WriteRegister(0x0C, 0x01U); /* Leave shutdown -> normal operation */
-}
-
-static void Max7221_DisplayNumber(uint32_t value)
-{
-  for (uint8_t digit = 1U; digit <= 8U; ++digit)
-  {
-    if ((value == 0U) && (digit > 1U))
-    {
-      Max7221_WriteRegister(digit, 0x0FU); /* Code B blank */
-    }
-    else
-    {
-      Max7221_WriteRegister(digit, static_cast<uint8_t>(value % 10U));
-      value /= 10U;
-    }
-  }
-}
 /* USER CODE END 0 */
 
 /**
@@ -325,8 +278,11 @@ int main(void)
   spi_test_main();
   #endif
 
-  Max7221_Init();
-  Max7221_DisplayNumber(0U);
+  SevenSeg::init();
+  SevenSeg::displayChars("----");
+
+  // Enable USB power
+  HAL_GPIO_WritePin(GPIOB, USB_Enable_Pin, GPIO_PIN_RESET);
 
 
   const bool sdReady = SD_HardwareReady();
@@ -335,9 +291,16 @@ int main(void)
   /* USER CODE END 2 */
 
   Rasterizer::SpiRasterizer rasterizer;
-  NullInput input;
+  // NullInput input;
+
+  // Controller input
+  if (!tuh_init(BOARD_TUH_RHPORT))
+  {
+    Error_Handler();
+  }
+
   HalTimer timer;
-  Game game{rasterizer, input, timer};
+  Game game{rasterizer, TinyUSBInput::getInstance(), timer};
 
   if (sdReady)
   {
@@ -368,6 +331,8 @@ int main(void)
   {
     game.tick_once();
     /* USER CODE END WHILE */
+    tuh_task();
+    TinyUSBInput::getInstance().driverTask();
 
     /* USER CODE BEGIN 3 */
   }
@@ -409,7 +374,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV4;
   RCC_OscInitStruct.PLL.PLLM = 3;
   RCC_OscInitStruct.PLL.PLLN = 10;
-  RCC_OscInitStruct.PLL.PLLP = 5;
+  RCC_OscInitStruct.PLL.PLLP = 10;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 1;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
@@ -702,14 +667,18 @@ static void MX_USB_OTG_HS_HCD_Init(void)
 
   /* USER CODE END USB_OTG_HS_Init 1 */
   hhcd_USB_OTG_HS.Instance = USB_OTG_HS;
-  hhcd_USB_OTG_HS.Init.Host_channels = 16;
-  hhcd_USB_OTG_HS.Init.speed = HCD_SPEED_HIGH;
+  hhcd_USB_OTG_HS.Init.Host_channels = 4;
+  hhcd_USB_OTG_HS.Init.speed = HCD_SPEED_FULL;
   hhcd_USB_OTG_HS.Init.dma_enable = DISABLE;
   hhcd_USB_OTG_HS.Init.phy_itface = USB_OTG_HS_EMBEDDED_PHY;
-  hhcd_USB_OTG_HS.Init.Sof_enable = DISABLE;
+  hhcd_USB_OTG_HS.Init.Sof_enable = ENABLE;
   hhcd_USB_OTG_HS.Init.low_power_enable = DISABLE;
   hhcd_USB_OTG_HS.Init.use_external_vbus = ENABLE;
   if (HAL_HCD_Init(&hhcd_USB_OTG_HS) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_HCD_Start(&hhcd_USB_OTG_HS) != HAL_OK)
   {
     Error_Handler();
   }
@@ -727,7 +696,6 @@ static void MX_USB_OTG_HS_HCD_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
 
   /* USER CODE END MX_GPIO_Init_1 */
 
@@ -741,7 +709,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(SPI2_NCS_GPIO_Port, SPI2_NCS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, USB_Enable_Pin|SPI2_NCS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13
@@ -753,12 +721,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(LPGPIO1, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : SPI2_NCS_Pin */
-  GPIO_InitStruct.Pin = SPI2_NCS_Pin;
+  /*Configure GPIO pins : USB_Enable_Pin SPI2_NCS_Pin */
+  GPIO_InitStruct.Pin = USB_Enable_Pin|SPI2_NCS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SPI2_NCS_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD10 PD11 PD12 PD13
                            PD14 PD15 */

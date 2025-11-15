@@ -56,11 +56,16 @@ set(APP_SRC
         Core/Src/app/model_loader.hpp
         Core/Src/app/model_loader.cpp
         Core/Src/device/spi_stm.hpp
+        Core/Src/hid_input/hid_driver.hpp
+        Core/Src/hid_input/hid_reports.h
+        Core/Src/hid_input/hid_driver_ds4.cpp
+        Core/Src/hid_input/hid_driver_kb.cpp
 )
 
 set(APP_INC
         ${CMAKE_SOURCE_DIR}/Core/Src/app
         ${CMAKE_SOURCE_DIR}/Core/Src/app/platform
+        ${CMAKE_SOURCE_DIR}/Core/Src/hid_input
 )
 
 # -------------------------
@@ -84,12 +89,37 @@ if (BUILD_STM32)
     # --- ADD FatFs middleware build ---
     add_subdirectory(Middlewares/FatFs)
 
+    set(TINYUSB_DIR ${CMAKE_SOURCE_DIR}/tinyusb/src)
+
+    set(TINYUSB_INC
+            ${TINYUSB_DIR}
+            ${TINYUSB_DIR}/common
+            ${TINYUSB_DIR}/host
+            ${TINYUSB_DIR}/class/hid
+            ${TINYUSB_DIR}/portable/synopsys/dwc2
+    )
+
+    set(TINYUSB_SRC
+            ${TINYUSB_DIR}/tusb.c
+            ${TINYUSB_DIR}/common/tusb_fifo.c
+            ${TINYUSB_DIR}/class/hid/hid_host.c
+            ${TINYUSB_DIR}/host/usbh.c
+            ${TINYUSB_DIR}/host/usbh.h
+            ${TINYUSB_DIR}/host/hub.c
+            ${TINYUSB_DIR}/portable/synopsys/dwc2/hcd_dwc2.c
+            ${TINYUSB_DIR}/portable/synopsys/dwc2/dwc2_common.c
+    )
+
     add_executable(${PROJECT_NAME}
             ${APP_SRC}
+            ${TINYUSB_SRC}
             Core/Src/device/spi_stm.cpp
             Core/Src/device/spi_stm.hpp
-        Core/Src/device/seven_seg_display.cpp
-        Core/Src/device/seven_seg_display_c.cpp
+            Core/Src/device/seven_seg_display.cpp
+            Core/Src/device/seven_seg_display_c.cpp
+            Core/Src/device/hid_input/tusb_config.h
+            Core/Src/device/hid_input/tusb_input.cpp
+            Core/Src/device/hid_input/tusb_input.hpp
 
     )
 
@@ -98,9 +128,11 @@ if (BUILD_STM32)
     target_include_directories(${PROJECT_NAME} PRIVATE
             ${APP_INC}
             ${CMAKE_SOURCE_DIR}/Core/Src/device
+            ${CMAKE_SOURCE_DIR}/Core/Src/device/hid_input
             ${CMAKE_SOURCE_DIR}/Core/External/Unity/src
             ${CMAKE_SOURCE_DIR}/Middlewares/FatFs/Inc
             ${CMAKE_SOURCE_DIR}/Middlewares/FatFs/Inc/drivers
+            ${TINYUSB_INC}
     )
 
     target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_STM32=1)
@@ -210,6 +242,9 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
         target_link_libraries(simulator PRIVATE ${SDL3_LIBRARIES})
         target_include_directories(simulator PRIVATE ${SDL3_INCLUDE_DIRS})
     endif()
+
+    find_package(hidapi REQUIRED)
+    target_link_libraries(simulator PRIVATE hidapi::hidapi)
 
     target_compile_definitions(simulator PRIVATE PLATFORM_PC=1)
 endif()

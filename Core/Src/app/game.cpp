@@ -682,19 +682,15 @@ void Game::tick_logic() {
 
     // Map keys to InputState and camera deltas
     mcu_game::InputState in{};
-    // Arrow keys drive player relative to camera forward/right
-    in.moveZ += ks.up ? 1.0f : 0.0f;
-    in.moveZ -= ks.down ? 1.0f : 0.0f;
-    in.moveX += ks.right ? 1.0f : 0.0f;
-    in.moveX -= ks.left ? 1.0f : 0.0f;
+    // Arrow keys drive player relative to camera: up = forward (positive moveZ), right = +moveX
+    in.moveZ += ks.y;
+    in.moveX += ks.x;
     in.jump = ks.space;
 
     // WASD control camera look. Use small radians per tick.
     const float lookStep = 0.03f; // radians per logic tick
-    if (ks.a) in.lookYawDelta += lookStep; // A = yaw left
-    if (ks.d)     in.lookYawDelta -= lookStep; // D = yaw right
-    if (ks.w)     in.lookPitchDelta -= lookStep; // W = pitch up
-    if (ks.s)     in.lookPitchDelta += lookStep; // S = pitch down
+    in.lookYawDelta = lookStep * ks.cam_x;
+    in.lookPitchDelta = lookStep * ks.cam_y;
 
     // Fixed dt per logic tick
     const float dt = TICK_MS / 1000.0f;
