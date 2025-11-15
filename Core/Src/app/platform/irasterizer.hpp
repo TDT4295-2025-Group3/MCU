@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <atomic>
+#include "math.hpp"
 
 namespace Rasterizer
 {
@@ -53,20 +54,20 @@ namespace Rasterizer
 
     struct Transform
     {
-        float posX, posY, posZ;
-        float rotX, rotY, rotZ;
-        float scaleX, scaleY, scaleZ;
+        mcu_game::Vec3 position;
+        mcu_game::Vec3 rotation;
+        mcu_game::Vec3 scale;
 
         Transform()
-            : posX(0.0f), posY(0.0f), posZ(0.0f),
-              rotX(0.0f), rotY(0.0f), rotZ(0.0f),
-              scaleX(1.0f), scaleY(1.0f), scaleZ(1.0f) {}
+            : position{0.0f, 0.0f, 0.0f},
+              rotation{0.0f, 0.0f, 0.0f},
+              scale{1.0f, 1.0f, 1.0f} {}
         Transform(float px, float py, float pz,
                   float rx, float ry, float rz,
                   float sx, float sy, float sz)
-            : posX(px), posY(py), posZ(pz),
-              rotX(rx), rotY(ry), rotZ(rz),
-              scaleX(sx), scaleY(sy), scaleZ(sz) {}
+            : position{px, py, pz},
+              rotation{rx, ry, rz},
+              scale{sx, sy, sz} {}
     };
 
     class BaseResponse

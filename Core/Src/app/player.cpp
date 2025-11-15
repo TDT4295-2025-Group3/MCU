@@ -11,7 +11,7 @@ namespace mcu_game
     bool Player::init(Rasterizer::IRasterizer &gfx, GameState &gameState)
     {
         transform = Rasterizer::Transform();
-        transform.posY = 1.0f;
+        transform.position.y = 1.0f;
         velocity = {0, 0, 0};
         grounded = false; // placed slightly above ground so will fall and settle
 
@@ -85,18 +85,18 @@ namespace mcu_game
         if (length_sq(orientDir) > 1e-6f)
         {
             float desiredYaw = std::atan2(-orientDir.x, orientDir.z);
-            float yawDelta = desiredYaw - transform.rotY;
+            float yawDelta = desiredYaw - transform.rotation.y;
             if (yawDelta > PI)
                 yawDelta -= 2.0f * PI;
             if (yawDelta < -PI)
                 yawDelta += 2.0f * PI;
             const float maxStep = playerConfig.turnSpeed * deltaTime;
             yawDelta = std::clamp(yawDelta, -maxStep, maxStep);
-            transform.rotY += yawDelta;
-            if (transform.rotY > PI)
-                transform.rotY -= 2.0f * PI;
-            if (transform.rotY < -PI)
-                transform.rotY += 2.0f * PI;
+            transform.rotation.y += yawDelta;
+            if (transform.rotation.y > PI)
+                transform.rotation.y -= 2.0f * PI;
+            if (transform.rotation.y < -PI)
+                transform.rotation.y += 2.0f * PI;
         }
 
         float control = grounded ? 1.0f : playerConfig.airControlFactor;      // movement control in air is different from ground
@@ -131,9 +131,7 @@ namespace mcu_game
         velocity.y += playerConfig.gravity * deltaTime;
 
         // Integrate
-        transform.posX += velocity.x * deltaTime;
-        transform.posY += velocity.y * deltaTime;
-        transform.posZ += velocity.z * deltaTime;
+        transform.position += velocity * deltaTime;
 
         // Assume no longer grounded
         // Collision system will set it back if still on ground
@@ -150,7 +148,7 @@ namespace mcu_game
 
     void Player::landOn(float surfaceY)
     {
-        transform.posY = surfaceY;
+        transform.position.y = surfaceY;
         if (velocity.y < 0.0f)
         {
             velocity.y = 0.0f;
@@ -160,9 +158,7 @@ namespace mcu_game
 
     void Player::applyCollisionResult(const Vec3 &newPosition, const Vec3 &newVelocity, bool groundedState)
     {
-        transform.posX = newPosition.x;
-        transform.posY = newPosition.y;
-        transform.posZ = newPosition.z;
+        transform.position = newPosition;
         velocity = newVelocity;
         grounded = groundedState;
     }

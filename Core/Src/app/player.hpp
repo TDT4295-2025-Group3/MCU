@@ -37,10 +37,10 @@ namespace mcu_game
         void landOn(float surfaceY);
         void applyCollisionResult(const Vec3 &newPosition, const Vec3 &newVelocity, bool groundedState);
 
-        const Vec3 getPosition() const { return {transform.posX, transform.posY, transform.posZ}; }
+        const Vec3 getPosition() const { return transform.position; }
         const Vec3 &getVelocity() const { return velocity; }
         bool isGrounded() const { return grounded; }
-        float getRotY() const { return transform.rotY; }
+        float getRotY() const { return transform.rotation.y; }
 
     private:
         Rasterizer::Transform transform{};
