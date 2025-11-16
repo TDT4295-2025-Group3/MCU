@@ -170,7 +170,7 @@ namespace Rasterizer
         // Inteface for rasterizer
         virtual ~IRasterizer() = default;
 
-        virtual void clear(uint32_t argb) = 0;
+        virtual void clear() = 0;
 
         virtual void rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t argb) = 0;
 
@@ -225,12 +225,7 @@ namespace Rasterizer
         virtual SpiFuture *updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform &transform,
                                                FutureCallback callback = nullptr, void *userCtx = nullptr) = 0;
 
-        /**
-         * Camera transform update;
-         * @param transform new transform
-         * @return status
-         */
-        UpdateInstResponse updateCamera(uint8_t red, uint8_t blue, uint8_t green, const Transform &transform)
+        virtual UpdateInstResponse updateCamera(uint8_t red, uint8_t green, uint8_t blue, const Transform &transform)
         {
             return updateInstance(red & 0x0F, (green & 0x0F) << 4 | (blue & 0x0F), 0, transform); // assuming camera has instance ID 0
         }

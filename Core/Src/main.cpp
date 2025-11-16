@@ -1,49 +1,49 @@
 /* USER CODE BEGIN Header */
 
 /*********************************************************************************************
-*                                                                                           
-*   @@@@@@@@@@@@@@@@@@@@@@@@@@@                                                             
-*  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@                                                            
-*  @@@                       @@@                                                            
-*  @@@                       @@@                                                            
-*  @@@     @@         @@     @@@                                                            
-*  @@@   @@@@@@     @@@@@@   @@@                                                            
-*  @@@    @@@@       @@@@    @@@                                                            
-*  @@@    @@@@       @@@@    @@@                                                            
-*  @@@    @@@@       @@@@    @@@                                                            
-*  @@@    @@@@       @@@@    @@@                                                     @@@@   
-*  @@@    @@@@       @@@@    @@@                                                     @@@@   
-*  @@@    @@@@       @@@@                                                            @@@@   
-*  @@@    @@@@       @@@@    @@@@@@@@@   @@@   @@@   @@@   @@@@@@@@   @@@@@@@  @@@@@@@@@@   
-*  @@@    @@@@       @@@@    @@@    @@@   @@@  @@@@  @@@        @@@   @@@     @@@@   @@@@   
-*  @@@    @@@@       @@@@    @@@    @@@@  @@@ @@ @@ @@@    @@@@@@@@   @@@     @@@    @@@@   
-*  @@@    @@@@@     @@@@@    @@@    @@@    @@@@@ @@@@@@   @@@   @@@   @@@     @@@@   @@@@   
-*  @@@     @@@@@@@@@@@@@     @@@@@@@@@@    @@@@   @@@@    @@@@  @@@   @@@      @@@@@@@@@@   
-*  @@@        @@@@@@@        @@@@@@@@       @@@   @@@      @@@@@@@@   @@@        @@@@@@@@   
-*  @@@                       @@@                                                            
-*  @@@ @@@@@@@@@@@@@@@@@@@@@ @@@                                                            
-*  @@@                                                                                      
-*  @@@                       @@@                                                            
-*  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@                                                            
-*    @@@@@@@@@@@@@@@@@@@@@@@@@                                                              
-*
-*********************************************************************************************/
+ *
+ *   @@@@@@@@@@@@@@@@@@@@@@@@@@@
+ *  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ *  @@@                       @@@
+ *  @@@                       @@@
+ *  @@@     @@         @@     @@@
+ *  @@@   @@@@@@     @@@@@@   @@@
+ *  @@@    @@@@       @@@@    @@@
+ *  @@@    @@@@       @@@@    @@@
+ *  @@@    @@@@       @@@@    @@@
+ *  @@@    @@@@       @@@@    @@@                                                     @@@@
+ *  @@@    @@@@       @@@@    @@@                                                     @@@@
+ *  @@@    @@@@       @@@@                                                            @@@@
+ *  @@@    @@@@       @@@@    @@@@@@@@@   @@@   @@@   @@@   @@@@@@@@   @@@@@@@  @@@@@@@@@@
+ *  @@@    @@@@       @@@@    @@@    @@@   @@@  @@@@  @@@        @@@   @@@     @@@@   @@@@
+ *  @@@    @@@@       @@@@    @@@    @@@@  @@@ @@ @@ @@@    @@@@@@@@   @@@     @@@    @@@@
+ *  @@@    @@@@@     @@@@@    @@@    @@@    @@@@@ @@@@@@   @@@   @@@   @@@     @@@@   @@@@
+ *  @@@     @@@@@@@@@@@@@     @@@@@@@@@@    @@@@   @@@@    @@@@  @@@   @@@      @@@@@@@@@@
+ *  @@@        @@@@@@@        @@@@@@@@       @@@   @@@      @@@@@@@@   @@@        @@@@@@@@
+ *  @@@                       @@@
+ *  @@@ @@@@@@@@@@@@@@@@@@@@@ @@@
+ *  @@@
+ *  @@@                       @@@
+ *  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ *    @@@@@@@@@@@@@@@@@@@@@@@@@
+ *
+ *********************************************************************************************/
 /**
-  ******************************************************************************
-  * @file           : main.cpp
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.cpp
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -174,7 +174,7 @@ static bool SD_HardwareReady()
   return true;
 }
 
-static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
+static bool SD_MountForRuntime(char *modelBasePath, size_t maxLen)
 {
   if (FATFS_LinkDriver(&SD_Driver, SDPath) != 0)
   {
@@ -237,9 +237,9 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
 
@@ -271,19 +271,18 @@ int main(void)
   MX_ADC1_Init();
   MX_ICACHE_Init();
   MX_SPI2_Init();
-  // MX_SDMMC1_SD_Init(); //broken as per wednsday
-  /* USER CODE BEGIN 2 */
-  // automatic testing if enabled
-  #ifdef SPI_TEST_MODE
+// MX_SDMMC1_SD_Init(); //broken as per wednsday
+/* USER CODE BEGIN 2 */
+// automatic testing if enabled
+#ifdef SPI_TEST_MODE
   spi_test_main();
-  #endif
+#endif
 
   SevenSeg::init();
   SevenSeg::displayChars("----");
 
   // Enable USB power
   HAL_GPIO_WritePin(GPIOB, USB_Enable_Pin, GPIO_PIN_RESET);
-
 
   const bool sdReady = SD_HardwareReady();
   bool runtimeMountOk = false;
@@ -303,25 +302,7 @@ int main(void)
   Game game{rasterizer, TinyUSBInput::getInstance(), timer};
 
   if (sdReady)
-  {
     runtimeMountOk = SD_MountForRuntime(gModelBasePath, sizeof(gModelBasePath));
-    if (runtimeMountOk)
-    {
-      game.setModelBasePath(gModelBasePath);
-    }
-    else
-    {
-      printf("[SD] Mount failed; using built-in assets\r\n");
-      // SevenSeg::displayNumber(15);
-      // HAL_Delay(10000U);
-    }
-  }
-  else
-  {
-    printf("[SD] Hardware unavailable; using built-in assets\r\n");
-    // SevenSeg::displayNumber(17);
-    // HAL_Delay(10000U);
-  }
 
   game.init();
 
@@ -340,26 +321,24 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
   /** Configure the main internal regulator output voltage
-  */
+   */
   if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSI
-                              |RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_MSI
-                              |RCC_OSCILLATORTYPE_MSIK;
+   */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48 | RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_MSI | RCC_OSCILLATORTYPE_MSIK;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
@@ -385,10 +364,8 @@ void SystemClock_Config(void)
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
-                              |RCC_CLOCKTYPE_PCLK3;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2 | RCC_CLOCKTYPE_PCLK3;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV16;
@@ -402,10 +379,10 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief ADC1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_ADC1_Init(void)
 {
 
@@ -420,7 +397,7 @@ static void MX_ADC1_Init(void)
   /* USER CODE END ADC1_Init 1 */
 
   /** Common config
-  */
+   */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc1.Init.Resolution = ADC_RESOLUTION_14B;
@@ -446,7 +423,7 @@ static void MX_ADC1_Init(void)
   }
 
   /** Configure Regular Channel
-  */
+   */
   sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_5CYCLE;
@@ -460,14 +437,13 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
-  * @brief GPDMA1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief GPDMA1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_GPDMA1_Init(void)
 {
 
@@ -479,8 +455,8 @@ static void MX_GPDMA1_Init(void)
   __HAL_RCC_GPDMA1_CLK_ENABLE();
 
   /* GPDMA1 interrupt Init */
-    HAL_NVIC_SetPriority(GPDMA1_Channel0_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(GPDMA1_Channel0_IRQn);
+  HAL_NVIC_SetPriority(GPDMA1_Channel0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(GPDMA1_Channel0_IRQn);
 
   /* USER CODE BEGIN GPDMA1_Init 1 */
 
@@ -488,14 +464,13 @@ static void MX_GPDMA1_Init(void)
   /* USER CODE BEGIN GPDMA1_Init 2 */
 
   /* USER CODE END GPDMA1_Init 2 */
-
 }
 
 /**
-  * @brief ICACHE Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief ICACHE Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_ICACHE_Init(void)
 {
 
@@ -508,7 +483,7 @@ static void MX_ICACHE_Init(void)
   /* USER CODE END ICACHE_Init 1 */
 
   /** Enable instruction cache (default 2-ways set associative cache)
-  */
+   */
   if (HAL_ICACHE_Enable() != HAL_OK)
   {
     Error_Handler();
@@ -516,14 +491,13 @@ static void MX_ICACHE_Init(void)
   /* USER CODE BEGIN ICACHE_Init 2 */
 
   /* USER CODE END ICACHE_Init 2 */
-
 }
 
 /**
-  * @brief OCTOSPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief OCTOSPI1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_OCTOSPI1_Init(void)
 {
 
@@ -562,14 +536,13 @@ static void MX_OCTOSPI1_Init(void)
   /* USER CODE BEGIN OCTOSPI1_Init 2 */
 
   /* USER CODE END OCTOSPI1_Init 2 */
-
 }
 
 /**
-  * @brief SDMMC1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief SDMMC1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_SDMMC1_SD_Init(void)
 {
 
@@ -595,10 +568,10 @@ static void MX_SDMMC1_SD_Init(void)
 }
 
 /**
-  * @brief SPI2 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief SPI2 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_SPI2_Init(void)
 {
 
@@ -648,14 +621,13 @@ static void MX_SPI2_Init(void)
   /* USER CODE BEGIN SPI2_Init 2 */
 
   /* USER CODE END SPI2_Init 2 */
-
 }
 
 /**
-  * @brief USB_OTG_HS Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief USB_OTG_HS Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_USB_OTG_HS_HCD_Init(void)
 {
 
@@ -685,14 +657,13 @@ static void MX_USB_OTG_HS_HCD_Init(void)
   /* USER CODE BEGIN USB_OTG_HS_Init 2 */
 
   /* USER CODE END USB_OTG_HS_Init 2 */
-
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -709,20 +680,19 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, USB_Enable_Pin|SPI2_NCS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, USB_Enable_Pin | SPI2_NCS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13
-                          |GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15, GPIO_PIN_RESET);
 
   /*Configure LPGPIO pins : Pin14 Pin15 Pin1 Pin2 */
-  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_1|GPIO_PIN_2;
+  GPIO_InitStruct.Pin = GPIO_PIN_14 | GPIO_PIN_15 | GPIO_PIN_1 | GPIO_PIN_2;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(LPGPIO1, &GPIO_InitStruct);
 
   /*Configure GPIO pins : USB_Enable_Pin SPI2_NCS_Pin */
-  GPIO_InitStruct.Pin = USB_Enable_Pin|SPI2_NCS_Pin;
+  GPIO_InitStruct.Pin = USB_Enable_Pin | SPI2_NCS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -730,15 +700,14 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pins : PD10 PD11 PD12 PD13
                            PD14 PD15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13
-                          |GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Pin = GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB6 PB7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
+  GPIO_InitStruct.Pin = GPIO_PIN_6 | GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -753,9 +722,9 @@ static void MX_GPIO_Init(void)
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -768,12 +737,12 @@ void Error_Handler(void)
 }
 #ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */

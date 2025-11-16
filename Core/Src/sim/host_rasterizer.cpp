@@ -269,11 +269,12 @@ HostRasterizer::HostRasterizer(int width, int height)
 
 HostRasterizer::~HostRasterizer() = default;
 
-void HostRasterizer::clear(uint32_t argb)
+uint32_t background_argb = 0xFF101018;
+void HostRasterizer::clear()
 {
-    std::fill(impl->framebuffer.begin(), impl->framebuffer.end(), ARGB_to_ABGR(argb));
+    std::fill(impl->framebuffer.begin(), impl->framebuffer.end(), ARGB_to_ABGR(background_argb));
     S3L_newFrame();
-    impl->set_draw_color(argb);
+    impl->set_draw_color(background_argb);
     SDL_RenderClear(impl->renderer);
 }
 
@@ -564,4 +565,13 @@ Rasterizer::SpiFuture *HostRasterizer::updateInstanceAsync(uint8_t vertexId, uin
 {
     auto resp = updateInstance(vertexId, triangleId, instanceId, transform);
     return makeImmediateFuture(resp.getStatus(), 0, callback, userCtx);
+}
+
+Rasterizer::UpdateInstResponse HostRasterizer::updateCamera(uint8_t red, uint8_t green, uint8_t blue, const Rasterizer::Transform &transform)
+{
+    red = red & 0x0F;
+    blue = blue & 0x0F;
+    green = green & 0x0F;
+    background_argb = (0xFFu << 24) | (uint32_t(red * 17) << 16) | (uint32_t(green * 17) << 8) | uint32_t(blue * 17);
+    return updateInstance(red, (green << 4) | blue, 0, transform); // assuming camera has instance ID 0
 }

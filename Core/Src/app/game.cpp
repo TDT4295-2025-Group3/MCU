@@ -75,7 +75,7 @@ void Game::init()
 
     gameState.boxColliders.clear();
 
-    createEntity(new mcu_game::Camera(255, 0, 0));
+    createEntity(new mcu_game::Camera({2, 2, 3}));
     createEntity(new mcu_game::Player({0.0f, 1.0f, 0.0f}));
     createEntity(new mcu_game::Platform({0.0f, 0.0f, 5.0f}, 0.0f));
     createEntity(new mcu_game::Platform({3.0f, 1.0f, 8.0f}, 15.0f));
@@ -120,7 +120,7 @@ void Game::tick_once()
 
 void Game::tick_graphics()
 {
-    gfx.clear(0xFF101018);
+    gfx.clear();
     for (auto &entity : entities)
         entity->render(gfx);
 
