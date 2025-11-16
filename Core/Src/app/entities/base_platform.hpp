@@ -12,7 +12,7 @@ namespace mcu_game
     class BasePlatform : public Entity
     {
     public:
-        BasePlatform(Vec3 center, float rotation) : transform{center.x, center.y, center.z, 0.0f, rotation, 0.0f, 1.0f, 1.0f, 1.0f}
+        BasePlatform(Vec3 center) : transform{center.x, center.y, center.z, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f}
         {
         }
         bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;

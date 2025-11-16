@@ -80,7 +80,7 @@ void Game::init()
     createEntity(new mcu_game::Player({0.0f, 1.0f, 0.0f}));
     createEntity(new mcu_game::Platform({3.0f, 1.0f, 8.0f}, 15.0f));
     createEntity(new mcu_game::Platform({-4.0f, 2.0f, 12.0f}, -10.0f));
-    createEntity(new mcu_game::BasePlatform({-5.0f, 0.0f, 5.0f}, 0.0f));
+    createEntity(new mcu_game::BasePlatform({-5.0f, 0.0f, 5.0f}));
 
     for (auto &entity : entities)
         entity->init(gfx, gameState);
