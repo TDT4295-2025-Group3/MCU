@@ -1,4 +1,4 @@
-#include "player.hpp"
+#include "entities/player.hpp"
 #include "camera.hpp"
 
 #include <algorithm>

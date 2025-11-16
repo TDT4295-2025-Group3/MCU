@@ -44,12 +44,13 @@ enable_language(C CXX ASM)
 # -------------------------
 set(APP_SRC
     Core/Src/app/baked_models.cpp
+        Core/Src/app/rigidbody.cpp
         Core/Src/app/game.cpp
         Core/Src/app/game.hpp
         Core/Src/app/constants.hpp
         Core/Src/app/math.hpp
-        Core/Src/app/player.hpp
-        Core/Src/app/player.cpp
+        Core/Src/app/entities/player.hpp
+        Core/Src/app/entities/player.cpp
         Core/Src/app/camera.hpp
         Core/Src/app/camera.cpp
         Core/Src/app/input.hpp

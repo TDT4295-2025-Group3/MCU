@@ -2,7 +2,7 @@
 #include "iinput.hpp"
 #include "irasterizer.hpp"
 #include "itimer.hpp"
-#include "player.hpp"
+#include "entities/player.hpp"
 #include "camera.hpp"
 
 #include <array>

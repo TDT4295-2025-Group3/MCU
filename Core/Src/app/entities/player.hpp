@@ -2,7 +2,7 @@
 
 #include "math.hpp"
 #include "input.hpp"
-#include "entity.hpp"
+#include "entities/entity.hpp"
 #include "anim/anim.hpp"
 #include "rigidbody.hpp"
 #include "game_state.hpp"
