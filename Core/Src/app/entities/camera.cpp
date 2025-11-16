@@ -38,6 +38,8 @@ namespace mcu_game
         // Place camera on orbit sphere defined by yaw/pitch around the target
         const Vec3 fwd = forward_vector_from_yaw_pitch(transform.rotation.y, transform.rotation.x);
         transform.position = target - fwd * cameraConfig.distance;
+
+        gameState.cameraForward = getForward();
     }
 
     void Camera::render(Rasterizer::IRasterizer &gfx)

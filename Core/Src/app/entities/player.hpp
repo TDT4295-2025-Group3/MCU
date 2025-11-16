@@ -28,6 +28,7 @@ namespace mcu_game
     public:
         Player(Vec3 position = {0.0f, 0.0f, 0.0f})
         {
+            startPosition = position;
             body.setBottomPosition(position);
         }
         bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;
@@ -42,6 +43,7 @@ namespace mcu_game
     private:
         PlayerConfig playerConfig{};
         Rigidbody body{playerConfig.collider};
+        Vec3 startPosition{0.0f, 0.0f, 0.0f};
         Animator animator{};
 
         uint32_t vertexIdleId = 0xFF;

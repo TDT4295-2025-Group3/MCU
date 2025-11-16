@@ -260,9 +260,16 @@ namespace mcu_game
         vel.y += playerConfig.gravity * deltaTime;
         body.setVelocity(vel);
 
-        body.update(deltaTime, gameState.boxColliders);
-        gameState.playerPosition = getPosition();
         animator.update(deltaTime);
+        body.update(deltaTime, gameState.boxColliders);
+
+        if (getPosition().y < -10.0f)
+        {
+            body.setBottomPosition(startPosition);
+            body.setVelocity({0.0f, 0.0f, 0.0f});
+        }
+
+        gameState.playerPosition = getPosition();
     }
 
     void Player::render(Rasterizer::IRasterizer &gfx)
