@@ -3,7 +3,7 @@
 #include "irasterizer.hpp"
 #include "itimer.hpp"
 #include "entities/player.hpp"
-#include "camera.hpp"
+#include "entities/camera.hpp"
 
 #include <array>
 #include <cstddef>
@@ -35,14 +35,13 @@ private:
                            size_t *outVertexCount = nullptr,
                            size_t *outTriangleCount = nullptr);
     bool loadModelInstance(const char *relativePath, const Rasterizer::Transform &transform, uint32_t &instanceId);
+    void createEntity(mcu_game::Entity *entity);
     void initialize_platforms();
 
     bool initialized = false;
-    mcu_game::Player player;
-    mcu_game::Camera camera{};
-    mcu_game::GameState gameState{camera};
+    std::vector<mcu_game::Entity *> entities;
+    mcu_game::GameState gameState{};
 
-    uint32_t playerInstanceId = 0xFF;
     uint32_t instancePyrId = 0xFF;
     uint32_t instancePlaneId = 0xFF;
     uint32_t hitboxVertexId = 0xFF; // Invisible collision prism (cube geometry)

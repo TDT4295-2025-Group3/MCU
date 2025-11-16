@@ -44,6 +44,7 @@ enable_language(C CXX ASM)
 # -------------------------
 set(APP_SRC
     Core/Src/app/baked_models.cpp
+    Core/Src/app/game_model_loader.cpp
         Core/Src/app/rigidbody.cpp
         Core/Src/app/game.cpp
         Core/Src/app/game.hpp
@@ -51,8 +52,8 @@ set(APP_SRC
         Core/Src/app/math.hpp
         Core/Src/app/entities/player.hpp
         Core/Src/app/entities/player.cpp
-        Core/Src/app/camera.hpp
-        Core/Src/app/camera.cpp
+        Core/Src/app/entities/platform.cpp
+        Core/Src/app/entities/camera.cpp
         Core/Src/app/input.hpp
         Core/Src/app/model_loader.hpp
         Core/Src/app/model_loader.cpp

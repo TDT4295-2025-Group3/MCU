@@ -14,12 +14,14 @@
 #include "input.hpp"
 #include "game_state.hpp"
 #include "collider.hpp"
+#include "entities/camera.hpp"
+#include "entities/platform.hpp"
+#include "entities/player.hpp"
 // #include "stm32u5xx_hal.h"
 // #include "seven_seg_display.hpp"
 
 namespace
 {
-    constexpr mcu_game::Vec3 PLAYER_HALF_EXTENTS{0.4f, 1.1f, 0.4f}; // size of hitboxes (x, y, z)
     constexpr std::size_t MODEL_PATH_BUFFER = 128;
     constexpr float DEBUG_CUBE_DISTANCE = 18.0f;
     constexpr float PLATFORM_VISUAL_SCALE = 1.25f; // Inflate platform sizes
@@ -193,6 +195,12 @@ bool Game::loadModelInstance(const char *relativePath, const Rasterizer::Transfo
     return true;
 }
 
+void Game::createEntity(mcu_game::Entity *entity)
+{
+    if (entity)
+        entities.push_back(entity);
+}
+
 void Game::init()
 {
     const auto wipeResp = gfx.wipeAll();
@@ -206,15 +214,21 @@ void Game::init()
 
     const auto tick = timer.get_ticks_ms();
 
-    player.init(gfx, gameState);
-    camera.reset();
+    createEntity(new mcu_game::Camera(255, 0, 0));
+    createEntity(new mcu_game::Player());
+    createEntity(new mcu_game::Platform({0.0f, 0.0f, 5.0f}, 0.0f));
+    createEntity(new mcu_game::Platform({3.0f, 1.0f, 8.0f}, 15.0f));
+    createEntity(new mcu_game::Platform({-4.0f, 2.0f, 12.0f}, -10.0f));
+
+    for (auto &entity : entities)
+        entity->init(gfx, gameState);
+
     for (auto &platform : platforms)
     {
         platform.instanceId = 0xFF;
         platform.hitboxInstanceId = 0xFF;
     }
 
-    playerInstanceId = 0xFF;
     instancePyrId = 0xFF;
     instancePlaneId = 0xFF;
     hitboxVertexId = 0xFF;
@@ -285,63 +299,61 @@ void Game::init()
 
     {
         // Place static debug cubes around the initial camera view to verify FPGA rendering
-        const mcu_game::Vec3 cameraPos = camera.getPosition();
-        mcu_game::Vec3 forward = camera.getForward();
-        forward.y = 0.0f;
-        if (mcu_game::length_sq(forward) < 1e-6f)
-        {
-            forward = {0.0f, 0.0f, 1.0f};
-        }
-        else
-        {
-            forward = mcu_game::normalize(forward);
-        }
-        mcu_game::Vec3 right = camera.getRight();
-        right.y = 0.0f;
-        if (mcu_game::length_sq(right) < 1e-6f)
-        {
-            right = {1.0f, 0.0f, 0.0f};
-        }
-        else
-        {
-            right = mcu_game::normalize(right);
-        }
+        // const mcu_game::Vec3 cameraPos = camera.getPosition();
+        // mcu_game::Vec3 forward = camera.getForward();
+        // forward.y = 0.0f;
+        // if (mcu_game::length_sq(forward) < 1e-6f)
+        // {
+        //     forward = {0.0f, 0.0f, 1.0f};
+        // }
+        // else
+        // {
+        //     forward = mcu_game::normalize(forward);
+        // }
+        // mcu_game::Vec3 right = camera.getRight();
+        // right.y = 0.0f;
+        // if (mcu_game::length_sq(right) < 1e-6f)
+        // {
+        //     right = {1.0f, 0.0f, 0.0f};
+        // }
+        // else
+        // {
+        //     right = mcu_game::normalize(right);
+        // }
 
-        const float baseHeight = groundCenter.y + groundHalfExtents.y + PLAYER_HALF_EXTENTS.y;
+        // const mcu_game::Vec3 offsets[DEBUG_CUBE_COUNT] = {
+        //     forward * DEBUG_CUBE_DISTANCE,
+        //     forward * -DEBUG_CUBE_DISTANCE,
+        //     right * DEBUG_CUBE_DISTANCE,
+        //     right * -DEBUG_CUBE_DISTANCE};
 
-        const mcu_game::Vec3 offsets[DEBUG_CUBE_COUNT] = {
-            forward * DEBUG_CUBE_DISTANCE,
-            forward * -DEBUG_CUBE_DISTANCE,
-            right * DEBUG_CUBE_DISTANCE,
-            right * -DEBUG_CUBE_DISTANCE};
+        // for (std::size_t i = 0; i < DEBUG_CUBE_COUNT; ++i)
+        // {
+        //     mcu_game::Vec3 worldPos = cameraPos + offsets[i];
+        //     worldPos.y = baseHeight;
 
-        for (std::size_t i = 0; i < DEBUG_CUBE_COUNT; ++i)
-        {
-            mcu_game::Vec3 worldPos = cameraPos + offsets[i];
-            worldPos.y = baseHeight;
+        //     Rasterizer::Transform debugTransform{
+        //         worldPos.x, worldPos.y, worldPos.z,
+        //         0.0f, 0.0f, 0.0f,
+        //         1.0f, 1.0f, 1.0f};
 
-            Rasterizer::Transform debugTransform{
-                worldPos.x, worldPos.y, worldPos.z,
-                0.0f, 0.0f, 0.0f,
-                1.0f, 1.0f, 1.0f};
-
-            auto instResp = gfx.createInstance(static_cast<uint8_t>(cubeVertexId),
-                                               static_cast<uint8_t>(cubeTriangleId),
-                                               debugTransform);
-            if (!instResp.isSuccess())
-            {
-                std::printf("[Model] Failed to create debug cube %zu (status=%u)\n",
-                            i,
-                            static_cast<unsigned>(instResp.getStatus()));
-                // SevenSeg::displayNumber(39);
-                // HAL_Delay(10000U);
-                debugCubeInstanceIds[i] = 0xFF;
-            }
-            else
-            {
-                debugCubeInstanceIds[i] = instResp.getInstanceId();
-            }
-        }
+        //     auto instResp = gfx.createInstance(static_cast<uint8_t>(cubeVertexId),
+        //                                        static_cast<uint8_t>(cubeTriangleId),
+        //                                        debugTransform);
+        //     if (!instResp.isSuccess())
+        //     {
+        //         std::printf("[Model] Failed to create debug cube %zu (status=%u)\n",
+        //                     i,
+        //                     static_cast<unsigned>(instResp.getStatus()));
+        //         // SevenSeg::displayNumber(39);
+        //         // HAL_Delay(10000U);
+        //         debugCubeInstanceIds[i] = 0xFF;
+        //     }
+        //     else
+        //     {
+        //         debugCubeInstanceIds[i] = instResp.getInstanceId();
+        //     }
+        // }
     }
 
     // Hitbox prism reuses cube geometry but stays invisible (no rasterizer instance)
@@ -475,21 +487,6 @@ void Game::init()
             platform.halfExtents});
     }
 
-    const Rasterizer::Transform initialCameraTransform{
-        camera.getPosition().x,
-        camera.getPosition().y,
-        camera.getPosition().z,
-        camera.getPitch(),
-        camera.getYaw(),
-        0.0f,
-        1.0f, 1.0f, 1.0f};
-    const auto cameraResp = gfx.updateCamera(0, 0, 0, initialCameraTransform);
-    if (!cameraResp.isSuccess())
-    {
-        std::printf("[Rasterizer] updateCamera failed (status=%u)\n", static_cast<unsigned>(cameraResp.getStatus()));
-        return;
-    }
-
     next_tick_ms = tick + TICK_MS;
     next_frame_ms = tick + FRAME_MS;
     initialized = true;
@@ -529,21 +526,10 @@ void Game::tick_once()
 void Game::tick_graphics()
 {
     gfx.clear(0xFF101018);
-
-    player.render(gfx);
+    for (auto &entity : entities)
+        entity->render(gfx);
 
     updateHitboxDebugInstance();
-
-    // Pyramid remains static where placed in init
-
-    // Camera locked to player using camera state
-    Rasterizer::Transform camT{
-        camera.getPosition().x, camera.getPosition().y, camera.getPosition().z,
-        // small3dlib expects rotations per-axis; we use pitch around X and yaw around Y
-        camera.getPitch(), camera.getYaw(), 0.0f,
-        1.0f, 1.0f, 1.0f};
-
-    gfx.updateCamera(red_color, green_color, blue_color, camT);
 
     gfx.end_frame();
 }
@@ -551,136 +537,136 @@ void Game::tick_graphics()
 // Only for debug hitbox visualization
 void Game::updateHitboxDebugInstance()
 {
-    if (!initialized)
-    {
-        return;
-    }
+    // if (!initialized)
+    // {
+    //     return;
+    // }
 
-    if (showHitboxDebug)
-    {
-        if (hitboxDebugInstanceId == 0xFF && hitboxVertexId != 0xFF && hitboxTriangleId != 0xFF)
-        {
-            Rasterizer::Transform t{
-                player.getPosition().x,
-                player.getPosition().y + PLAYER_HALF_EXTENTS.y,
-                player.getPosition().z,
-                0.0f, 0.0f, 0.0f,
-                PLAYER_HALF_EXTENTS.x * 2.0f,
-                PLAYER_HALF_EXTENTS.y * 2.0f,
-                PLAYER_HALF_EXTENTS.z * 2.0f};
+    // if (showHitboxDebug)
+    // {
+    //     if (hitboxDebugInstanceId == 0xFF && hitboxVertexId != 0xFF && hitboxTriangleId != 0xFF)
+    //     {
+    //         Rasterizer::Transform t{
+    //             player.getPosition().x,
+    //             player.getPosition().y + PLAYER_HALF_EXTENTS.y,
+    //             player.getPosition().z,
+    //             0.0f, 0.0f, 0.0f,
+    //             PLAYER_HALF_EXTENTS.x * 2.0f,
+    //             PLAYER_HALF_EXTENTS.y * 2.0f,
+    //             PLAYER_HALF_EXTENTS.z * 2.0f};
 
-            auto instResp = gfx.createInstance(static_cast<uint8_t>(hitboxVertexId),
-                                               static_cast<uint8_t>(hitboxTriangleId),
-                                               t);
-            if (instResp.isSuccess())
-            {
-                hitboxDebugInstanceId = instResp.getInstanceId();
-            }
-            else
-            {
-                std::printf("[Model] Failed to create hitbox debug instance (status=%u)\n",
-                            static_cast<unsigned>(instResp.getStatus()));
-                hitboxDebugInstanceId = 0xFF;
-            }
-        }
+    //         auto instResp = gfx.createInstance(static_cast<uint8_t>(hitboxVertexId),
+    //                                            static_cast<uint8_t>(hitboxTriangleId),
+    //                                            t);
+    //         if (instResp.isSuccess())
+    //         {
+    //             hitboxDebugInstanceId = instResp.getInstanceId();
+    //         }
+    //         else
+    //         {
+    //             std::printf("[Model] Failed to create hitbox debug instance (status=%u)\n",
+    //                         static_cast<unsigned>(instResp.getStatus()));
+    //             hitboxDebugInstanceId = 0xFF;
+    //         }
+    //     }
 
-        if (hitboxDebugInstanceId != 0xFF)
-        {
-            Rasterizer::Transform t{
-                player.getPosition().x,
-                player.getPosition().y + PLAYER_HALF_EXTENTS.y,
-                player.getPosition().z,
-                0.0f, 0.0f, 0.0f,
-                PLAYER_HALF_EXTENTS.x * 2.0f,
-                PLAYER_HALF_EXTENTS.y * 2.0f,
-                PLAYER_HALF_EXTENTS.z * 2.0f};
+    //     if (hitboxDebugInstanceId != 0xFF)
+    //     {
+    //         Rasterizer::Transform t{
+    //             player.getPosition().x,
+    //             player.getPosition().y + PLAYER_HALF_EXTENTS.y,
+    //             player.getPosition().z,
+    //             0.0f, 0.0f, 0.0f,
+    //             PLAYER_HALF_EXTENTS.x * 2.0f,
+    //             PLAYER_HALF_EXTENTS.y * 2.0f,
+    //             PLAYER_HALF_EXTENTS.z * 2.0f};
 
-            gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
-                               static_cast<uint8_t>(hitboxTriangleId),
-                               static_cast<uint8_t>(hitboxDebugInstanceId),
-                               t);
-        }
+    //         gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
+    //                            static_cast<uint8_t>(hitboxTriangleId),
+    //                            static_cast<uint8_t>(hitboxDebugInstanceId),
+    //                            t);
+    //     }
 
-        if (hitboxVertexId != 0xFF && hitboxTriangleId != 0xFF)
-        {
-            for (auto &platform : platforms)
-            {
-                Rasterizer::Transform hitboxTransform{
-                    platform.center.x,
-                    platform.center.y,
-                    platform.center.z,
-                    0.0f, 0.0f, 0.0f,
-                    platform.halfExtents.x * 2.0f,
-                    platform.halfExtents.y * 2.0f,
-                    platform.halfExtents.z * 2.0f};
+    //     if (hitboxVertexId != 0xFF && hitboxTriangleId != 0xFF)
+    //     {
+    //         for (auto &platform : platforms)
+    //         {
+    //             Rasterizer::Transform hitboxTransform{
+    //                 platform.center.x,
+    //                 platform.center.y,
+    //                 platform.center.z,
+    //                 0.0f, 0.0f, 0.0f,
+    //                 platform.halfExtents.x * 2.0f,
+    //                 platform.halfExtents.y * 2.0f,
+    //                 platform.halfExtents.z * 2.0f};
 
-                if (platform.hitboxInstanceId == 0xFF)
-                {
-                    auto instResp = gfx.createInstance(static_cast<uint8_t>(hitboxVertexId),
-                                                       static_cast<uint8_t>(hitboxTriangleId),
-                                                       hitboxTransform);
-                    if (instResp.isSuccess())
-                    {
-                        platform.hitboxInstanceId = instResp.getInstanceId();
-                    }
-                    else
-                    {
-                        std::printf("[Model] Failed to create platform hitbox instance (status=%u)\n",
-                                    static_cast<unsigned>(instResp.getStatus()));
-                        platform.hitboxInstanceId = 0xFF;
-                    }
-                }
+    //             if (platform.hitboxInstanceId == 0xFF)
+    //             {
+    //                 auto instResp = gfx.createInstance(static_cast<uint8_t>(hitboxVertexId),
+    //                                                    static_cast<uint8_t>(hitboxTriangleId),
+    //                                                    hitboxTransform);
+    //                 if (instResp.isSuccess())
+    //                 {
+    //                     platform.hitboxInstanceId = instResp.getInstanceId();
+    //                 }
+    //                 else
+    //                 {
+    //                     std::printf("[Model] Failed to create platform hitbox instance (status=%u)\n",
+    //                                 static_cast<unsigned>(instResp.getStatus()));
+    //                     platform.hitboxInstanceId = 0xFF;
+    //                 }
+    //             }
 
-                if (platform.hitboxInstanceId != 0xFF)
-                {
-                    gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
-                                       static_cast<uint8_t>(hitboxTriangleId),
-                                       static_cast<uint8_t>(platform.hitboxInstanceId),
-                                       hitboxTransform);
-                }
-            }
-        }
-    }
-    else
-    {
-        if (hitboxDebugInstanceId != 0xFF)
-        {
-            Rasterizer::Transform hide{
-                player.getPosition().x,
-                player.getPosition().y + PLAYER_HALF_EXTENTS.y - 100.0f,
-                player.getPosition().z,
-                0.0f, 0.0f, 0.0f,
-                0.0f, 0.0f, 0.0f};
+    //             if (platform.hitboxInstanceId != 0xFF)
+    //             {
+    //                 gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
+    //                                    static_cast<uint8_t>(hitboxTriangleId),
+    //                                    static_cast<uint8_t>(platform.hitboxInstanceId),
+    //                                    hitboxTransform);
+    //             }
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     if (hitboxDebugInstanceId != 0xFF)
+    //     {
+    //         Rasterizer::Transform hide{
+    //             player.getPosition().x,
+    //             player.getPosition().y + PLAYER_HALF_EXTENTS.y - 100.0f,
+    //             player.getPosition().z,
+    //             0.0f, 0.0f, 0.0f,
+    //             0.0f, 0.0f, 0.0f};
 
-            gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
-                               static_cast<uint8_t>(hitboxTriangleId),
-                               static_cast<uint8_t>(hitboxDebugInstanceId),
-                               hide);
-        }
+    //         gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
+    //                            static_cast<uint8_t>(hitboxTriangleId),
+    //                            static_cast<uint8_t>(hitboxDebugInstanceId),
+    //                            hide);
+    //     }
 
-        if (hitboxVertexId != 0xFF && hitboxTriangleId != 0xFF)
-        {
-            for (auto &platform : platforms)
-            {
-                if (platform.hitboxInstanceId == 0xFF)
-                {
-                    continue;
-                }
+    //     if (hitboxVertexId != 0xFF && hitboxTriangleId != 0xFF)
+    //     {
+    //         for (auto &platform : platforms)
+    //         {
+    //             if (platform.hitboxInstanceId == 0xFF)
+    //             {
+    //                 continue;
+    //             }
 
-                Rasterizer::Transform hide{
-                    platform.center.x,
-                    platform.center.y - 100.0f,
-                    platform.center.z,
-                    0.0f, 0.0f, 0.0f,
-                    0.0f, 0.0f, 0.0f};
+    //             Rasterizer::Transform hide{
+    //                 platform.center.x,
+    //                 platform.center.y - 100.0f,
+    //                 platform.center.z,
+    //                 0.0f, 0.0f, 0.0f,
+    //                 0.0f, 0.0f, 0.0f};
 
-                gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
-                                   static_cast<uint8_t>(hitboxTriangleId),
-                                   static_cast<uint8_t>(platform.hitboxInstanceId),
-                                   hide);
-            }
-        }
-    }
+    //             gfx.updateInstance(static_cast<uint8_t>(hitboxVertexId),
+    //                                static_cast<uint8_t>(hitboxTriangleId),
+    //                                static_cast<uint8_t>(platform.hitboxInstanceId),
+    //                                hide);
+    //         }
+    //     }
+    // }
 }
 
 void Game::tick_logic()
@@ -703,10 +689,8 @@ void Game::tick_logic()
     const float dt = TICK_MS / 1000.0f;
 
     // Rigidbody inside player handles all collisions using gameState.boxColliders
-    player.update(in, dt, gameState);
-
-    // Update camera using new player position so yaw/pitch orbit around the player
-    camera.update(in.lookYawDelta, in.lookPitchDelta, player, dt);
+    for (auto &entity : entities)
+        entity->update(in, dt, gameState);
 }
 
 void Game::initialize_platforms()

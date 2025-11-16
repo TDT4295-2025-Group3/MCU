@@ -26,7 +26,7 @@ namespace mcu_game
     class Player : public Entity
     {
     public:
-        Player() = default;
+        Player() {};
         bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;
         void update(const InputState &in, float deltaTime, GameState &gameState) override;
         void render(Rasterizer::IRasterizer &gfx) override;

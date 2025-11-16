@@ -14,40 +14,36 @@ namespace mcu_game
     {
         body.getTransform().position.y = 1.0f;
         body.setVelocity({0.0f, 0.0f, 0.0f});
+        gameState.playerPosition = body.getTransform().position;
 
         if (!createBuffersWithFallback(gfx, "playerIdle.obj",
                                        assets::baked::MeshId::PlayerIdle,
                                        vertexIdleId,
-                                       triangleIdleId,
-                                       true))
+                                       triangleIdleId))
             return false;
 
         if (!createBuffersWithFallback(gfx, "playerRun1.obj",
                                        assets::baked::MeshId::PlayerRun1,
                                        vertexRun1Id,
-                                       triangleRun1Id,
-                                       true))
+                                       triangleRun1Id))
             return false;
 
         if (!createBuffersWithFallback(gfx, "playerRun2.obj",
                                        assets::baked::MeshId::PlayerRun2,
                                        vertexRun2Id,
-                                       triangleRun2Id,
-                                       true))
+                                       triangleRun2Id))
             return false;
 
         if (!createBuffersWithFallback(gfx, "playerJumpUp.obj",
                                        assets::baked::MeshId::PlayerJumpUp,
                                        vertexJumpUpId,
-                                       triangleJumpUpId,
-                                       true))
+                                       triangleJumpUpId))
             return false;
 
         if (!createBuffersWithFallback(gfx, "playerJumpDown.obj",
                                        assets::baked::MeshId::PlayerJumpDown,
                                        vertexJumpDownId,
-                                       triangleJumpDownId,
-                                       true))
+                                       triangleJumpDownId))
             return false;
 
         const auto playerInstanceResp = gfx.createInstance(static_cast<uint8_t>(vertexIdleId),
@@ -153,7 +149,7 @@ namespace mcu_game
         // This ensures movement input is relative to the camera's orientation
 
         // Forward vector in XZ-plane
-        Vec3 camForward = gameState.camera.getForward();
+        Vec3 camForward = gameState.cameraForward;
         Vec3 forward{camForward.x, 0.0f, camForward.z};
         if (length_sq(forward) < 1e-6f)
         {
@@ -263,7 +259,9 @@ namespace mcu_game
         Vec3 vel = body.getVelocity();
         vel.y += playerConfig.gravity * deltaTime;
         body.setVelocity(vel);
+
         body.update(deltaTime, gameState.boxColliders);
+        gameState.playerPosition = getPosition();
         animator.update(deltaTime);
     }
 
