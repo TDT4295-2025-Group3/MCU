@@ -13,17 +13,16 @@
 #include "model_loader.hpp"
 #include "input.hpp"
 #include "game_state.hpp"
+#include "collider.hpp"
 // #include "stm32u5xx_hal.h"
 // #include "seven_seg_display.hpp"
 
 namespace
 {
     constexpr mcu_game::Vec3 PLAYER_HALF_EXTENTS{0.4f, 1.1f, 0.4f}; // size of hitboxes (x, y, z)
-    constexpr float RAY_EPSILON = 1e-4f;
     constexpr std::size_t MODEL_PATH_BUFFER = 128;
     constexpr float DEBUG_CUBE_DISTANCE = 18.0f;
-    constexpr float PLAYER_VISUAL_Y_OFFSET = -1.1f; // Player model offset to align with hitbox
-    constexpr float PLATFORM_VISUAL_SCALE = 1.25f;  // Inflate platform sizes
+    constexpr float PLATFORM_VISUAL_SCALE = 1.25f; // Inflate platform sizes
 
     // float yaw_value = 0.0f;
     uint8_t red_color = 0;
@@ -94,11 +93,7 @@ bool Game::loadModelGeometry(const char *relativePath,
 
     const size_t vertexCount = modelData.vertices.size();
     const size_t triangleCount = modelData.triangles.size();
-    // Removed obsolete cube instance creation
-    // Streamlined player mesh initialization
-    // const auto playerInstanceResp = gfx.createInstance(static_cast<uint8_t>(playerVertexId),
-    //                                                    static_cast<uint8_t>(playerTriangleId),
-    //                                                    {0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f});
+
     const auto vertResp = gfx.createVertex(modelData.vertices.data(), static_cast<uint16_t>(vertexCount));
     if (!vertResp.isSuccess())
     {
@@ -464,6 +459,22 @@ void Game::init()
 
     initialize_platforms();
 
+    // Build world collider list for Rigidbody
+    gameState.boxColliders.clear();
+
+    // Ground collider
+    gameState.boxColliders.push_back(mcu_game::BoxCollider{
+        groundCenter,
+        groundHalfExtents});
+
+    // Platform colliders
+    for (const auto &platform : platforms)
+    {
+        gameState.boxColliders.push_back(mcu_game::BoxCollider{
+            platform.center,
+            platform.halfExtents});
+    }
+
     const Rasterizer::Transform initialCameraTransform{
         camera.getPosition().x,
         camera.getPosition().y,
@@ -521,32 +532,18 @@ void Game::tick_graphics()
 
     player.render(gfx);
 
-    // for entity in entities:
-    //     entity.render(gfx);
-
     updateHitboxDebugInstance();
 
     // Pyramid remains static where placed in init
 
     // Camera locked to player using camera state
-    // Convert camera position/orientation to rasterizer transform
-    // We approximate by placing camera transform at camera position with rotation from yaw/pitch
     Rasterizer::Transform camT{
         camera.getPosition().x, camera.getPosition().y, camera.getPosition().z,
         // small3dlib expects rotations per-axis; we use pitch around X and yaw around Y
-        camera.getPitch(), camera.getYaw(), 0.0f, // add yaw_value for debugging here
+        camera.getPitch(), camera.getYaw(), 0.0f,
         1.0f, 1.0f, 1.0f};
 
     gfx.updateCamera(red_color, green_color, blue_color, camT);
-
-    // if (update_color % 256 == 0) {
-    //     red_color = (red_color + 1) % 16;
-    //     green_color = (green_color + 2) % 16;
-    //     blue_color = (blue_color + 3) % 16;
-    // }
-    // update_color++;
-
-    // yaw_value += 2 * 3.14159265f / (10*60.0f);
 
     gfx.end_frame();
 }
@@ -705,12 +702,8 @@ void Game::tick_logic()
     // Fixed dt per logic tick
     const float dt = TICK_MS / 1000.0f;
 
-    auto previousPosition = player.getPosition();
-
-    // Update player with camera-relative movement first
+    // Rigidbody inside player handles all collisions using gameState.boxColliders
     player.update(in, dt, gameState);
-
-    handle_player_collisions(previousPosition);
 
     // Update camera using new player position so yaw/pitch orbit around the player
     camera.update(in.lookYawDelta, in.lookPitchDelta, player, dt);
@@ -845,328 +838,4 @@ void Game::initialize_platforms()
             }
         }
     }
-}
-
-bool Game::sweep_against_box(const mcu_game::Vec3 &boxCenter,
-                             const mcu_game::Vec3 &boxHalfExtents,
-                             const mcu_game::Vec3 &start,
-                             const mcu_game::Vec3 &delta,
-                             float &outTime,
-                             mcu_game::Vec3 &outNormal) const
-{
-    const mcu_game::Vec3 expandedMin = {
-        boxCenter.x - boxHalfExtents.x - PLAYER_HALF_EXTENTS.x,
-        boxCenter.y - boxHalfExtents.y - PLAYER_HALF_EXTENTS.y,
-        boxCenter.z - boxHalfExtents.z - PLAYER_HALF_EXTENTS.z};
-    const mcu_game::Vec3 expandedMax = {
-        boxCenter.x + boxHalfExtents.x + PLAYER_HALF_EXTENTS.x,
-        boxCenter.y + boxHalfExtents.y + PLAYER_HALF_EXTENTS.y,
-        boxCenter.z + boxHalfExtents.z + PLAYER_HALF_EXTENTS.z};
-
-    float tFirst = 0.0f;
-    float tLast = 1.0f;
-    mcu_game::Vec3 normal{0.0f, 0.0f, 0.0f};
-
-    auto axisCheck = [&](float startCoord, float dir, float minCoord, float maxCoord, int axis) -> bool
-    {
-        if (std::fabs(dir) < 1e-6f)
-        {
-            if (startCoord < minCoord || startCoord > maxCoord)
-            {
-                return false;
-            }
-            return true;
-        }
-
-        float invDir = 1.0f / dir;
-        float t1 = (minCoord - startCoord) * invDir;
-        float t2 = (maxCoord - startCoord) * invDir;
-        float entry = std::min(t1, t2);
-        float exit = std::max(t1, t2);
-
-        if (entry > tLast || exit < tFirst)
-        {
-            return false;
-        }
-
-        if (entry > tFirst)
-        {
-            tFirst = entry;
-            normal = {0.0f, 0.0f, 0.0f};
-            if (axis == 0)
-            {
-                normal.x = dir > 0.0f ? -1.0f : 1.0f;
-            }
-            else if (axis == 1)
-            {
-                normal.y = dir > 0.0f ? -1.0f : 1.0f;
-            }
-            else
-            {
-                normal.z = dir > 0.0f ? -1.0f : 1.0f;
-            }
-        }
-
-        tLast = std::min(tLast, exit);
-        return tFirst <= tLast;
-    };
-
-    if (!axisCheck(start.x, delta.x, expandedMin.x, expandedMax.x, 0))
-        return false;
-    if (!axisCheck(start.y, delta.y, expandedMin.y, expandedMax.y, 1))
-        return false;
-    if (!axisCheck(start.z, delta.z, expandedMin.z, expandedMax.z, 2))
-        return false;
-
-    if (tFirst < 0.0f || tFirst > 1.0f)
-    {
-        return false;
-    }
-
-    outTime = std::max(0.0f, tFirst);
-    outNormal = normal;
-    return true;
-}
-
-void Game::handle_player_collisions(const mcu_game::Vec3 &previousPosition)
-{
-    const mcu_game::Vec3 prevCenter = {
-        previousPosition.x,
-        previousPosition.y + PLAYER_HALF_EXTENTS.y,
-        previousPosition.z};
-    const auto currentBottom = player.getPosition();
-    mcu_game::Vec3 currentCenter{
-        currentBottom.x,
-        currentBottom.y + PLAYER_HALF_EXTENTS.y,
-        currentBottom.z};
-
-    mcu_game::Vec3 remainingMotion = currentCenter - prevCenter;
-    mcu_game::Vec3 workingCenter = prevCenter;
-    mcu_game::Vec3 workingVelocity = player.getVelocity();
-    bool grounded = false;
-
-    // Helper to choose push direction when resolving penetration
-    const auto chooseDir = [](float delta, float vel)
-    {
-        if (std::fabs(delta) > 1e-5f)
-        {
-            return delta >= 0.0f ? 1.0f : -1.0f;
-        }
-        if (std::fabs(vel) > 1e-5f)
-        {
-            return vel >= 0.0f ? 1.0f : -1.0f;
-        }
-        return 1.0f;
-    };
-
-    // Resolve penetration of player against a box collider
-    const auto resolvePenetration = [&](const mcu_game::Vec3 &center, const mcu_game::Vec3 &half) -> bool
-    {
-        const mcu_game::Vec3 delta = workingCenter - center;
-        const float overlapX = (half.x + PLAYER_HALF_EXTENTS.x) - std::fabs(delta.x);
-        const float overlapY = (half.y + PLAYER_HALF_EXTENTS.y) - std::fabs(delta.y);
-        const float overlapZ = (half.z + PLAYER_HALF_EXTENTS.z) - std::fabs(delta.z);
-
-        if (overlapX <= 0.0f || overlapY <= 0.0f || overlapZ <= 0.0f)
-        {
-            return false;
-        }
-
-        float minOverlap = overlapX;
-        int axis = 0;
-        if (overlapY < minOverlap)
-        {
-            minOverlap = overlapY;
-            axis = 1;
-        }
-        if (overlapZ < minOverlap)
-        {
-            minOverlap = overlapZ;
-            axis = 2;
-        }
-
-        const float pushDistance = minOverlap + RAY_EPSILON;
-
-        // Push out along the chosen axis
-        if (axis == 0)
-        {
-            const float dir = chooseDir(delta.x, workingVelocity.x);
-            workingCenter.x += dir * pushDistance;
-            if ((dir > 0.0f && workingVelocity.x < 0.0f) ||
-                (dir < 0.0f && workingVelocity.x > 0.0f))
-            {
-                workingVelocity.x = 0.0f;
-            }
-        }
-        else if (axis == 1)
-        {
-            const float dir = chooseDir(delta.y, workingVelocity.y);
-            workingCenter.y += dir * pushDistance;
-            if (dir > 0.0f)
-            {
-                grounded = true;
-                if (workingVelocity.y < 0.0f)
-                {
-                    workingVelocity.y = 0.0f;
-                }
-            }
-            else
-            {
-                if (workingVelocity.y > 0.0f)
-                {
-                    workingVelocity.y = 0.0f;
-                }
-            }
-        }
-        else
-        {
-            const float dir = chooseDir(delta.z, workingVelocity.z);
-            workingCenter.z += dir * pushDistance;
-            if ((dir > 0.0f && workingVelocity.z < 0.0f) ||
-                (dir < 0.0f && workingVelocity.z > 0.0f))
-            {
-                workingVelocity.z = 0.0f;
-            }
-        }
-
-        return true;
-    };
-
-    // If there is no remaining motion, just resolve penetration
-    if (mcu_game::length_sq(remainingMotion) < 1e-8f)
-    {
-        for (int iter = 0; iter < 4; ++iter)
-        {
-            bool corrected = false;
-            for (const auto &platform : platforms)
-            {
-                if (platform.instanceId == 0xFF)
-                    continue;
-                corrected |= resolvePenetration(platform.center, platform.halfExtents);
-            }
-            corrected |= resolvePenetration(groundCenter, groundHalfExtents);
-            if (!corrected)
-            {
-                break;
-            }
-        }
-
-        if (workingCenter.y - PLAYER_HALF_EXTENTS.y < groundCenter.y + groundHalfExtents.y)
-        {
-            workingCenter.y = groundCenter.y + groundHalfExtents.y + PLAYER_HALF_EXTENTS.y;
-            grounded = true;
-            if (workingVelocity.y < 0.0f)
-            {
-                workingVelocity.y = 0.0f;
-            }
-        }
-
-        mcu_game::Vec3 finalBottom{
-            workingCenter.x,
-            workingCenter.y - PLAYER_HALF_EXTENTS.y,
-            workingCenter.z};
-        player.applyCollisionResult(finalBottom, workingVelocity, grounded);
-        return;
-    }
-
-    for (int iteration = 0; iteration < 4 && mcu_game::length_sq(remainingMotion) > 1e-8f; ++iteration)
-    {
-        float bestTime = 1.0f;
-        mcu_game::Vec3 bestNormal{0.0f, 0.0f, 0.0f};
-        bool hitFound = false;
-
-        auto considerCollider = [&](const mcu_game::Vec3 &center, const mcu_game::Vec3 &halfExtents)
-        {
-            float hitTime = 0.0f;
-            mcu_game::Vec3 hitNormal{0.0f, 0.0f, 0.0f};
-            if (sweep_against_box(center, halfExtents, workingCenter, remainingMotion, hitTime, hitNormal))
-            {
-                if (hitTime < bestTime)
-                {
-                    bestTime = hitTime;
-                    bestNormal = hitNormal;
-                    hitFound = true;
-                }
-            }
-        };
-
-        for (const auto &platform : platforms)
-        {
-            if (platform.instanceId == 0xFF)
-                continue;
-            considerCollider(platform.center, platform.halfExtents);
-        }
-        considerCollider(groundCenter, groundHalfExtents);
-
-        if (!hitFound)
-        {
-            workingCenter += remainingMotion;
-            remainingMotion = {0.0f, 0.0f, 0.0f};
-            break;
-        }
-
-        const float advance = std::max(0.0f, bestTime - RAY_EPSILON);
-        workingCenter += remainingMotion * advance;
-
-        // Remove component of velocity and remaining motion along the collision normal
-        const float velAlongNormal = mcu_game::dot(workingVelocity, bestNormal);
-        if (velAlongNormal < 0.0f)
-        {
-            workingVelocity -= bestNormal * velAlongNormal;
-        }
-
-        float remainingFraction = 1.0f - bestTime;
-        remainingFraction = std::clamp(remainingFraction, 0.0f, 1.0f);
-        remainingMotion = remainingMotion * remainingFraction;
-        const float motionAlongNormal = mcu_game::dot(remainingMotion, bestNormal);
-        remainingMotion -= bestNormal * motionAlongNormal;
-
-        if (bestNormal.y > 0.5f)
-        {
-            grounded = true;
-        }
-
-        if (mcu_game::length_sq(remainingMotion) < 1e-8f)
-        {
-            remainingMotion = {0.0f, 0.0f, 0.0f};
-            break;
-        }
-    }
-
-    workingCenter += remainingMotion;
-
-    // Final penetration resolution pass
-    for (int iter = 0; iter < 4; ++iter)
-    {
-        bool corrected = false;
-        for (const auto &platform : platforms)
-        {
-            if (platform.instanceId == 0xFF)
-                continue;
-            corrected |= resolvePenetration(platform.center, platform.halfExtents);
-        }
-        corrected |= resolvePenetration(groundCenter, groundHalfExtents);
-        if (!corrected)
-        {
-            break;
-        }
-    }
-
-    // Player should never go below ground plane (y=0)
-    const float groundTop = groundCenter.y + groundHalfExtents.y + PLAYER_HALF_EXTENTS.y;
-    if (workingCenter.y < groundTop)
-    {
-        workingCenter.y = groundTop;
-        if (workingVelocity.y < 0.0f)
-        {
-            workingVelocity.y = 0.0f;
-        }
-        grounded = true;
-    }
-
-    mcu_game::Vec3 finalBottom{
-        workingCenter.x,
-        workingCenter.y - PLAYER_HALF_EXTENTS.y,
-        workingCenter.z};
-    player.applyCollisionResult(finalBottom, workingVelocity, grounded);
 }

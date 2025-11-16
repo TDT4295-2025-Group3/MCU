@@ -35,16 +35,10 @@ private:
                            size_t *outVertexCount = nullptr,
                            size_t *outTriangleCount = nullptr);
     bool loadModelInstance(const char *relativePath, const Rasterizer::Transform &transform, uint32_t &instanceId);
-    void handle_player_collisions(const mcu_game::Vec3 &previousPosition);
-    bool sweep_against_box(const mcu_game::Vec3 &boxCenter,
-                           const mcu_game::Vec3 &boxHalfExtents,
-                           const mcu_game::Vec3 &start,
-                           const mcu_game::Vec3 &delta,
-                           float &outTime,
-                           mcu_game::Vec3 &outNormal) const;
     void initialize_platforms();
+
     bool initialized = false;
-    mcu_game::Player player{};
+    mcu_game::Player player;
     mcu_game::Camera camera{};
     mcu_game::GameState gameState{camera};
 

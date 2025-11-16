@@ -12,10 +12,8 @@ namespace mcu_game
 
     bool Player::init(Rasterizer::IRasterizer &gfx, GameState &gameState)
     {
-        transform = Rasterizer::Transform();
-        transform.position.y = 1.0f;
-        velocity = {0, 0, 0};
-        grounded = false; // placed slightly above ground so will fall and settle
+        body.getTransform().position.y = 1.0f;
+        body.setVelocity({0.0f, 0.0f, 0.0f});
 
         if (!createBuffersWithFallback(gfx, "playerIdle.obj",
                                        assets::baked::MeshId::PlayerIdle,
@@ -54,7 +52,7 @@ namespace mcu_game
 
         const auto playerInstanceResp = gfx.createInstance(static_cast<uint8_t>(vertexIdleId),
                                                            static_cast<uint8_t>(triangleIdleId),
-                                                           transform);
+                                                           body.getTransform());
         if (!playerInstanceResp.isSuccess())
             return false;
         instanceId = playerInstanceResp.getInstanceId();
@@ -182,17 +180,17 @@ namespace mcu_game
         const bool hasInput = length_sq(inputDir) > 1e-6f;
         Vec3 desiredMoveDir = hasInput ? normalize(inputDir) : Vec3{0, 0, 0}; // normalized desired move direction
 
-        if (hasInput && grounded)
+        if (hasInput && body.isGrounded())
         {
             animator.playAnimation("Run");
         }
-        else if (!hasInput && grounded)
+        else if (!hasInput && body.isGrounded())
         {
             animator.playAnimation("Idle");
         }
-        else if (!grounded)
+        else if (!body.isGrounded())
         {
-            if (velocity.y > 0.0f)
+            if (body.getVelocity().y > 0.0f)
             {
                 animator.playAnimation("JumpUp");
             }
@@ -207,7 +205,7 @@ namespace mcu_game
         Vec3 orientDir = desiredMoveDir;
         if (!hasInput)
         {
-            Vec3 horizVel{velocity.x, 0.0f, velocity.z};
+            Vec3 horizVel{body.getVelocity().x, 0.0f, body.getVelocity().z};
             if (length_sq(horizVel) > 1e-6f)
             {
                 orientDir = normalize(horizVel);
@@ -218,58 +216,54 @@ namespace mcu_game
         if (length_sq(orientDir) > 1e-6f)
         {
             float desiredYaw = std::atan2(-orientDir.x, orientDir.z);
-            float yawDelta = desiredYaw - transform.rotation.y;
+            float yawDelta = desiredYaw - body.getTransform().rotation.y;
             if (yawDelta > PI)
                 yawDelta -= 2.0f * PI;
             if (yawDelta < -PI)
                 yawDelta += 2.0f * PI;
             const float maxStep = playerConfig.turnSpeed * deltaTime;
             yawDelta = std::clamp(yawDelta, -maxStep, maxStep);
-            transform.rotation.y += yawDelta;
-            if (transform.rotation.y > PI)
-                transform.rotation.y -= 2.0f * PI;
-            if (transform.rotation.y < -PI)
-                transform.rotation.y += 2.0f * PI;
+            body.getTransform().rotation.y += yawDelta;
+            if (body.getTransform().rotation.y > PI)
+                body.getTransform().rotation.y -= 2.0f * PI;
+            if (body.getTransform().rotation.y < -PI)
+                body.getTransform().rotation.y += 2.0f * PI;
         }
 
-        float control = grounded ? 1.0f : playerConfig.airControlFactor;      // movement control in air is different from ground
-        Vec3 targetVel = desiredMoveDir * (playerConfig.moveSpeed * control); // desired target velocity
+        float control = body.isGrounded() ? 1.0f : playerConfig.airControlFactor; // movement control in air is different from ground
+        Vec3 targetVel = desiredMoveDir * (playerConfig.moveSpeed * control);     // desired target velocity
 
         // Accelerate towards target velocity (simple critically damped style)
         // Use friction on ground when no input
-        if (grounded)
+        if (body.isGrounded())
         {
             // Blend velocity horizontally
-            Vec3 horizVel{velocity.x, 0, velocity.z};
+            Vec3 horizVel{body.getVelocity().x, 0, body.getVelocity().z};
             Vec3 newHoriz = lerp(horizVel, targetVel, 1.0f - std::exp(-playerConfig.friction * deltaTime));
-            velocity.x = newHoriz.x;
-            velocity.z = newHoriz.z;
+            body.setVelocity({newHoriz.x, body.getVelocity().y, newHoriz.z});
         }
         else
         {
             // Air control limited: simply approach target
-            velocity.x = lerp(velocity.x, targetVel.x, control * deltaTime * 2.0f);
-            velocity.z = lerp(velocity.z, targetVel.z, control * deltaTime * 2.0f);
+            Vec3 vel = body.getVelocity();
+            vel.x = lerp(vel.x, targetVel.x, control * deltaTime * 2.0f);
+            vel.z = lerp(vel.z, targetVel.z, control * deltaTime * 2.0f);
+            body.setVelocity(vel);
         }
 
         // Jump
-        // TODO: coyote time, variable jump height
-        if (in.jump && grounded)
+        if (in.jump && body.isGrounded())
         {
-            velocity.y = playerConfig.jumpVelocity;
-            grounded = false;
+            Vec3 vel = body.getVelocity();
+            vel.y = playerConfig.jumpVelocity;
+            body.setVelocity(vel);
         }
 
         // Gravity
-        velocity.y += playerConfig.gravity * deltaTime;
-
-        // Integrate
-        transform.position += velocity * deltaTime;
-
-        // Assume no longer grounded
-        // Collision system will set it back if still on ground
-        grounded = false;
-
+        Vec3 vel = body.getVelocity();
+        vel.y += playerConfig.gravity * deltaTime;
+        body.setVelocity(vel);
+        body.update(deltaTime, gameState.boxColliders);
         animator.update(deltaTime);
     }
 
@@ -277,7 +271,7 @@ namespace mcu_game
     {
         const Keyframe &keyframe = animator.getCurrentKeyframe();
 
-        Rasterizer::Transform animTransform = transform;
+        Rasterizer::Transform animTransform = body.getTransform();
         if (keyframe.useTranslation)
         {
             animTransform.position.x += keyframe.translationX;
@@ -299,23 +293,6 @@ namespace mcu_game
         }
 
         gfx.updateInstance(keyframe.vertexId, keyframe.triangleId, instanceId, animTransform);
-    }
-
-    void Player::landOn(float surfaceY)
-    {
-        transform.position.y = surfaceY;
-        if (velocity.y < 0.0f)
-        {
-            velocity.y = 0.0f;
-        }
-        grounded = true;
-    }
-
-    void Player::applyCollisionResult(const Vec3 &newPosition, const Vec3 &newVelocity, bool groundedState)
-    {
-        transform.position = newPosition;
-        velocity = newVelocity;
-        grounded = groundedState;
     }
 
 } // namespace mcu_game

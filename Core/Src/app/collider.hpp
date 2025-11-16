@@ -7,5 +7,9 @@ namespace mcu_game
     {
         Vec3 center;
         Vec3 halfExtents;
+
+        BoxCollider() = default;
+        BoxCollider(const Vec3 &center_, const Vec3 &halfExtents_)
+            : center(center_), halfExtents(halfExtents_) {}
     };
 } // namespace mcu_game
