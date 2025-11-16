@@ -55,7 +55,7 @@ extern "C" {
 #endif
 
 #ifndef CFG_TUSB_DEBUG
-#define CFG_TUSB_DEBUG        3
+#define CFG_TUSB_DEBUG        0
 #endif
 
 /* USB DMA on some MCUs can only access a specific SRAM region with restriction on alignment.
@@ -112,14 +112,14 @@ extern "C" {
 //--------------------------------------------------------------------
 
 // Size of buffer to hold descriptors and other data used for enumeration
-#define CFG_TUH_ENUMERATION_BUFSIZE 256
+#define CFG_TUH_ENUMERATION_BUFSIZE 512
 
 #define CFG_TUH_HUB                 0
 // max device support (excluding hub device): 1 hub typically has 4 ports
-#define CFG_TUH_DEVICE_MAX          (3*CFG_TUH_HUB + 1)
+#define CFG_TUH_DEVICE_MAX          5
 
 #define CFG_TUH_CDC                 0
-#define CFG_TUH_HID                 (3*CFG_TUH_DEVICE_MAX) // typical keyboard + mouse device can have 3-4 HID interfaces
+#define CFG_TUH_HID                 8 // typical keyboard + mouse device can have 3-4 HID interfaces
 
 
 
@@ -128,8 +128,8 @@ extern "C" {
 
 
 //------------- HID -------------//
-#define CFG_TUH_HID_EPIN_BUFSIZE    64
-#define CFG_TUH_HID_EPOUT_BUFSIZE   64
+#define CFG_TUH_HID_EPIN_BUFSIZE    1024
+#define CFG_TUH_HID_EPOUT_BUFSIZE   1024
 
 #ifdef __cplusplus
 }
