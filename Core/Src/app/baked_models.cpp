@@ -23,6 +23,8 @@ namespace mcu_game::assets::baked
             return PLAYERJUMPDOWN_MESH;
         case MeshId::Platform:
             return PLATFORM_MESH;
+        case MeshId::Collision:
+            return COLLISION_MESH_DATA;
         }
         return EMPTY_MESH;
     }

@@ -12,7 +12,7 @@ namespace mcu_game
     class Platform : public Entity
     {
     public:
-        Platform(Vec3 center, float rotation) : collider{center, {1.0f, 0.5f, 1.0f}},
+        Platform(Vec3 center, float rotation) : collider{{center.x, center.y - 0.5f, center.z}, {1.8f, 0.5f, 1.8f}},
                                                 transform{center.x, center.y, center.z, 0.0f, rotation, 0.0f, 1.0f, 1.0f, 1.0f}
         {
         }

@@ -3060,4 +3060,35 @@ namespace mcu_game::assets::baked
     static constexpr MeshData EMPTY_MESH{
         nullptr, 0,
         nullptr, 0};
+
+    Rasterizer::Vertex COLLISION_MESH[8] = {
+        {-0.5f, -0.5f, -0.5f, 7, 14, 5},
+        {0.5f, -0.5f, -0.5f, 7, 14, 5},
+        {0.5f, 0.5f, -0.5f, 7, 14, 5},
+        {-0.5f, 0.5f, -0.5f, 7, 14, 5},
+        {-0.5f, -0.5f, 0.5f, 7, 14, 5},
+        {0.5f, -0.5f, 0.5f, 7, 14, 5},
+        {0.5f, 0.5f, 0.5f, 7, 14, 5},
+        {-0.5f, 0.5f, 0.5f, 7, 14, 5},
+    };
+
+    Rasterizer::Triangle COLLISION_TRIANGLES[12] = {
+        {4, 5, 6},
+        {4, 6, 7},
+        {1, 0, 3},
+        {1, 3, 2},
+        {3, 7, 6},
+        {3, 6, 2},
+        {0, 1, 5},
+        {0, 5, 4},
+        {1, 2, 6},
+        {1, 6, 5},
+        {0, 7, 3},
+        {0, 4, 7},
+    };
+
+    static constexpr MeshData COLLISION_MESH_DATA{
+        COLLISION_MESH, 8,
+        COLLISION_TRIANGLES, 12};
+
 }

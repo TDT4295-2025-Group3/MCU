@@ -26,7 +26,10 @@ namespace mcu_game
     class Player : public Entity
     {
     public:
-        Player() {};
+        Player(Vec3 position = {0.0f, 0.0f, 0.0f})
+        {
+            body.setBottomPosition(position);
+        }
         bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;
         void update(const InputState &in, float deltaTime, GameState &gameState) override;
         void render(Rasterizer::IRasterizer &gfx) override;

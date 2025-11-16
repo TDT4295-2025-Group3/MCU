@@ -16,6 +16,7 @@ namespace mcu_game::assets::baked
         PlayerJumpUp,
         PlayerJumpDown,
         Platform,
+        Collision,
     };
 
     struct MeshData
