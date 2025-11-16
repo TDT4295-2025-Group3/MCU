@@ -25,6 +25,12 @@ namespace mcu_game::assets::baked
             return PLATFORM_MESH;
         case MeshId::Collision:
             return COLLISION_MESH_DATA;
+        case MeshId::BasePlatform:
+            return BASE_PLATFORM_MESH;
+        case MeshId::Fence:
+            return FENCE_MESH;
+        case MeshId::Fire:
+            return FIRE_MESH;
         }
         return EMPTY_MESH;
     }
@@ -45,6 +51,14 @@ namespace mcu_game::assets::baked
             return "PlayerJumpDown";
         case MeshId::Platform:
             return "Platform";
+        case MeshId::Collision:
+            return "Collision";
+        case MeshId::BasePlatform:
+            return "BasePlatform";
+        case MeshId::Fence:
+            return "Fence";
+        case MeshId::Fire:
+            return "Fire";
         }
         return "Unknown";
     }
@@ -67,6 +81,12 @@ namespace mcu_game::assets::baked
             return "platform.obj";
         case MeshId::Collision:
             return "collision.obj";
+        case MeshId::BasePlatform:
+            return "base_platform.obj";
+        case MeshId::Fence:
+            return "fence.obj";
+        case MeshId::Fire:
+            return "fire.obj";
         }
         return "unknown.obj";
     }

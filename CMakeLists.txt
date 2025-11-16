@@ -53,6 +53,7 @@ set(APP_SRC
         Core/Src/app/entities/player.hpp
         Core/Src/app/entities/player.cpp
         Core/Src/app/entities/platform.cpp
+        Core/Src/app/entities/base_platform.cpp
         Core/Src/app/entities/camera.cpp
         Core/Src/app/input.hpp
         Core/Src/app/model_loader.hpp

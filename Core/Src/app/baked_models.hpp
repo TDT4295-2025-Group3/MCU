@@ -18,6 +18,9 @@ namespace mcu_game::assets::baked
         PlayerJumpDown,
         Platform,
         Collision,
+        BasePlatform,
+        Fence,
+        Fire
     };
 
     struct MeshData

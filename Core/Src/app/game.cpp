@@ -17,6 +17,7 @@
 #include "entities/camera.hpp"
 #include "entities/platform.hpp"
 #include "entities/player.hpp"
+#include "entities/base_platform.hpp"
 #include "game_model_loader.hpp"
 
 static inline bool time_reached(uint32_t now, uint32_t target)
@@ -77,10 +78,9 @@ void Game::init()
 
     createEntity(new mcu_game::Camera({2, 2, 3}));
     createEntity(new mcu_game::Player({0.0f, 1.0f, 0.0f}));
-    createEntity(new mcu_game::Platform({0.0f, 0.0f, 5.0f}, 0.0f));
     createEntity(new mcu_game::Platform({3.0f, 1.0f, 8.0f}, 15.0f));
     createEntity(new mcu_game::Platform({-4.0f, 2.0f, 12.0f}, -10.0f));
-    createEntity(new mcu_game::Platform({0.0f, -0.5f, 0.0f}, -10.0f));
+    createEntity(new mcu_game::BasePlatform({-5.0f, 0.0f, 5.0f}, 0.0f));
 
     for (auto &entity : entities)
         entity->init(gfx, gameState);
