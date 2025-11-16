@@ -7,7 +7,6 @@
 #include "hid_driver.hpp"
 
 DS4Driver::DS4Driver() : HIDDriver() {
-    outputDraft.ReportID = 0x05;
     outputDraft.EnableRumbleUpdate = 1;
     outputDraft.EnableLedUpdate = 1;
 
@@ -15,6 +14,8 @@ DS4Driver::DS4Driver() : HIDDriver() {
     outputDraft.LedRed = 0x00;
     outputDraft.LedGreen = 0x00;
     outputDraft.LedBlue = 0x00;
+
+    outputDraft.RumbleLeft = 255;
 
     outputBuffer.push(outputDraft);
 }

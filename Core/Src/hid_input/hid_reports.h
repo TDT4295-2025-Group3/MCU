@@ -15,7 +15,9 @@ extern "C" {
 #pragma pack(push, 1)
 
 typedef struct DS4_OutputUSBReport {
-    uint8_t ReportID;
+    // ReportId commented out as TinyUSB already takes it in account in the send funciton
+    // instead, we can append it in sim
+    // uint8_t ReportID;
     uint8_t EnableRumbleUpdate: 1;
     uint8_t EnableLedUpdate: 1;
     uint8_t EnableLedBlink: 1;
@@ -47,6 +49,12 @@ typedef struct DS4_OutputUSBReport {
     uint8_t UNK_AUDIO2: 1;
     uint8_t Pad[8];
 } DS4_OutputUSBReport;
+
+// ReportID + report
+typedef struct DS4_OutputUSBReport_Raw {
+    uint8_t ReportID;
+    DS4_OutputUSBReport Report;
+} DS4_OutputUSBReport_Container;
 
 typedef enum DS4_DpadDirection : uint8_t {
     North = 0,

@@ -107,7 +107,11 @@ int main()
             DS4_OutputUSBReport outputReport;
             while (ds4Controller->getReadyOutputReport(outputReport))
             {
-                hid_write(handle, reinterpret_cast<uint8_t *>(&outputReport), sizeof(DS4_OutputUSBReport));
+                // hid_write requires raw reportId at start (we removed it for tinyusb)
+                DS4_OutputUSBReport_Container rawReport = {};
+                std::memcpy(&rawReport, &outputReport, sizeof(DS4_OutputUSBReport));
+                rawReport.ReportID = 0x05;
+                hid_write(handle, reinterpret_cast<uint8_t *>(&rawReport), sizeof(DS4_OutputUSBReport_Container));
             }
 
             hid_res = hid_read(handle, ds4_buffer, sizeof(ds4_buffer));

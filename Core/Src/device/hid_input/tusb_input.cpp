@@ -52,7 +52,10 @@ void TinyUSBInput::driverTask() {
     if (_controller_type == DS4) {
         DS4_OutputUSBReport report;
         if (_hid_ds4.getReadyOutputReport(report)) {
-            tuh_hid_set_report(_usb_dev_addr, _usb_instance, 0x5, HID_REPORT_TYPE_OUTPUT, &report, sizeof(report));
+
+
+
+            tuh_hid_send_report(_usb_dev_addr, _usb_instance, 0x5, &report, sizeof(report));
             // TODO - doublecheck 0x5 report ID is correct
         }
     }
@@ -60,7 +63,7 @@ void TinyUSBInput::driverTask() {
         HID_KeyboardOutputReport report;
         if (_hid_keyboard.getReadyOutputReport(report)) {
             // TODO: double check report ID
-            tuh_hid_set_report(_usb_dev_addr, _usb_instance, 0, HID_REPORT_TYPE_OUTPUT, &report, sizeof(report));
+            tuh_hid_send_report(_usb_dev_addr, _usb_instance, 0, &report, sizeof(report));
         }
     }
 }
