@@ -506,9 +506,7 @@ static void pack_instance_update_message(uint8_t *buffer, Rasterizer::Transform 
 
 
 namespace Rasterizer {
-    void SpiRasterizer::clear(uint32_t argb) {
-        (void)argb;
-        // SPI backend lacks direct clear command; no-op for now.
+    void SpiRasterizer::clear() {
     }
 
     void SpiRasterizer::rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t argb) {
