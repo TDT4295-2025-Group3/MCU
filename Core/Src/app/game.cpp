@@ -29,7 +29,7 @@ void Game::initializeHitboxDebug()
 {
     uint32_t vertexCollisionId = 0xFF;
     uint32_t triangleCollisionId = 0xFF;
-    if (!createBuffersWithFallback(gfx, "collision.obj",
+    if (!createBuffersWithFallback(gfx,
                                    mcu_game::assets::baked::MeshId::Collision,
                                    vertexCollisionId,
                                    triangleCollisionId))

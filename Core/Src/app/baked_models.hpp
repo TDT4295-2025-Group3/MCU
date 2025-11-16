@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "platform/irasterizer.hpp"
+#include <string>
 
 namespace mcu_game::assets::baked
 {
@@ -28,7 +29,9 @@ namespace mcu_game::assets::baked
     };
 
     const MeshData &getMesh(MeshId id);
-    const char *getMeshName(MeshId id);
+    const std::string getMeshName(MeshId id);
+    const std::string getMeshFileName(MeshId id);
+
     bool createBuffers(MeshId id,
                        Rasterizer::IRasterizer &gfx,
                        uint32_t &outVertexId,

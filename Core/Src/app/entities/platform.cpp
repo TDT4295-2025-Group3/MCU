@@ -11,8 +11,7 @@ namespace mcu_game
 
     bool Platform::init(Rasterizer::IRasterizer &gfx, GameState &gameState)
     {
-        if (!createBuffersWithFallback(gfx, "platform.obj",
-                                       assets::baked::MeshId::Platform,
+        if (!createBuffersWithFallback(gfx, assets::baked::MeshId::Platform,
                                        vertexId,
                                        triangleId))
             return false;

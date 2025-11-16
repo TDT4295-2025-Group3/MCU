@@ -29,7 +29,7 @@ namespace mcu_game::assets::baked
         return EMPTY_MESH;
     }
 
-    const char *getMeshName(MeshId id)
+    const std::string getMeshName(MeshId id)
     {
         switch (id)
         {
@@ -49,6 +49,28 @@ namespace mcu_game::assets::baked
         return "Unknown";
     }
 
+    const std::string getMeshFileName(MeshId id)
+    {
+        switch (id)
+        {
+        case MeshId::PlayerIdle:
+            return "playerIdle.obj";
+        case MeshId::PlayerRun1:
+            return "playerRun1.obj";
+        case MeshId::PlayerRun2:
+            return "playerRun2.obj";
+        case MeshId::PlayerJumpUp:
+            return "playerJumpUp.obj";
+        case MeshId::PlayerJumpDown:
+            return "playerJumpDown.obj";
+        case MeshId::Platform:
+            return "platform.obj";
+        case MeshId::Collision:
+            return "collision.obj";
+        }
+        return "unknown.obj";
+    }
+
     bool createBuffers(MeshId id,
                        Rasterizer::IRasterizer &gfx,
                        uint32_t &outVertexId,
@@ -58,11 +80,11 @@ namespace mcu_game::assets::baked
         outTriangleId = 0xFF;
 
         const auto &mesh = getMesh(id);
-        const char *meshName = getMeshName(id);
+        const std::string meshName = getMeshName(id);
 
         if (!mesh.vertices || mesh.vertexCount == 0 || !mesh.triangles || mesh.triangleCount == 0)
         {
-            std::printf("[Model] Baked mesh %s has no geometry data\n", meshName);
+            std::printf("[Model] Baked mesh %s has no geometry data\n", meshName.c_str());
             return false;
         }
 
@@ -70,7 +92,7 @@ namespace mcu_game::assets::baked
             mesh.triangleCount > std::numeric_limits<uint16_t>::max())
         {
             std::printf("[Model] Baked mesh %s exceeds rasterizer limits (%zu verts, %zu tris)\n",
-                        meshName,
+                        meshName.c_str(),
                         mesh.vertexCount,
                         mesh.triangleCount);
             return false;
@@ -80,7 +102,7 @@ namespace mcu_game::assets::baked
         if (!vertResp.isSuccess())
         {
             std::printf("[Model] Failed to create baked vertex buffer for %s (status=%u)\n",
-                        meshName,
+                        meshName.c_str(),
                         static_cast<unsigned>(vertResp.getStatus()));
             return false;
         }
@@ -89,7 +111,7 @@ namespace mcu_game::assets::baked
         if (!triResp.isSuccess())
         {
             std::printf("[Model] Failed to create baked triangle buffer for %s (status=%u)\n",
-                        meshName,
+                        meshName.c_str(),
                         static_cast<unsigned>(triResp.getStatus()));
             return false;
         }

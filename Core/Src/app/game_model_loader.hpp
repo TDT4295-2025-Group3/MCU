@@ -4,6 +4,7 @@
 #include "model_loader.hpp"
 #include <cstdio>
 #include <string>
+#include <vector>
 
 bool loadModelGeometry(Rasterizer::IRasterizer &gfx,
                        const char *relativePath,
@@ -12,7 +13,7 @@ bool loadModelGeometry(Rasterizer::IRasterizer &gfx,
                        size_t *outVertexCount,
                        size_t *outTriangleCount);
 
-bool createBuffersWithFallback(Rasterizer::IRasterizer &gfx, const char *objName,
+bool createBuffersWithFallback(Rasterizer::IRasterizer &gfx,
                                mcu_game::assets::baked::MeshId bakedId,
                                uint32_t &vertexId,
                                uint32_t &triangleId);

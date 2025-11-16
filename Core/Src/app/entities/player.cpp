@@ -16,31 +16,31 @@ namespace mcu_game
         body.setVelocity({0.0f, 0.0f, 0.0f});
         gameState.playerPosition = body.getTransform().position;
 
-        if (!createBuffersWithFallback(gfx, "playerIdle.obj",
+        if (!createBuffersWithFallback(gfx,
                                        assets::baked::MeshId::PlayerIdle,
                                        vertexIdleId,
                                        triangleIdleId))
             return false;
 
-        if (!createBuffersWithFallback(gfx, "playerRun1.obj",
+        if (!createBuffersWithFallback(gfx,
                                        assets::baked::MeshId::PlayerRun1,
                                        vertexRun1Id,
                                        triangleRun1Id))
             return false;
 
-        if (!createBuffersWithFallback(gfx, "playerRun2.obj",
+        if (!createBuffersWithFallback(gfx,
                                        assets::baked::MeshId::PlayerRun2,
                                        vertexRun2Id,
                                        triangleRun2Id))
             return false;
 
-        if (!createBuffersWithFallback(gfx, "playerJumpUp.obj",
+        if (!createBuffersWithFallback(gfx,
                                        assets::baked::MeshId::PlayerJumpUp,
                                        vertexJumpUpId,
                                        triangleJumpUpId))
             return false;
 
-        if (!createBuffersWithFallback(gfx, "playerJumpDown.obj",
+        if (!createBuffersWithFallback(gfx,
                                        assets::baked::MeshId::PlayerJumpDown,
                                        vertexJumpDownId,
                                        triangleJumpDownId))
