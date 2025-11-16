@@ -89,8 +89,8 @@ public:
     /**
      * Send the current output report to the output queue
      */
-    void flushOutput() {
-        if (dirty) {
+    void flushOutput(bool force = false) {
+        if (dirty || force) {
             outputBuffer.push(outputDraft);
             dirty = false;
         }

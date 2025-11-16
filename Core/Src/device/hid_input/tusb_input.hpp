@@ -47,6 +47,13 @@ public:
         _controller_type = type;
         _usb_dev_addr = dev_addr;
         _usb_instance = instance;
+
+        // force flush output report to restore state (e.g. LEDs) incase controller was reconnected
+        if (type == DS4) {
+            _hid_ds4.flushOutput(true);
+        } else if (type == KEYBOARD) {
+            _hid_keyboard.flushOutput(true);
+        }
     }
 
     void driverTask();
