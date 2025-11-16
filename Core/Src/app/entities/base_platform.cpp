@@ -25,15 +25,21 @@ namespace mcu_game
 
         gameState.boxColliders.push_back({{transform.position.x, transform.position.y - 0.5f, transform.position.z}, {8.4f, 0.5f, 8.4f}});
         gameState.boxColliders.push_back({{transform.position.x + 2.7f, transform.position.y + 0.5f, transform.position.z - 5.8f}, {1.8f, 1.5f, 1.4f}});
+
+        if (!fire.init(gfx, gameState))
+            return false;
+
         return true;
     }
 
     void BasePlatform::update(const InputState &in, float deltaTime, GameState &gameState)
     {
+        fire.update(in, deltaTime, gameState);
     }
 
     void BasePlatform::render(Rasterizer::IRasterizer &gfx)
     {
+        fire.render(gfx);
     }
 
 } // namespace mcu_game

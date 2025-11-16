@@ -6,14 +6,13 @@
 #include "anim/anim.hpp"
 #include "rigidbody.hpp"
 #include "game_state.hpp"
-#include "entities/fire.hpp"
 
 namespace mcu_game
 {
-    class BasePlatform : public Entity
+    class Fire : public Entity
     {
     public:
-        BasePlatform(Vec3 center) : transform{center.x, center.y, center.z, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f}
+        Fire(Vec3 center, float rotation) : transform{center.x, center.y, center.z, 0.0f, rotation, 0.0f, 1.0f, 1.0f, 1.0f}
         {
         }
         bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;
@@ -22,7 +21,7 @@ namespace mcu_game
 
     private:
         Rasterizer::Transform transform;
-        Fire fire{{transform.position.x - 0.67f, transform.position.y + 0.24f, transform.position.z - 4.5f}, 160.0f};
+        Animator animator{};
         uint32_t vertexId = 0xFF;
         uint32_t triangleId = 0xFF;
         uint32_t instanceId = 0xFF;
