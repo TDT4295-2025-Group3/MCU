@@ -304,6 +304,12 @@ int main(void)
   if (sdReady)
     runtimeMountOk = SD_MountForRuntime(gModelBasePath, sizeof(gModelBasePath));
 
+
+  // Wait for PB7 to go high (guard for FPGA ready)
+  while (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6) != GPIO_PIN_SET)
+  {
+    HAL_Delay(1);
+  }
   game.init();
 
   /* Infinite loop */
