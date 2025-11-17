@@ -18,9 +18,13 @@ namespace mcu_game
         float jumpVelocity;
 
         float moveSpeed = 9.0f;
+
+        float coyoteTime = 0.12f;
+        float jumpBufferTime = 0.15f;
+
         float airControlFactor = 0.9f;
         float friction = 10.0f;
-        float turnSpeed = 10.0f;
+        float turnSpeed = 15.0f;
         float fallGravityMultiplier = 1.6f;
         float lowJumpGravityMultiplier = 1.4f;
 
@@ -57,6 +61,9 @@ namespace mcu_game
         Rigidbody body{playerConfig.collider};
         Vec3 startPosition{0.0f, 0.0f, 0.0f};
         Animator animator{};
+
+        float coyoteTimer{0.0f};
+        float jumpBufferTimer{0.0f};
 
         uint32_t vertexIdleId = 0xFF;
         uint32_t triangleIdleId = 0xFF;

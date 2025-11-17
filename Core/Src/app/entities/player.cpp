@@ -237,11 +237,22 @@ namespace mcu_game
 
         // Jump
         bool jumpPressed = gameState.input.getJump();
-        if (jumpPressed && body.isGrounded())
+        if (jumpPressed)
+            jumpBufferTimer = playerConfig.jumpBufferTime;
+        else
+            jumpBufferTimer -= deltaTime;
+        if (body.isGrounded())
+            coyoteTimer = playerConfig.coyoteTime;
+        else
+            coyoteTimer -= deltaTime;
+
+        if (jumpBufferTimer > 0.0f && coyoteTimer > 0.0f)
         {
             Vec3 vel = body.getVelocity();
             vel.y = playerConfig.jumpVelocity;
             body.setVelocity(vel);
+            jumpBufferTimer = 0.0f;
+            coyoteTimer = 0.0f;
         }
 
         // Gravity
