@@ -53,9 +53,9 @@ public:
         animations.push_back(anim);
     }
 
-    void playAnimation(const std::string &name)
+    void playAnimation(const std::string &name, bool forceRestart = false)
     {
-        if (name == animations[currentAnimationIndex].name)
+        if (name == animations[currentAnimationIndex].name && !forceRestart)
             return; // already playing
 
         for (std::size_t i = 0; i < animations.size(); ++i)

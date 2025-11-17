@@ -20,7 +20,10 @@ namespace mcu_game::assets::baked
         Collision,
         BasePlatform,
         Fence,
-        Fire
+        Fire,
+        Banana,
+        Mushroom,
+        Burger
     };
 
     struct MeshData

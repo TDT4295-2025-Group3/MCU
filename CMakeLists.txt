@@ -57,6 +57,7 @@ set(APP_SRC
         Core/Src/app/entities/fire.cpp
         Core/Src/app/entities/fence.cpp
         Core/Src/app/entities/camera.cpp
+        Core/Src/app/entities/mushroom.cpp
         Core/Src/app/platform/imodelloader.cpp
         Core/Src/device/spi_stm.hpp
         Core/Src/hid_input/hid_driver.hpp

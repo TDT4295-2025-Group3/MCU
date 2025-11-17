@@ -31,6 +31,12 @@ namespace mcu_game::assets::baked
             return FENCE_MESH;
         case MeshId::Fire:
             return FIRE_MESH;
+        case MeshId::Banana:
+            return BANANA_MESH;
+        case MeshId::Mushroom:
+            return MUSHROOM_MESH;
+        case MeshId::Burger:
+            return BURGER_MESH;
         }
         return EMPTY_MESH;
     }
@@ -59,6 +65,12 @@ namespace mcu_game::assets::baked
             return "Fence";
         case MeshId::Fire:
             return "Fire";
+        case MeshId::Banana:
+            return "Banana";
+        case MeshId::Mushroom:
+            return "Mushroom";
+        case MeshId::Burger:
+            return "Burger";
         }
         return "Unknown";
     }
@@ -87,6 +99,12 @@ namespace mcu_game::assets::baked
             return "fence.obj";
         case MeshId::Fire:
             return "fire.obj";
+        case MeshId::Banana:
+            return "banana.obj";
+        case MeshId::Mushroom:
+            return "mushroom.obj";
+        case MeshId::Burger:
+            return "burger.obj";
         }
         return "unknown.obj";
     }
