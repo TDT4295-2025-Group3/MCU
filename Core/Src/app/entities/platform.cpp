@@ -27,7 +27,7 @@ namespace mcu_game
         return true;
     }
 
-    void Platform::update(const InputState &in, float deltaTime, GameState &gameState)
+    void Platform::update(IInput &input, float deltaTime, GameState &gameState)
     {
     }
 

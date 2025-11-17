@@ -39,9 +39,9 @@ namespace mcu_game
         return true;
     }
 
-    void BasePlatform::update(const InputState &in, float deltaTime, GameState &gameState)
+    void BasePlatform::update(IInput &input, float deltaTime, GameState &gameState)
     {
-        fire.update(in, deltaTime, gameState);
+        fire.update(input, deltaTime, gameState);
     }
 
     void BasePlatform::render(Rasterizer::IRasterizer &gfx)

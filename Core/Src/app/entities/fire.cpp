@@ -51,7 +51,7 @@ namespace mcu_game
         return true;
     }
 
-    void Fire::update(const InputState &in, float deltaTime, GameState &gameState)
+    void Fire::update(IInput &input, float deltaTime, GameState &gameState)
     {
         animator.update(deltaTime);
     }

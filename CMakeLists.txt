@@ -57,7 +57,6 @@ set(APP_SRC
         Core/Src/app/entities/fire.cpp
         Core/Src/app/entities/fence.cpp
         Core/Src/app/entities/camera.cpp
-        Core/Src/app/input.hpp
         Core/Src/app/model_loader.hpp
         Core/Src/app/model_loader.cpp
         Core/Src/device/spi_stm.hpp

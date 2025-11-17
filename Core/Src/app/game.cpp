@@ -7,7 +7,6 @@
 #include "constants.hpp"
 #include "baked_models.hpp"
 #include "model_loader.hpp"
-#include "input.hpp"
 #include "game_state.hpp"
 #include "collider.hpp"
 #include "entities/camera.hpp"
@@ -75,10 +74,24 @@ void Game::init()
     _player = std::make_unique<mcu_game::Player>(mcu_game::Vec3{0.0f, 1.0f, 0.0f});
 
     createEntity(new mcu_game::Camera({2, 2, 3}));
-    createEntity(_player.get());
-    createEntity(new mcu_game::Platform({3.0f, 1.0f, 8.0f}, 15.0f));
-    createEntity(new mcu_game::Platform({-4.0f, 2.0f, 12.0f}, -10.0f));
-    createEntity(new mcu_game::BasePlatform({0.0f, 0.0f, 0.0f}));
+
+    createEntity(new mcu_game::BasePlatform({0.000f, 0.000f, 0.000f}));
+    createEntity(new mcu_game::Platform({-12.000f, 14.000f, 1.000f}, -222.270004f));
+    createEntity(new mcu_game::Platform({-12.920f, 13.820f, -5.140f}, -347.149994f));
+    createEntity(new mcu_game::Platform({-11.010f, 15.780f, -11.790f}, -81.169998f));
+    createEntity(new mcu_game::Platform({1.000f, 4.000f, 17.000f}, -10.000000f));
+    createEntity(new mcu_game::Platform({-6.840f, 17.720f, -16.230f}, -81.169998f));
+    createEntity(new mcu_game::Platform({-0.784f, 18.879f, -13.310f}, -106.449997f));
+    createEntity(new mcu_game::Platform({5.730f, 20.190f, -18.060f}, -153.210007f));
+    createEntity(new mcu_game::Platform({3.000f, 1.700f, 11.000f}, 15.000006f));
+    createEntity(new mcu_game::Platform({15.409f, 20.190f, -18.060f}, -152.423920f));
+    createEntity(new mcu_game::Platform({25.449f, 20.190f, -18.060f}, -154.498047f));
+    createEntity(new mcu_game::Platform({-4.000f, 6.400f, 15.000f}, -4.000000f));
+    createEntity(new mcu_game::Platform({-7.620f, 7.980f, 18.900f}, -32.779999f));
+    createEntity(new mcu_game::Platform({-9.290f, 9.560f, 13.750f}, 7.990000f));
+    createEntity(new mcu_game::Platform({-12.390f, 12.070f, 10.630f}, -160.979996f));
+    createEntity(new mcu_game::Platform({-8.990f, 13.670f, 5.920f}, -187.789993f));
+    createEntity(new mcu_game::Player({0.000f, 1.000f, 0.000f}));
 
     for (auto &entity : entities)
         entity->init(gfx, gameState);
@@ -130,43 +143,11 @@ void Game::tick_graphics()
 
 void Game::tick_logic()
 {
-    auto ks = input.poll();
-
-    // Map keys to InputState and camera deltas
-    mcu_game::InputState in{};
-    // Arrow keys drive player relative to camera: up = forward (positive moveZ), right = +moveX
-    in.moveZ += ks.y;
-    in.moveX += ks.x;
-    in.jump = ks.space;
-
-    // WASD control camera look. Use small radians per tick.
-    const float lookStep = 0.03f; // radians per logic tick
-    in.lookYawDelta = lookStep * ks.cam_x;
-    in.lookPitchDelta = lookStep * ks.cam_y;
 
     // Fixed dt per logic tick
-    const float dt = TICK_MS / 1000.0f;
+    const float deltaTime = TICK_MS / 1000.0f;
 
     // Rigidbody inside player handles all collisions using gameState.boxColliders
     for (auto &entity : entities)
-        entity->update(in, dt, gameState);
-
-
-    float nextRumble;
-
-    // rumble for player velocity
-    float speedY = _player->getVelocity().y;
-    if (speedY < RUMBLE_THRESHOLD) {
-        // Calculate rumble intensity (0 to 1) based on how fast we're falling
-        // The faster we fall (more negative), the stronger the rumble
-        nextRumble = std::min(1.0f, std::abs(speedY - RUMBLE_THRESHOLD) / 20.0f);
-    } else {
-        // Stop rumble when not falling fast enough
-        nextRumble = 0.0f;
-    }
-
-    if (nextRumble != lastRumbleIntensity) { // dont spam if no change
-        input.setRumble(nextRumble);
-        lastRumbleIntensity = nextRumble;
-    }
+        entity->update(input, deltaTime, gameState);
 }

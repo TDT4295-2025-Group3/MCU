@@ -26,7 +26,7 @@ namespace mcu_game
         return true;
     }
 
-    void Fence::update(const InputState &in, float deltaTime, GameState &gameState)
+    void Fence::update(IInput &input, float deltaTime, GameState &gameState)
     {
     }
 

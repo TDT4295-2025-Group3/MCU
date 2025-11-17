@@ -1,7 +1,7 @@
 #pragma once
 
 #include "math.hpp"
-#include "input.hpp"
+
 #include "entities/entity.hpp"
 #include "anim/anim.hpp"
 #include "rigidbody.hpp"
@@ -11,16 +11,30 @@ namespace mcu_game
 {
     struct PlayerConfig
     {
-        float moveSpeed = 4.0f;
-        float airControlFactor = 1.2f;
-        float jumpVelocity = 6.0f;
-        float gravity = -9.8f;
-        float friction = 8.0f;
+        float jumpHeight = 3.5f;
+        float timeToApex = 0.45f;
+
+        float gravity;
+        float jumpVelocity;
+
+        float moveSpeed = 9.0f;
+        float airControlFactor = 0.9f;
+        float friction = 10.0f;
         float turnSpeed = 10.0f;
+        float fallGravityMultiplier = 1.6f;
+        float lowJumpGravityMultiplier = 1.4f;
+
+        float fall_rumble_threshold = -5.0f;
+
+        PlayerConfig()
+        {
+            gravity = -2.0f * jumpHeight / (timeToApex * timeToApex);
+            jumpVelocity = 2.0f * jumpHeight / timeToApex;
+        }
+
         BoxCollider collider{
-            {0.0f, 1.1f, 0.0f}, // center
-            {0.4f, 1.1f, 0.4f}  // half extents
-        };
+            {0.0f, 1.1f, 0.0f},
+            {0.4f, 1.1f, 0.4f}};
     };
 
     class Player : public Entity
@@ -32,7 +46,7 @@ namespace mcu_game
             body.setBottomPosition(position);
         }
         bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;
-        void update(const InputState &in, float deltaTime, GameState &gameState) override;
+        void update(IInput &input, float deltaTime, GameState &gameState) override;
         void render(Rasterizer::IRasterizer &gfx) override;
 
         Vec3 getPosition() const { return body.getBottomPosition(); }

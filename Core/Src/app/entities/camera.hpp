@@ -17,6 +17,7 @@ namespace mcu_game
         float yawSensitivity = 1.0f;   // multiplier for input yaw delta
         float pitchSensitivity = 1.0f; // multiplier for input pitch delta
         float smooth = 12.0f;          // higher = snappier
+        float lookStep = 0.03f;
     };
 
     class Camera : public Entity
@@ -28,7 +29,7 @@ namespace mcu_game
         }
 
         bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;
-        void update(const InputState &in, float deltaTime, GameState &gameState) override;
+        void update(IInput &input, float deltaTime, GameState &gameState) override;
         void render(Rasterizer::IRasterizer &gfx) override;
 
         Vec3 getForward() const { return forward_vector_from_yaw_pitch(transform.rotation.y, transform.rotation.x); }

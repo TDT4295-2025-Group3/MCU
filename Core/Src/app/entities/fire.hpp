@@ -1,7 +1,7 @@
 #pragma once
 
 #include "math.hpp"
-#include "input.hpp"
+
 #include "entities/entity.hpp"
 #include "anim/anim.hpp"
 #include "rigidbody.hpp"
@@ -16,7 +16,7 @@ namespace mcu_game
         {
         }
         bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;
-        void update(const InputState &in, float deltaTime, GameState &gameState) override;
+        void update(IInput &input, float deltaTime, GameState &gameState) override;
         void render(Rasterizer::IRasterizer &gfx) override;
 
     private:

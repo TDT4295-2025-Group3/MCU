@@ -8,12 +8,10 @@
 #include "entities/camera.hpp"
 #include "isevenseg.hpp"
 
-static constexpr float RUMBLE_THRESHOLD = -5.0f; // velocity Y fall threshold to trigger rumble
-
 class Game
 {
 public:
-    Game(Rasterizer::IRasterizer &gfx, IInput &in, ITimer &time, ISevenSeg& sevenseg, bool showHitboxDebug = false)
+    Game(Rasterizer::IRasterizer &gfx, IInput &in, ITimer &time, ISevenSeg &sevenseg, bool showHitboxDebug = false)
         : gfx(gfx), input(in), timer(time), showHitboxDebug(showHitboxDebug), sevenseg(sevenseg) {}
 
     void init();
@@ -36,7 +34,7 @@ private:
     Rasterizer::IRasterizer &gfx;
     IInput &input;
     ITimer &timer;
-    ISevenSeg& sevenseg;
+    ISevenSeg &sevenseg;
     uint32_t next_tick_ms;
     uint32_t next_frame_ms;
 

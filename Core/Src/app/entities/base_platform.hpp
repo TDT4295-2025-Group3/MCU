@@ -1,7 +1,6 @@
 #pragma once
 
 #include "math.hpp"
-#include "input.hpp"
 #include "entities/entity.hpp"
 #include "anim/anim.hpp"
 #include "rigidbody.hpp"
@@ -18,12 +17,12 @@ namespace mcu_game
         {
         }
         bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;
-        void update(const InputState &in, float deltaTime, GameState &gameState) override;
+        void update(IInput &input, float deltaTime, GameState &gameState) override;
         void render(Rasterizer::IRasterizer &gfx) override;
 
     private:
         Rasterizer::Transform transform;
-        Fire fire{{transform.position.x - 0.67f, transform.position.y + 0.24f, transform.position.z - 4.5f}, 160.0f};
+        Fire fire{{transform.position.x - 0.75f, transform.position.y + 0.24f, transform.position.z - 4.5f}, 160.0f};
         Fence fence{{transform.position.x + 7.0f, transform.position.y + 0.0f, transform.position.z - 1.0f}, 3.14f};
         Fence fence2{{transform.position.x - 4.0f, transform.position.y + 0.0f, transform.position.z - 7.0f}, 1.57f};
         uint32_t vertexId = 0xFF;
