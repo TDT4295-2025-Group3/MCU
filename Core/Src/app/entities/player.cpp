@@ -279,30 +279,8 @@ namespace mcu_game
 
     void Player::render(GameState &gameState)
     {
-        const Keyframe &keyframe = animator.getCurrentKeyframe();
-
-        Rasterizer::Transform animTransform = body.getTransform();
-        if (keyframe.useTranslation)
-        {
-            animTransform.position.x += keyframe.translationX;
-            animTransform.position.y += keyframe.translationY;
-            animTransform.position.z += keyframe.translationZ;
-        }
-
-        if (keyframe.useRotation)
-        {
-            animTransform.rotation.x += keyframe.rotationX;
-            animTransform.rotation.y += keyframe.rotationY;
-            animTransform.rotation.z += keyframe.rotationZ;
-        }
-        if (keyframe.useScale)
-        {
-            animTransform.scale.x *= keyframe.scaleX;
-            animTransform.scale.y *= keyframe.scaleY;
-            animTransform.scale.z *= keyframe.scaleZ;
-        }
-
-        gameState.gfx.updateInstance(keyframe.vertexId, keyframe.triangleId, instanceId, animTransform);
+        const AnimState &animState = animator.getCurrentAnimState(vertexIdleId, triangleIdleId, body.getTransform());
+        gameState.gfx.updateInstance(animState.vertexId, animState.triangleId, instanceId, animState.transform);
     }
 
 } // namespace mcu_game

@@ -3,6 +3,14 @@
 #include <vector>
 #include <cstddef>
 #include <string>
+#include "platform/irasterizer.hpp"
+
+struct AnimState
+{
+    uint32_t vertexId = 0;
+    uint32_t triangleId = 0;
+    Rasterizer::Transform transform;
+};
 
 struct Keyframe
 {
@@ -94,18 +102,51 @@ public:
         }
     }
 
-    Keyframe getCurrentKeyframe() const
+    AnimState getCurrentAnimState(uint32_t baseVertexId, uint32_t baseTriangleId, const Rasterizer::Transform &baseTransform)
     {
         if (currentAnimationIndex == npos ||
             currentAnimationIndex >= animations.size() ||
             animations[currentAnimationIndex].keyframes.empty() ||
             totalDuration <= 0.0f)
         {
-            return makeIdentityKeyframe();
+            return AnimState{
+                baseVertexId,
+                baseTriangleId,
+                baseTransform};
         }
 
         const Animation &anim = animations[currentAnimationIndex];
-        return sampleAtTime(anim, currentTime);
+        Keyframe keyFrame = sampleAtTime(anim, currentTime);
+        Rasterizer::Transform animTransform = baseTransform;
+        if (keyFrame.useTranslation)
+        {
+            animTransform.position.x += keyFrame.translationX;
+            animTransform.position.y += keyFrame.translationY;
+            animTransform.position.z += keyFrame.translationZ;
+        }
+        if (keyFrame.useRotation)
+        {
+            animTransform.rotation.x += keyFrame.rotationX;
+            animTransform.rotation.y += keyFrame.rotationY;
+            animTransform.rotation.z += keyFrame.rotationZ;
+        }
+        if (keyFrame.useScale)
+        {
+            animTransform.scale.x *= keyFrame.scaleX;
+            animTransform.scale.y *= keyFrame.scaleY;
+            animTransform.scale.z *= keyFrame.scaleZ;
+        }
+
+        if (keyFrame.useModelSwap)
+        {
+            baseVertexId = keyFrame.vertexId;
+            baseTriangleId = keyFrame.triangleId;
+        }
+
+        return AnimState{
+            baseVertexId,
+            baseTriangleId,
+            animTransform};
     }
 
 private:
@@ -140,38 +181,9 @@ private:
         totalDuration = (t > 0.0f ? t : 0.0f);
     }
 
-    static Keyframe makeIdentityKeyframe()
-    {
-        Keyframe k{};
-        // No model swap by default
-        k.useModelSwap = false;
-        k.vertexId = 0;
-        k.triangleId = 0;
-
-        // You asked: "return 111 for scale and 000 for rest"
-        // So we always give an *actual* transform:
-        k.useTranslation = true;
-        k.translationX = 0.0f;
-        k.translationY = 0.0f;
-        k.translationZ = 0.0f;
-
-        k.useRotation = true;
-        k.rotationX = 0.0f;
-        k.rotationY = 0.0f;
-        k.rotationZ = 0.0f;
-
-        k.useScale = true;
-        k.scaleX = 1.0f;
-        k.scaleY = 1.0f;
-        k.scaleZ = 1.0f;
-
-        k.duration = 0.0f; // not really used for the sampled key
-        return k;
-    }
-
     Keyframe sampleAtTime(const Animation &anim, float t) const
     {
-        Keyframe result = makeIdentityKeyframe();
+        Keyframe result{};
 
         const auto &kfs = anim.keyframes;
         if (kfs.empty())
