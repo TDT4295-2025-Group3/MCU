@@ -1,6 +1,9 @@
 #pragma once
 
-struct KeyState {
+#include "math.hpp"
+
+struct KeyState
+{
     // Arrow keys for player movement (camera-relative motion handled in game logic)
     // x: left (-1) to right (+1), y: down (-1) to up (+1)
     float x{}, y{};
@@ -13,7 +16,8 @@ struct KeyState {
     bool space{};
 };
 
-class IInput {
+class IInput
+{
     // Interface for input
 public:
     virtual ~IInput() = default;
@@ -24,4 +28,17 @@ public:
      * @param x Rumble intensity in the range [0.0, 1.0].
      */
     virtual void setRumble(float x) = 0;
+    virtual void clearRumble() { setRumble(0.0f); }
+
+    virtual mcu_game::Vec2 getRunInput()
+    {
+        KeyState ks = poll();
+        return mcu_game::Vec2{ks.x, ks.y};
+    }
+    virtual mcu_game::Vec2 getLookInput()
+    {
+        KeyState ks = poll();
+        return mcu_game::Vec2{ks.cam_x, ks.cam_y};
+    }
+    virtual bool getJump() { return poll().space; }
 };

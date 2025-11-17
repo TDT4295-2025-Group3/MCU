@@ -57,9 +57,7 @@ set(APP_SRC
         Core/Src/app/entities/fire.cpp
         Core/Src/app/entities/fence.cpp
         Core/Src/app/entities/camera.cpp
-        Core/Src/app/input.hpp
-        Core/Src/app/model_loader.hpp
-        Core/Src/app/model_loader.cpp
+        Core/Src/app/platform/imodelloader.cpp
         Core/Src/device/spi_stm.hpp
         Core/Src/hid_input/hid_driver.hpp
         Core/Src/hid_input/hid_reports.h
@@ -141,12 +139,12 @@ if (BUILD_STM32)
             ${TINYUSB_SRC}
             Core/Src/device/spi_stm.cpp
             Core/Src/device/spi_stm.hpp
+            Core/Src/device/fsfat_model_loader.cpp
             Core/Src/device/seven_seg_display.cpp
             Core/Src/device/seven_seg_display_c.cpp
             Core/Src/device/hid_input/tusb_config.h
             Core/Src/device/hid_input/tusb_input.cpp
             Core/Src/device/hid_input/tusb_input.hpp
-
     )
 
     add_subdirectory(cmake/stm32cubemx)
@@ -249,6 +247,7 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
             ${APP_SRC}
             Core/Src/sim/main_sim.cpp
             Core/Src/sim/host_input_timer.cpp
+            Core/Src/sim/host_model_loader.cpp
             Core/Src/sim/host_rasterizer.cpp
             Core/Src/sim/host_sevenseg.cpp
             Core/Src/sim/small3dlib.h

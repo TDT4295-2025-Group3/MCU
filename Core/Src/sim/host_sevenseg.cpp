@@ -14,6 +14,8 @@ HostSevenSeg::HostSevenSeg() {
         SDL_WINDOW_RESIZABLE
     );
 
+    SDL_SetWindowPosition(window, 20, 20);
+
     renderer = SDL_CreateRenderer(window, nullptr);
 
     // Clear to black initially

@@ -9,6 +9,7 @@
 #include "game.hpp"
 #include "host_input_timer.hpp"
 #include "host_rasterizer.hpp"
+#include "host_model_loader.hpp"
 #include "hid_driver.hpp"
 #include <hidapi.h>
 
@@ -97,7 +98,9 @@ int main()
 
     HostSevenSeg seven_seg;
 
-    Game game{rasterizer, *activeInput, timer, seven_seg, false};
+    mcu_game::assets::HostModelLoader loader;
+
+    Game game{rasterizer, *activeInput, timer, seven_seg, loader, false};
     game.init();
 
     uint8_t ds4_buffer[64];

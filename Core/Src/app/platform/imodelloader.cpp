@@ -1,68 +1,67 @@
-#include "model_loader.hpp"
+#include "imodelloader.hpp"
 
 #include <algorithm>
-#include <cctype>
 #include <charconv>
-#include <cstdio>
-#include <limits>
 #include <system_error>
-#include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
+#include "irasterizer.hpp"
 
-#if defined(PLATFORM_STM32)
-#include "ff.h"
-#endif
+using namespace mcu_game::assets;
 
+const char* IModelLoader::to_string(ModelLoadResult result) const {
+    switch (result) {
+        case ModelLoadResult::Ok:
+            return "Ok";
+        case ModelLoadResult::FileOpenFailed:
+            return "FileOpenFailed";
+        case ModelLoadResult::ParseError:
+            return "ParseError";
+        case ModelLoadResult::VertexCountInvalid:
+            return "VertexCountInvalid";
+        case ModelLoadResult::TriangleCountInvalid:
+            return "TriangleCountInvalid";
+        case ModelLoadResult::DataReadFailed:
+            return "DataReadFailed";
+        default:
+            return "Unknown";
+    }
+}
 
-namespace mcu_game::assets {
-namespace {
-
-constexpr uint16_t kMaxSupportedVertices = 4096;
-constexpr uint16_t kMaxSupportedTriangles = 4096;
-constexpr uint8_t kDefaultColor = 15;
-
-bool parse_float(std::string_view token, float& out) {
+bool IModelLoader::parse_float(std::string_view token, float& out) {
     std::string tmp(token);
     char* end;
     out = std::strtof(tmp.c_str(), &end);
     return end == tmp.c_str() + tmp.size();
 }
 
-bool parse_int(std::string_view token, int& out) {
+bool IModelLoader::parse_int(std::string_view token, int& out) {
     const char* begin = token.data();
     const char* end = begin + token.size();
     const auto result = std::from_chars(begin, end, out);
     return (result.ec == std::errc{}) && (result.ptr == end);
 }
 
-bool parse_face_index(std::string_view token, size_t vertexCount, uint16_t& out) {
+bool IModelLoader::parse_face_index(std::string_view token, size_t vertexCount, uint16_t& out) {
     if (token.empty()) {
         return false;
     }
-
     const size_t slashPos = token.find('/');
     std::string_view indexToken = (slashPos == std::string_view::npos) ? token : token.substr(0, slashPos);
     if (indexToken.empty()) {
         return false;
     }
-
     int value = 0;
     if (!parse_int(indexToken, value) || value == 0) {
         return false;
     }
-
     const int resolved = (value > 0) ? (value - 1) : static_cast<int>(vertexCount) + value;
     if (resolved < 0 || resolved >= static_cast<int>(vertexCount)) {
         return false;
     }
-
     out = static_cast<uint16_t>(resolved);
     return true;
 }
 
-void tokenize(std::string_view line, std::vector<std::string_view>& tokens) {
+void IModelLoader::tokenize(std::string_view line, std::vector<std::string_view>& tokens) {
     tokens.clear();
     size_t pos = 0;
     while (pos < line.size()) {
@@ -75,7 +74,6 @@ void tokenize(std::string_view line, std::vector<std::string_view>& tokens) {
         if (line[pos] == '#') {
             break;
         }
-
         const size_t start = pos;
         while (pos < line.size() && !std::isspace(static_cast<unsigned char>(line[pos]))) {
             ++pos;
@@ -84,83 +82,7 @@ void tokenize(std::string_view line, std::vector<std::string_view>& tokens) {
     }
 }
 
-#if defined(PLATFORM_STM32)
-ModelLoadResult read_entire_file(const char* path, std::string& out) {
-    FIL file{};
-    const FRESULT openRes = f_open(&file, path, FA_READ);
-    if (openRes != FR_OK) {
-        std::printf("[Model] f_open failed for %s: %d\n", path, openRes);
-        return ModelLoadResult::FileOpenFailed;
-    }
-
-    const FSIZE_t rawSize = f_size(&file);
-    out.clear();
-    if (rawSize > 0) {
-        if (rawSize > static_cast<FSIZE_t>(std::numeric_limits<UINT>::max())) {
-            std::printf("[Model] %s is too large (%lu bytes)\n", path, static_cast<unsigned long>(rawSize));
-            f_close(&file);
-            return ModelLoadResult::DataReadFailed;
-        }
-
-        out.resize(static_cast<size_t>(rawSize));
-        UINT bytesRead = 0;
-        const FRESULT readRes = f_read(&file, out.data(), static_cast<UINT>(out.size()), &bytesRead);
-        f_close(&file);
-        if (readRes != FR_OK || bytesRead != out.size()) {
-            std::printf("[Model] Failed reading %s (res=%d, read=%u)\n", path, readRes, bytesRead);
-            out.clear();
-            return ModelLoadResult::DataReadFailed;
-        }
-    } else {
-        f_close(&file);
-    }
-
-    return ModelLoadResult::Ok;
-}
-#elif defined(PLATFORM_PC)
-ModelLoadResult read_entire_file(const char* path, std::string& out) {
-    std::FILE* file = std::fopen(path, "rb");
-    if (file == nullptr) {
-        std::printf("[Model] fopen failed for %s\n", path);
-        return ModelLoadResult::FileOpenFailed;
-    }
-
-    if (std::fseek(file, 0, SEEK_END) != 0) {
-        std::printf("[Model] fseek failed for %s\n", path);
-        std::fclose(file);
-        return ModelLoadResult::DataReadFailed;
-    }
-
-    const long size = std::ftell(file);
-    if (size < 0) {
-        std::printf("[Model] ftell failed for %s\n", path);
-        std::fclose(file);
-        return ModelLoadResult::DataReadFailed;
-    }
-
-    if (std::fseek(file, 0, SEEK_SET) != 0) {
-        std::printf("[Model] rewind failed for %s\n", path);
-        std::fclose(file);
-        return ModelLoadResult::DataReadFailed;
-    }
-
-    out.resize(static_cast<size_t>(size));
-    if (!out.empty()) {
-        const size_t read = std::fread(out.data(), 1, out.size(), file);
-        if (read != out.size()) {
-            std::printf("[Model] fread failed for %s (read=%zu)\n", path, read);
-            std::fclose(file);
-            out.clear();
-            return ModelLoadResult::DataReadFailed;
-        }
-    }
-
-    std::fclose(file);
-    return ModelLoadResult::Ok;
-}
-#endif
-
-ModelLoadResult parse_obj(const char* path, const std::string& content, ModelData& outModel) {
+ModelLoadResult IModelLoader::parse_obj(const char* path, const std::string& content, ModelData& outModel) {
     std::vector<Rasterizer::Vertex> vertices;
     std::vector<Rasterizer::Triangle> triangles;
     vertices.reserve(32);
@@ -306,51 +228,17 @@ ModelLoadResult parse_obj(const char* path, const std::string& content, ModelDat
     return ModelLoadResult::Ok;
 }
 
-}  // namespace
-
-ModelLoadResult load_model(const char* path, ModelData& outModel) {
-    if (path == nullptr) {
+ModelLoadResult IModelLoader::load_model(const char *path, ModelData &outModel)
+{
+    if (path == nullptr)
+    {
         return ModelLoadResult::FileOpenFailed;
     }
-
     std::string content;
-
-#if defined(PLATFORM_STM32)
     const ModelLoadResult ioRes = read_entire_file(path, content);
-    if (ioRes != ModelLoadResult::Ok) {
+    if (ioRes != ModelLoadResult::Ok)
+    {
         return ioRes;
     }
-#elif defined(PLATFORM_PC)
-    const ModelLoadResult ioRes = read_entire_file(path, content);
-    if (ioRes != ModelLoadResult::Ok) {
-        return ioRes;
-    }
-#else
-    (void)outModel;
-    (void)path;
-    return ModelLoadResult::FileOpenFailed;
-#endif
-
     return parse_obj(path, content, outModel);
 }
-
-const char* to_string(ModelLoadResult result) {
-    switch (result) {
-        case ModelLoadResult::Ok:
-            return "Ok";
-        case ModelLoadResult::FileOpenFailed:
-            return "FileOpenFailed";
-        case ModelLoadResult::ParseError:
-            return "ParseError";
-        case ModelLoadResult::VertexCountInvalid:
-            return "VertexCountInvalid";
-        case ModelLoadResult::TriangleCountInvalid:
-            return "TriangleCountInvalid";
-        case ModelLoadResult::DataReadFailed:
-            return "DataReadFailed";
-        default:
-            return "Unknown";
-    }
-}
-
-}  // namespace mcu_game::assets

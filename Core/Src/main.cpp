@@ -69,6 +69,7 @@
 #include "tusb.h"
 #include "usbh.h"
 #include "seven_seg_display.hpp"
+#include "fsfat_model_loader.hpp"
 
 #ifdef SPI_TEST_MODE
 extern "C" int spi_test_main(void);
@@ -296,8 +297,9 @@ int main(void)
   HalTimer timer;
 
   MCUSevenSeg seven_seg;
+  mcu_game::assets::FsFatModelLoader model_loader;
 
-  Game game{rasterizer, TinyUSBInput::getInstance(), timer, seven_seg};
+  Game game{rasterizer, TinyUSBInput::getInstance(), timer, seven_seg, model_loader};
 
   if (sdReady)
     runtimeMountOk = SD_MountForRuntime(gModelBasePath, sizeof(gModelBasePath));

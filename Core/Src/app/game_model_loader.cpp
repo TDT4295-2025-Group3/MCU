@@ -1,12 +1,12 @@
 #include "game_model_loader.hpp"
 
 bool loadModelGeometry(Rasterizer::IRasterizer &gfx,
+                       mcu_game::assets::IModelLoader &loader,
                        const std::string &relativePath,
                        uint32_t &vertexId,
                        uint32_t &triangleId,
                        size_t *outVertexCount,
-                       size_t *outTriangleCount)
-{
+                       size_t *outTriangleCount) {
     vertexId = 0xFF;
     triangleId = 0xFF;
 
@@ -17,7 +17,7 @@ bool loadModelGeometry(Rasterizer::IRasterizer &gfx,
     fullPath.append(relativePath);
 
     mcu_game::assets::ModelData modelData;
-    const auto result = mcu_game::assets::load_model(fullPath.c_str(), modelData);
+    const auto result = loader.load_model(fullPath.c_str(), modelData);
     if (result != mcu_game::assets::ModelLoadResult::Ok)
         return false;
 
@@ -42,23 +42,22 @@ bool loadModelGeometry(Rasterizer::IRasterizer &gfx,
 
     return true;
 }
-struct LoadedModel
-{
+
+struct LoadedModel {
     mcu_game::assets::baked::MeshId bakedId;
     uint32_t vertexId = 0xFF;
     uint32_t triangleId = 0xFF;
 };
 
 std::vector<LoadedModel> loadedModels;
+
 bool createBuffersWithFallback(Rasterizer::IRasterizer &gfx,
+                               mcu_game::assets::IModelLoader &loader,
                                mcu_game::assets::baked::MeshId bakedId,
                                uint32_t &vertexId,
-                               uint32_t &triangleId)
-{
-    for (auto &loadedModel : loadedModels)
-    {
-        if (loadedModel.bakedId == bakedId)
-        {
+                               uint32_t &triangleId) {
+    for (auto &loadedModel: loadedModels) {
+        if (loadedModel.bakedId == bakedId) {
             vertexId = loadedModel.vertexId;
             triangleId = loadedModel.triangleId;
             return true;
@@ -72,6 +71,7 @@ bool createBuffersWithFallback(Rasterizer::IRasterizer &gfx,
 
     // Try normal path: load from OBJ
     const bool geomLoaded = loadModelGeometry(gfx,
+                                              loader,
                                               objName,
                                               vertexId,
                                               triangleId,
@@ -86,8 +86,7 @@ bool createBuffersWithFallback(Rasterizer::IRasterizer &gfx,
     if (!mcu_game::assets::baked::createBuffers(bakedId,
                                                 gfx,
                                                 vertexId,
-                                                triangleId))
-    {
+                                                triangleId)) {
         std::printf("[Model] Failed to create baked geometry for %s\n", objName.c_str());
         vertexId = 0xFF;
         triangleId = 0xFF;

@@ -4,13 +4,14 @@
 // Helper functions for camera sky color calculation
 namespace
 {
-    using mcu_game::Vec3;
     using mcu_game::lerp;
+    using mcu_game::Vec3;
 
     // Returns the height value scaled to [0, 1] for the provided range
     float normalizedHeightValue(float heightValue, float minVal, float maxVal)
     {
-        if (maxVal <= minVal) return 0.0f;
+        if (maxVal <= minVal)
+            return 0.0f;
         const float t = (heightValue - minVal) / (maxVal - minVal);
         return std::clamp(t, 0.0f, 1.0f);
     }
@@ -27,7 +28,7 @@ namespace
 namespace mcu_game
 {
 
-    bool Camera::init(Rasterizer::IRasterizer &gfx, GameState &gameState)
+    bool Camera::init(GameState &gameState)
     {
         gameState.cameraForward = getForward();
 
@@ -36,16 +37,17 @@ namespace mcu_game
         transform.rotation = {0.3f, 0.0f, 0.0f};
 
         updateSkyColor(gameState.playerPosition.y);
-        gfx.updateCamera(r, g, b, transform);
+        gameState.gfx.updateCamera(r, g, b, transform);
 
         return true;
     }
 
-    void Camera::update(const InputState &in, float deltaTime, GameState &gameState)
+    void Camera::update(float deltaTime, GameState &gameState)
     {
         // Apply look deltas
-        transform.rotation.y += in.lookYawDelta * cameraConfig.yawSensitivity;
-        transform.rotation.x += in.lookPitchDelta * cameraConfig.pitchSensitivity;
+        Vec2 lookInput = gameState.input.getLookInput();
+        transform.rotation.y += lookInput.x * cameraConfig.lookStep * cameraConfig.yawSensitivity;
+        transform.rotation.x += lookInput.y * cameraConfig.lookStep * cameraConfig.pitchSensitivity;
         if (transform.rotation.x < cameraConfig.minPitch)
             transform.rotation.x = cameraConfig.minPitch;
         if (transform.rotation.x > cameraConfig.maxPitch)
@@ -67,16 +69,16 @@ namespace mcu_game
         updateSkyColor(gameState.playerPosition.y);
     }
 
-    void Camera::render(Rasterizer::IRasterizer &gfx)
+    void Camera::render(GameState &gameState)
     {
-        gfx.updateCamera(r, g, b, transform);
+        gameState.gfx.updateCamera(r, g, b, transform);
     }
 
     void Camera::updateSkyColor(float playerHeight)
     {
-        constexpr float startLevel = 0.0f;       // ground level
-        constexpr float darkeningLevel = 50.0f;  // begins to get darker
-        constexpr float spaceLevel = 120.0f;     // goes to black in space
+        constexpr float startLevel = 0.0f;      // ground level
+        constexpr float darkeningLevel = 50.0f; // begins to get darker
+        constexpr float spaceLevel = 120.0f;    // goes to black in space
 
         const Vec3 lightSky{135.0f, 206.0f, 235.0f};
         const Vec3 darkSky{25.0f, 70.0f, 130.0f};

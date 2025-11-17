@@ -9,16 +9,14 @@
 namespace mcu_game
 {
 
-    bool Fire::init(Rasterizer::IRasterizer &gfx, GameState &gameState)
+    bool Fire::init(GameState &gameState)
     {
-        if (!createBuffersWithFallback(gfx, assets::baked::MeshId::Fire,
-                                       vertexId,
-                                       triangleId))
+        if (!gameState.load_model(assets::baked::MeshId::Fire, vertexId, triangleId))
             return false;
 
-        const auto platformInstanceResp = gfx.createInstance(static_cast<uint8_t>(vertexId),
-                                                             static_cast<uint8_t>(triangleId),
-                                                             transform);
+        const auto platformInstanceResp = gameState.gfx.createInstance(static_cast<uint8_t>(vertexId),
+                                                                       static_cast<uint8_t>(triangleId),
+                                                                       transform);
         if (!platformInstanceResp.isSuccess())
             return false;
         instanceId = platformInstanceResp.getInstanceId();
@@ -51,12 +49,12 @@ namespace mcu_game
         return true;
     }
 
-    void Fire::update(const InputState &in, float deltaTime, GameState &gameState)
+    void Fire::update(float deltaTime, GameState &gameState)
     {
         animator.update(deltaTime);
     }
 
-    void Fire::render(Rasterizer::IRasterizer &gfx)
+    void Fire::render(GameState &gameState)
     {
         const Keyframe &keyframe = animator.getCurrentKeyframe();
 
@@ -81,7 +79,7 @@ namespace mcu_game
             animTransform.scale.z *= keyframe.scaleZ;
         }
 
-        gfx.updateInstance(keyframe.vertexId, keyframe.triangleId, instanceId, animTransform);
+        gameState.gfx.updateInstance(keyframe.vertexId, keyframe.triangleId, instanceId, animTransform);
     }
 
-} // namespace mcu_game
+}
