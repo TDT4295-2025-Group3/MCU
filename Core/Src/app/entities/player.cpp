@@ -237,7 +237,9 @@ namespace mcu_game
 
         // Jump
         bool jumpPressed = gameState.input.getJump();
-        if (jumpPressed)
+        bool jumpJustPressed = jumpPressed && !lastJumpPressed;
+        lastJumpPressed = jumpPressed;
+        if (jumpJustPressed)
             jumpBufferTimer = playerConfig.jumpBufferTime;
         else
             jumpBufferTimer -= deltaTime;

@@ -64,6 +64,7 @@ namespace mcu_game
 
         float coyoteTimer{0.0f};
         float jumpBufferTimer{0.0f};
+        bool lastJumpPressed{false};
 
         uint32_t vertexIdleId = 0xFF;
         uint32_t triangleIdleId = 0xFF;
