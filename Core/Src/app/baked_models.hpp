@@ -16,6 +16,7 @@ namespace mcu_game::assets::baked
         PlayerRun2,
         PlayerJumpUp,
         PlayerJumpDown,
+        PlayerSleep,
         Platform,
         Collision,
         BasePlatform,
@@ -23,7 +24,10 @@ namespace mcu_game::assets::baked
         Fire,
         Banana,
         Mushroom,
-        Burger
+        Burger,
+        Logo,
+        PressXToStart,
+        Empty,
     };
 
     struct MeshData

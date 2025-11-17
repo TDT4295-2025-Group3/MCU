@@ -32,6 +32,14 @@ namespace mcu_game
                                   triangleJumpDownId))
             return false;
 
+        if (!gameState.load_model(assets::baked::MeshId::PlayerSleep, vertexSleepId,
+                                  triangleSleepId))
+            return false;
+
+        if (!gameState.load_model(assets::baked::MeshId::PlayerSleep, vertexSleepId,
+                                  triangleSleepId))
+            return false;
+
         const auto playerInstanceResp = gameState.gfx.createInstance(static_cast<uint8_t>(vertexIdleId),
                                                                      static_cast<uint8_t>(triangleIdleId),
                                                                      body.getTransform());
@@ -122,7 +130,32 @@ namespace mcu_game
             },
             true});
 
-        animator.playAnimation("Idle");
+        animator.addAnimation(Animation{
+            "Sleep",
+            {
+                {true, vertexSleepId, triangleSleepId,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.8f},
+
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.1f, 0.96f, 1.1f,
+                 0.8f},
+
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.0f},
+            },
+            true});
+
+        animator.playAnimation("Slep");
+
+        gameState.isMenuActive = true;
 
         return true;
     }
@@ -156,27 +189,36 @@ namespace mcu_game
 
         // Input vector in camera space
         Vec2 runInput = gameState.input.getRunInput();
+        if (gameState.isMenuActive)
+            runInput = {0.0f, 0.0f};
         Vec3 inputDir = forward * runInput.y + right * runInput.x;
         const bool hasInput = length_sq(inputDir) > 1e-6f;
         Vec3 desiredMoveDir = hasInput ? normalize(inputDir) : Vec3{0, 0, 0}; // normalized desired move direction
 
-        if (hasInput && body.isGrounded())
+        if (gameState.isMenuActive)
         {
-            animator.playAnimation("Run");
+            animator.playAnimation("Sleep");
         }
-        else if (!hasInput && body.isGrounded())
+        else
         {
-            animator.playAnimation("Idle");
-        }
-        else if (!body.isGrounded())
-        {
-            if (body.getVelocity().y > 0.0f)
+            if (hasInput && body.isGrounded())
             {
-                animator.playAnimation("JumpUp");
+                animator.playAnimation("Run");
             }
-            else
+            else if (!hasInput && body.isGrounded())
             {
-                animator.playAnimation("JumpDown");
+                animator.playAnimation("Idle");
+            }
+            else if (!body.isGrounded())
+            {
+                if (body.getVelocity().y > 0.0f)
+                {
+                    animator.playAnimation("JumpUp");
+                }
+                else
+                {
+                    animator.playAnimation("JumpDown");
+                }
             }
         }
 
@@ -250,6 +292,7 @@ namespace mcu_game
 
         if (jumpBufferTimer > 0.0f && coyoteTimer > 0.0f)
         {
+            gameState.isMenuActive = false;
             Vec3 vel = body.getVelocity();
             vel.y = playerConfig.jumpVelocity;
             body.setVelocity(vel);

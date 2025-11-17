@@ -21,6 +21,8 @@ namespace mcu_game::assets::baked
             return PLAYERJUMPUP_MESH;
         case MeshId::PlayerJumpDown:
             return PLAYERJUMPDOWN_MESH;
+        case MeshId::PlayerSleep:
+            return PLAYER_SLEEP_MESH;
         case MeshId::Platform:
             return PLATFORM_MESH;
         case MeshId::Collision:
@@ -37,6 +39,10 @@ namespace mcu_game::assets::baked
             return MUSHROOM_MESH;
         case MeshId::Burger:
             return BURGER_MESH;
+        case MeshId::Logo:
+            return UPWARD_LOGO_MIRRORED_MESH;
+        case MeshId::PressXToStart:
+            return PRESS_X_MIRRORED_MESH;
         }
         return EMPTY_MESH;
     }
@@ -55,6 +61,8 @@ namespace mcu_game::assets::baked
             return "PlayerJumpUp";
         case MeshId::PlayerJumpDown:
             return "PlayerJumpDown";
+        case MeshId::PlayerSleep:
+            return "PlayerSleep";
         case MeshId::Platform:
             return "Platform";
         case MeshId::Collision:
@@ -71,6 +79,10 @@ namespace mcu_game::assets::baked
             return "Mushroom";
         case MeshId::Burger:
             return "Burger";
+        case MeshId::Logo:
+            return "Logo";
+        case MeshId::PressXToStart:
+            return "PressXToStart";
         }
         return "Unknown";
     }
@@ -89,6 +101,8 @@ namespace mcu_game::assets::baked
             return "playerJumpUp.obj";
         case MeshId::PlayerJumpDown:
             return "playerJumpDown.obj";
+        case MeshId::PlayerSleep:
+            return "playerSleep.obj";
         case MeshId::Platform:
             return "platform.obj";
         case MeshId::Collision:
@@ -105,6 +119,10 @@ namespace mcu_game::assets::baked
             return "mushroom.obj";
         case MeshId::Burger:
             return "burger.obj";
+        case MeshId::Logo:
+            return "upward_logo_mirrored.obj";
+        case MeshId::PressXToStart:
+            return "press_x_mirrored.obj";
         }
         return "unknown.obj";
     }

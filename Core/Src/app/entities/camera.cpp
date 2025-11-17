@@ -43,6 +43,8 @@ namespace mcu_game
     void Camera::update(float deltaTime, GameState &gameState)
     {
         // Apply look deltas
+        if (gameState.isMenuActive)
+            return;
         Vec2 lookInput = gameState.input.getLookInput();
         transform.rotation.y += lookInput.x * cameraConfig.lookStep * cameraConfig.yawSensitivity;
         transform.rotation.x += lookInput.y * cameraConfig.lookStep * cameraConfig.pitchSensitivity;

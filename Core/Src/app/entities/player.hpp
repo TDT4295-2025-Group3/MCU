@@ -76,6 +76,8 @@ namespace mcu_game
         uint32_t triangleJumpUpId = 0xFF;
         uint32_t vertexJumpDownId = 0xFF;
         uint32_t triangleJumpDownId = 0xFF;
+        uint32_t vertexSleepId = 0xFF;
+        uint32_t triangleSleepId = 0xFF;
         uint32_t instanceId = 0xFF;
     };
 
