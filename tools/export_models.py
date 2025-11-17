@@ -7,7 +7,7 @@ The resulting files follow a very small subset of the OBJ format:
 * face lines are triangles (`f i j k`) with 1-based indices
 
 Usage:
-    python tools/export_models.py --out build/models
+    python3 tools/export_models.py --out build/models
 
 Copy the generated *.obj files to the SD card under e.g. 0:/models/.
 """

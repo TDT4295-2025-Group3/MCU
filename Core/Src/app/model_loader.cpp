@@ -24,10 +24,10 @@ constexpr uint16_t kMaxSupportedTriangles = 4096;
 constexpr uint8_t kDefaultColor = 15;
 
 bool parse_float(std::string_view token, float& out) {
-    const char* begin = token.data();
-    const char* end = begin + token.size();
-    const auto result = std::from_chars(begin, end, out);
-    return (result.ec == std::errc{}) && (result.ptr == end);
+    std::string tmp(token);
+    char* end;
+    out = std::strtof(tmp.c_str(), &end);
+    return end == tmp.c_str() + tmp.size();
 }
 
 bool parse_int(std::string_view token, int& out) {
@@ -233,15 +233,24 @@ ModelLoadResult parse_obj(const char* path, const std::string& content, ModelDat
                                         (gf >= 0.0f && gf <= 1.0f) &&
                                         (bf >= 0.0f && bf <= 1.0f);
 
-                const auto toByte = [normalized](float value) {
-                    const float scaled = normalized ? (value * 255.0f) : value;
-                    const float clamped = std::clamp(scaled, 0.0f, 255.0f);
+                const auto toNibble = [normalized](float value) {
+                    float scaled = 0.0f;
+                    if (normalized) {
+                        scaled = value * 15.0f;
+                    } else if (value > 15.0f) {
+                        // Treat large values as 0-255 input and remap to nibble range
+                        scaled = value * (15.0f / 255.0f);
+                    } else {
+                        scaled = value;
+                    }
+
+                    const float clamped = std::clamp(scaled, 0.0f, 15.0f);
                     return static_cast<uint8_t>(clamped + 0.5f);
                 };
 
-                vertex.r = toByte(rf);
-                vertex.g = toByte(gf);
-                vertex.b = toByte(bf);
+                vertex.r = toNibble(rf);
+                vertex.g = toNibble(gf);
+                vertex.b = toNibble(bf);
             }
 
             vertices.push_back(vertex);

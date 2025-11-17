@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
+#include "isevenseg.hpp"
 
 
 namespace SevenSeg {
@@ -28,3 +28,12 @@ void displayString(const char* text);
 void blank();
 
 } // namespace SevenSeg
+
+/**
+ * Implementation of ISevenSeg for MCU platform.
+ */
+class MCUSevenSeg : public ISevenSeg {
+public:
+    MCUSevenSeg();
+    void setDisplayedValue(std::string value) override;
+};

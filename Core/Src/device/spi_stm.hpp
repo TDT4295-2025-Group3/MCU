@@ -39,7 +39,7 @@ class SpiRasterizer : public IRasterizer {
 public:
     SpiRasterizer() = default;
 
-    void clear(uint32_t argb) override;
+    void clear() override;
     void rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t argb) override;
     void end_frame() override;
 

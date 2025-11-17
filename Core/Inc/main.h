@@ -58,6 +58,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define USB_Enable_Pin GPIO_PIN_1
+#define USB_Enable_GPIO_Port GPIOB
 #define SPI2_NCS_Pin GPIO_PIN_12
 #define SPI2_NCS_GPIO_Port GPIOB
 

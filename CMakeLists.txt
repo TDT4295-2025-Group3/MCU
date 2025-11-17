@@ -43,23 +43,34 @@ enable_language(C CXX ASM)
 # Shared sources/includes
 # -------------------------
 set(APP_SRC
+    Core/Src/app/baked_models.cpp
+    Core/Src/app/game_model_loader.cpp
+        Core/Src/app/rigidbody.cpp
         Core/Src/app/game.cpp
         Core/Src/app/game.hpp
         Core/Src/app/constants.hpp
         Core/Src/app/math.hpp
-        Core/Src/app/player.hpp
-        Core/Src/app/player.cpp
-        Core/Src/app/camera.hpp
-        Core/Src/app/camera.cpp
+        Core/Src/app/entities/player.hpp
+        Core/Src/app/entities/player.cpp
+        Core/Src/app/entities/platform.cpp
+        Core/Src/app/entities/base_platform.cpp
+        Core/Src/app/entities/fire.cpp
+        Core/Src/app/entities/fence.cpp
+        Core/Src/app/entities/camera.cpp
         Core/Src/app/input.hpp
         Core/Src/app/model_loader.hpp
         Core/Src/app/model_loader.cpp
         Core/Src/device/spi_stm.hpp
+        Core/Src/hid_input/hid_driver.hpp
+        Core/Src/hid_input/hid_reports.h
+        Core/Src/hid_input/hid_driver_ds4.cpp
+        Core/Src/hid_input/hid_driver_kb.cpp
 )
 
 set(APP_INC
         ${CMAKE_SOURCE_DIR}/Core/Src/app
         ${CMAKE_SOURCE_DIR}/Core/Src/app/platform
+        ${CMAKE_SOURCE_DIR}/Core/Src/hid_input
 )
 
 # -------------------------
@@ -83,12 +94,58 @@ if (BUILD_STM32)
     # --- ADD FatFs middleware build ---
     add_subdirectory(Middlewares/FatFs)
 
+    set(TINYUSB_DIR ${CMAKE_SOURCE_DIR}/tinyusb/src)
+
+    # Ensure TinyUSB sources are available even if the submodule was not initialized.
+    if(NOT EXISTS "${TINYUSB_DIR}/tusb.c")
+        include(FetchContent)
+        set(TINYUSB_FALLBACK_TAG "0.15.0" CACHE STRING "TinyUSB fallback git tag")
+        FetchContent_Declare(
+            tinyusb
+            GIT_REPOSITORY https://github.com/hathach/tinyusb.git
+            GIT_TAG ${TINYUSB_FALLBACK_TAG}
+            GIT_SHALLOW TRUE
+        )
+        FetchContent_GetProperties(tinyusb)
+        if(NOT tinyusb_POPULATED)
+            FetchContent_Populate(tinyusb)
+        endif()
+        set(TINYUSB_DIR "${tinyusb_SOURCE_DIR}/src")
+    endif()
+
+    if(NOT EXISTS "${TINYUSB_DIR}/tusb.c")
+        message(FATAL_ERROR "TinyUSB sources are missing at ${TINYUSB_DIR}. Run 'git submodule update --init --recursive' or ensure fallback fetch succeeded.")
+    endif()
+
+    set(TINYUSB_INC
+            ${TINYUSB_DIR}
+            ${TINYUSB_DIR}/common
+            ${TINYUSB_DIR}/host
+            ${TINYUSB_DIR}/class/hid
+            ${TINYUSB_DIR}/portable/synopsys/dwc2
+    )
+
+    set(TINYUSB_SRC
+            ${TINYUSB_DIR}/tusb.c
+            ${TINYUSB_DIR}/common/tusb_fifo.c
+            ${TINYUSB_DIR}/class/hid/hid_host.c
+            ${TINYUSB_DIR}/host/usbh.c
+            ${TINYUSB_DIR}/host/usbh.h
+            ${TINYUSB_DIR}/host/hub.c
+            ${TINYUSB_DIR}/portable/synopsys/dwc2/hcd_dwc2.c
+            ${TINYUSB_DIR}/portable/synopsys/dwc2/dwc2_common.c
+    )
+
     add_executable(${PROJECT_NAME}
             ${APP_SRC}
+            ${TINYUSB_SRC}
             Core/Src/device/spi_stm.cpp
             Core/Src/device/spi_stm.hpp
-        Core/Src/device/seven_seg_display.cpp
-        Core/Src/device/seven_seg_display_c.cpp
+            Core/Src/device/seven_seg_display.cpp
+            Core/Src/device/seven_seg_display_c.cpp
+            Core/Src/device/hid_input/tusb_config.h
+            Core/Src/device/hid_input/tusb_input.cpp
+            Core/Src/device/hid_input/tusb_input.hpp
 
     )
 
@@ -97,9 +154,11 @@ if (BUILD_STM32)
     target_include_directories(${PROJECT_NAME} PRIVATE
             ${APP_INC}
             ${CMAKE_SOURCE_DIR}/Core/Src/device
+            ${CMAKE_SOURCE_DIR}/Core/Src/device/hid_input
             ${CMAKE_SOURCE_DIR}/Core/External/Unity/src
             ${CMAKE_SOURCE_DIR}/Middlewares/FatFs/Inc
             ${CMAKE_SOURCE_DIR}/Middlewares/FatFs/Inc/drivers
+            ${TINYUSB_INC}
     )
 
     target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_STM32=1)
@@ -191,6 +250,7 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
             Core/Src/sim/main_sim.cpp
             Core/Src/sim/host_input_timer.cpp
             Core/Src/sim/host_rasterizer.cpp
+            Core/Src/sim/host_sevenseg.cpp
             Core/Src/sim/small3dlib.h
     )
 
@@ -208,6 +268,30 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
     else()
         target_link_libraries(simulator PRIVATE ${SDL3_LIBRARIES})
         target_include_directories(simulator PRIVATE ${SDL3_INCLUDE_DIRS})
+    endif()
+
+    find_package(hidapi CONFIG QUIET)
+    if(NOT hidapi_FOUND)
+        find_package(PkgConfig QUIET)
+        if(PkgConfig_FOUND)
+            pkg_check_modules(HIDAPI IMPORTED_TARGET hidapi-hidraw)
+            if(NOT HIDAPI_FOUND)
+                pkg_check_modules(HIDAPI IMPORTED_TARGET hidapi-libusb)
+            endif()
+            if(NOT HIDAPI_FOUND)
+                pkg_check_modules(HIDAPI IMPORTED_TARGET hidapi)
+            endif()
+        endif()
+    endif()
+
+    if(hidapi_FOUND)
+        target_link_libraries(simulator PRIVATE hidapi::hidapi)
+    elseif(HIDAPI_FOUND)
+        target_link_libraries(simulator PRIVATE PkgConfig::HIDAPI)
+        target_compile_definitions(simulator PRIVATE ${HIDAPI_CFLAGS_OTHER})
+        target_include_directories(simulator PRIVATE ${HIDAPI_INCLUDE_DIRS})
+    else()
+        message(FATAL_ERROR "hidapi is required for the simulator target. Install hidapi (e.g. 'sudo apt install libhidapi-dev') or disable BUILD_SIMULATOR.")
     endif()
 
     target_compile_definitions(simulator PRIVATE PLATFORM_PC=1)

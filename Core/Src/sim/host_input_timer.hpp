@@ -3,9 +3,7 @@
 
 #include "iinput.hpp"
 #include "itimer.hpp"
-#include <SDL3/SDL.h>
-
-
+#include "hid_driver.hpp"
 class HostTimer : public ITimer {
 public:
     uint32_t get_ticks_ms() override;
@@ -14,4 +12,15 @@ public:
 class HostInput : public IInput {
 public:
     KeyState poll() override;
+    void setRumble(float x) override;
+};
+
+class DS4Input : public IInput {
+public:
+    explicit DS4Input(DS4Driver& driver) : controller(driver) {}
+    KeyState poll() override;
+    void setRumble(float x) override;
+
+private:
+    DS4Driver& controller;
 };

@@ -1,9 +1,12 @@
 #pragma once
 #include <cstdint>
 #include <atomic>
+#include "math.hpp"
 
-namespace Rasterizer {
-    enum class StatusCode : uint8_t {
+namespace Rasterizer
+{
+    enum class StatusCode : uint8_t
+    {
         CORRUPT_INVALID_DATA = 0b0000,
         OK = 0b0001,
         OUT_OF_MEMORY = 0b0010,
@@ -12,7 +15,8 @@ namespace Rasterizer {
         SPI_ERROR = 0b1111,
     };
 
-    enum class Operation: uint8_t {
+    enum class Operation : uint8_t
+    {
         WIPE_ALL = 0b0000,
         CREATE_VERT = 0b0001,
         CREATE_TRI = 0b0010,
@@ -21,39 +25,56 @@ namespace Rasterizer {
     };
 
     // Minimal future/promise pair
-    struct SpiFuture {
+    struct SpiFuture
+    {
         std::atomic<bool> done{false};
         uint8_t returnCode = 0;
         uint8_t data = 0;
     };
 
-    using FutureCallback = void (*)(SpiFuture*, void*);
+    using FutureCallback = void (*)(SpiFuture *, void *);
 
-    struct SpiPromise {
-        SpiFuture* fut = nullptr;
+    struct SpiPromise
+    {
+        SpiFuture *fut = nullptr;
         FutureCallback callback = nullptr;
-        void* userCtx = nullptr;
+        void *userCtx = nullptr;
     };
 
-    struct Vertex {
+    struct Vertex
+    {
         float x, y, z;
         uint8_t r, g, b;
     };
 
-    struct Triangle {
+    struct Triangle
+    {
         uint16_t index0, index1, index2;
     };
 
-    struct Transform {
-        float posX, posY, posZ;
-        float rotX, rotY, rotZ;
-        float scaleX, scaleY, scaleZ;
+    struct Transform
+    {
+        mcu_game::Vec3 position;
+        mcu_game::Vec3 rotation;
+        mcu_game::Vec3 scale;
+
+        Transform()
+            : position{0.0f, 0.0f, 0.0f},
+              rotation{0.0f, 0.0f, 0.0f},
+              scale{1.0f, 1.0f, 1.0f} {}
+        Transform(float px, float py, float pz,
+                  float rx, float ry, float rz,
+                  float sx, float sy, float sz)
+            : position{px, py, pz},
+              rotation{rx, ry, rz},
+              scale{sx, sy, sz} {}
     };
 
-
-    class BaseResponse {
+    class BaseResponse
+    {
     public:
-        explicit BaseResponse(StatusCode status) : status_(status) {
+        explicit BaseResponse(StatusCode status) : status_(status)
+        {
         }
 
         virtual ~BaseResponse() = default;
@@ -73,25 +94,32 @@ namespace Rasterizer {
         StatusCode status_;
     };
 
-    class WipeAllResponse : public BaseResponse {
+    class WipeAllResponse : public BaseResponse
+    {
     public:
-        explicit WipeAllResponse(StatusCode status) : BaseResponse(status) {
+        explicit WipeAllResponse(StatusCode status) : BaseResponse(status)
+        {
         }
     };
 
-    class UpdateInstResponse : public BaseResponse {
+    class UpdateInstResponse : public BaseResponse
+    {
     public:
-        explicit UpdateInstResponse(StatusCode status) : BaseResponse(status) {
+        explicit UpdateInstResponse(StatusCode status) : BaseResponse(status)
+        {
         }
     };
 
-    class CreateVertResponse : public BaseResponse {
+    class CreateVertResponse : public BaseResponse
+    {
     public:
         explicit CreateVertResponse(StatusCode status, uint8_t vert_id = 0)
-            : BaseResponse(status), vert_id_(vert_id) {
+            : BaseResponse(status), vert_id_(vert_id)
+        {
         }
 
-        [[nodiscard]] uint8_t getVertexId() const {
+        [[nodiscard]] uint8_t getVertexId() const
+        {
             return vert_id_;
         }
 
@@ -99,13 +127,16 @@ namespace Rasterizer {
         uint8_t vert_id_;
     };
 
-    class CreateTriResponse : public BaseResponse {
+    class CreateTriResponse : public BaseResponse
+    {
     public:
         explicit CreateTriResponse(StatusCode status, uint8_t tri_id = 0)
-            : BaseResponse(status), tri_id_(tri_id) {
+            : BaseResponse(status), tri_id_(tri_id)
+        {
         }
 
-        [[nodiscard]] uint8_t getTriangleId() const {
+        [[nodiscard]] uint8_t getTriangleId() const
+        {
             return tri_id_;
         }
 
@@ -113,13 +144,16 @@ namespace Rasterizer {
         uint8_t tri_id_;
     };
 
-    class CreateInstResponse : public BaseResponse {
+    class CreateInstResponse : public BaseResponse
+    {
     public:
         explicit CreateInstResponse(StatusCode status, uint8_t inst_id = 0)
-            : BaseResponse(status), inst_id_(inst_id) {
+            : BaseResponse(status), inst_id_(inst_id)
+        {
         }
 
-        [[nodiscard]] uint8_t getInstanceId() const {
+        [[nodiscard]] uint8_t getInstanceId() const
+        {
             return inst_id_;
         }
 
@@ -130,12 +164,13 @@ namespace Rasterizer {
     /**
      * Interface for rasterizer.
      */
-    class IRasterizer {
+    class IRasterizer
+    {
     public:
         // Inteface for rasterizer
         virtual ~IRasterizer() = default;
 
-        virtual void clear(uint32_t argb) = 0;
+        virtual void clear() = 0;
 
         virtual void rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t argb) = 0;
 
@@ -153,7 +188,7 @@ namespace Rasterizer {
          * @param count number of vertices in the array
          * @return status, ID assigned to the created vertex buffer
          */
-        virtual CreateVertResponse createVertex(const Vertex* vertices, uint16_t count) = 0;
+        virtual CreateVertResponse createVertex(const Vertex *vertices, uint16_t count) = 0;
 
         /**
          * Create a new triangle buffer.
@@ -161,7 +196,7 @@ namespace Rasterizer {
          * @param count number of triangles in the array
          * @return status, ID assigned to the created triangle buffer
          */
-        virtual CreateTriResponse createTriangle(const Triangle* triangles, uint16_t count) = 0;
+        virtual CreateTriResponse createTriangle(const Triangle *triangles, uint16_t count) = 0;
 
         /**
          * Create model instance from vertex and triangle buffer.
@@ -170,7 +205,7 @@ namespace Rasterizer {
          * @param transform initial transform of the instance
          * @return status, instance ID assigned to the created instance
          */
-        virtual CreateInstResponse createInstance(uint8_t vertexId, uint8_t triangleId, const Transform& transform) = 0;
+        virtual CreateInstResponse createInstance(uint8_t vertexId, uint8_t triangleId, const Transform &transform) = 0;
 
         /**
          * Update transform of an existing instance.
@@ -178,25 +213,21 @@ namespace Rasterizer {
          * @param transform new transform
          * @return status
          */
-        virtual UpdateInstResponse updateInstance(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform) = 0;
+        virtual UpdateInstResponse updateInstance(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform &transform) = 0;
 
-        virtual SpiFuture* wipeAllAsync(FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
-        virtual SpiFuture* createVertexAsync(const Vertex* vertices, uint16_t count,
-                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
-        virtual SpiFuture* createTriangleAsync(const Triangle* triangles, uint16_t count,
-                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
-        virtual SpiFuture* createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform& transform,
-                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
-        virtual SpiFuture* updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform& transform,
-                            FutureCallback callback = nullptr, void* userCtx = nullptr) = 0;
+        virtual SpiFuture *wipeAllAsync(FutureCallback callback = nullptr, void *userCtx = nullptr) = 0;
+        virtual SpiFuture *createVertexAsync(const Vertex *vertices, uint16_t count,
+                                             FutureCallback callback = nullptr, void *userCtx = nullptr) = 0;
+        virtual SpiFuture *createTriangleAsync(const Triangle *triangles, uint16_t count,
+                                               FutureCallback callback = nullptr, void *userCtx = nullptr) = 0;
+        virtual SpiFuture *createInstanceAsync(uint8_t vertexId, uint8_t triangleId, const Transform &transform,
+                                               FutureCallback callback = nullptr, void *userCtx = nullptr) = 0;
+        virtual SpiFuture *updateInstanceAsync(uint8_t vertID, uint8_t triID, uint8_t instanceId, const Transform &transform,
+                                               FutureCallback callback = nullptr, void *userCtx = nullptr) = 0;
 
-        /**
-         * Camera transform update;
-         * @param transform new transform
-         * @return status
-         */
-        UpdateInstResponse updateCamera(const Transform& transform){
-            return updateInstance(0, 0, 0, transform); // assuming camera has instance ID 0
+        virtual UpdateInstResponse updateCamera(uint8_t red, uint8_t green, uint8_t blue, const Transform &transform)
+        {
+            return updateInstance(red & 0x0F, (green & 0x0F) << 4 | (blue & 0x0F), 0, transform); // assuming camera has instance ID 0
         }
     };
 }

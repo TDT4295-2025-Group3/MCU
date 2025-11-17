@@ -150,3 +150,22 @@ void blank() {
 }
 
 } // namespace SevenSeg
+
+MCUSevenSeg::MCUSevenSeg() {
+  SevenSeg::init();
+  SevenSeg::displayChars("----");
+}
+
+void MCUSevenSeg::setDisplayedValue(std::string value) {
+  if (value.empty()) {
+    SevenSeg::blank();
+    return;
+  }
+
+  // max 4 chars
+  if (value.size() > 4U) {
+    value = value.substr(0U, 4U);
+  }
+
+  SevenSeg::displayChars(value.c_str());
+}

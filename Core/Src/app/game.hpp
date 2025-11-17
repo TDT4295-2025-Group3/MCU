@@ -1,64 +1,47 @@
 #pragma once
+#include <memory>
+
 #include "iinput.hpp"
 #include "irasterizer.hpp"
 #include "itimer.hpp"
-#include "player.hpp"
-#include "camera.hpp"
+#include "entities/player.hpp"
+#include "entities/camera.hpp"
+#include "isevenseg.hpp"
 
-#include <array>
-#include <cstddef>
+static constexpr float RUMBLE_THRESHOLD = -5.0f; // velocity Y fall threshold to trigger rumble
 
-class Game {
+class Game
+{
 public:
-    Game(Rasterizer::IRasterizer& gfx, IInput& in, ITimer& time, const char* modelBasePath = nullptr)
-        : gfx(gfx), input(in), timer(time), modelBasePath(modelBasePath) {}
+    Game(Rasterizer::IRasterizer &gfx, IInput &in, ITimer &time, ISevenSeg& sevenseg, bool showHitboxDebug = false)
+        : gfx(gfx), input(in), timer(time), showHitboxDebug(showHitboxDebug), sevenseg(sevenseg) {}
 
     void init();
     void tick_once();
-    void setModelBasePath(const char* basePath) { modelBasePath = basePath; }
+
 private:
     void tick_logic();
     void tick_graphics();
-    bool loadModelGeometry(const char* relativePath,
-                           uint32_t& vertexId,
-                           uint32_t& triangleId,
-                           bool logSuccess = true,
-                           size_t* outVertexCount = nullptr,
-                           size_t* outTriangleCount = nullptr);
-    bool loadModelInstance(const char* relativePath, const Rasterizer::Transform& transform, uint32_t& instanceId);
-    void handle_player_collisions(const mcu_game::Vec3& previousPosition);
-    bool sweep_against_box(const mcu_game::Vec3& boxCenter,
-                           const mcu_game::Vec3& boxHalfExtents,
-                           const mcu_game::Vec3& start,
-                           const mcu_game::Vec3& delta,
-                           float& outTime,
-                           mcu_game::Vec3& outNormal) const;
-    void initialize_platforms(uint32_t cubeVertexId, uint32_t cubeTriangleId);
+    void createEntity(mcu_game::Entity *entity);
+
     bool initialized = false;
-    mcu_game::Player player{};
-    mcu_game::Camera camera{};
+    std::vector<mcu_game::Entity *> entities;
+    mcu_game::GameState gameState{};
 
-    uint32_t instanceCubeId = 0xFF;
-    uint32_t instancePyrId  = 0xFF;
-    uint32_t instancePlaneId = 0xFF;
-    uint32_t cubeVertexId = 0xFF;
-    uint32_t cubeTriangleId = 0xFF;
+    bool showHitboxDebug = false;
 
-    struct Platform {
-        mcu_game::Vec3 center{0.0f, 0.0f, 0.0f};
-        mcu_game::Vec3 halfExtents{0.5f, 0.5f, 0.5f};
-        uint32_t instanceId = 0xFF;
-    };
-
-    static constexpr std::size_t PLATFORM_COUNT = 3;
-    std::array<Platform, PLATFORM_COUNT> platforms{};
-    mcu_game::Vec3 groundCenter{0.0f, -0.05f, 0.0f};
-    mcu_game::Vec3 groundHalfExtents{8.0f, 0.05f, 8.0f};
 private:
-    Rasterizer::IRasterizer& gfx;
-    IInput&      input;
-    ITimer&      timer;
+    void initializeHitboxDebug();
+
+    Rasterizer::IRasterizer &gfx;
+    IInput &input;
+    ITimer &timer;
+    ISevenSeg& sevenseg;
     uint32_t next_tick_ms;
     uint32_t next_frame_ms;
-    const char* modelBasePath = nullptr;
+
+    float lastRumbleIntensity = 0.0f;
+
+    // Pointer to the player entity for easy access
+    std::unique_ptr<mcu_game::Player> _player;
 };

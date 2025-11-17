@@ -680,6 +680,7 @@ __weak void HAL_HCD_SOF_Callback(HCD_HandleTypeDef *hhcd)
 __weak void HAL_HCD_Connect_Callback(HCD_HandleTypeDef *hhcd)
 {
   /* Prevent unused argument(s) compilation warning */
+  
   UNUSED(hhcd);
 
   /* NOTE : This function should not be modified, when the callback is needed,

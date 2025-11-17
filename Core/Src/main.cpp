@@ -1,49 +1,49 @@
 /* USER CODE BEGIN Header */
 
 /*********************************************************************************************
-*                                                                                           
-*   @@@@@@@@@@@@@@@@@@@@@@@@@@@                                                             
-*  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@                                                            
-*  @@@                       @@@                                                            
-*  @@@                       @@@                                                            
-*  @@@     @@         @@     @@@                                                            
-*  @@@   @@@@@@     @@@@@@   @@@                                                            
-*  @@@    @@@@       @@@@    @@@                                                            
-*  @@@    @@@@       @@@@    @@@                                                            
-*  @@@    @@@@       @@@@    @@@                                                            
-*  @@@    @@@@       @@@@    @@@                                                     @@@@   
-*  @@@    @@@@       @@@@    @@@                                                     @@@@   
-*  @@@    @@@@       @@@@                                                            @@@@   
-*  @@@    @@@@       @@@@    @@@@@@@@@   @@@   @@@   @@@   @@@@@@@@   @@@@@@@  @@@@@@@@@@   
-*  @@@    @@@@       @@@@    @@@    @@@   @@@  @@@@  @@@        @@@   @@@     @@@@   @@@@   
-*  @@@    @@@@       @@@@    @@@    @@@@  @@@ @@ @@ @@@    @@@@@@@@   @@@     @@@    @@@@   
-*  @@@    @@@@@     @@@@@    @@@    @@@    @@@@@ @@@@@@   @@@   @@@   @@@     @@@@   @@@@   
-*  @@@     @@@@@@@@@@@@@     @@@@@@@@@@    @@@@   @@@@    @@@@  @@@   @@@      @@@@@@@@@@   
-*  @@@        @@@@@@@        @@@@@@@@       @@@   @@@      @@@@@@@@   @@@        @@@@@@@@   
-*  @@@                       @@@                                                            
-*  @@@ @@@@@@@@@@@@@@@@@@@@@ @@@                                                            
-*  @@@                                                                                      
-*  @@@                       @@@                                                            
-*  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@                                                            
-*    @@@@@@@@@@@@@@@@@@@@@@@@@                                                              
-*
-*********************************************************************************************/
+ *
+ *   @@@@@@@@@@@@@@@@@@@@@@@@@@@
+ *  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ *  @@@                       @@@
+ *  @@@                       @@@
+ *  @@@     @@         @@     @@@
+ *  @@@   @@@@@@     @@@@@@   @@@
+ *  @@@    @@@@       @@@@    @@@
+ *  @@@    @@@@       @@@@    @@@
+ *  @@@    @@@@       @@@@    @@@
+ *  @@@    @@@@       @@@@    @@@                                                     @@@@
+ *  @@@    @@@@       @@@@    @@@                                                     @@@@
+ *  @@@    @@@@       @@@@                                                            @@@@
+ *  @@@    @@@@       @@@@    @@@@@@@@@   @@@   @@@   @@@   @@@@@@@@   @@@@@@@  @@@@@@@@@@
+ *  @@@    @@@@       @@@@    @@@    @@@   @@@  @@@@  @@@        @@@   @@@     @@@@   @@@@
+ *  @@@    @@@@       @@@@    @@@    @@@@  @@@ @@ @@ @@@    @@@@@@@@   @@@     @@@    @@@@
+ *  @@@    @@@@@     @@@@@    @@@    @@@    @@@@@ @@@@@@   @@@   @@@   @@@     @@@@   @@@@
+ *  @@@     @@@@@@@@@@@@@     @@@@@@@@@@    @@@@   @@@@    @@@@  @@@   @@@      @@@@@@@@@@
+ *  @@@        @@@@@@@        @@@@@@@@       @@@   @@@      @@@@@@@@   @@@        @@@@@@@@
+ *  @@@                       @@@
+ *  @@@ @@@@@@@@@@@@@@@@@@@@@ @@@
+ *  @@@
+ *  @@@                       @@@
+ *  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ *    @@@@@@@@@@@@@@@@@@@@@@@@@
+ *
+ *********************************************************************************************/
 /**
-  ******************************************************************************
-  * @file           : main.cpp
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.cpp
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -65,6 +65,10 @@
 #include "app/platform/itimer.hpp"
 #include "app/platform/irasterizer.hpp"
 #include "stm32u5xx_hal.h"
+#include "tusb_input.hpp"
+#include "tusb.h"
+#include "usbh.h"
+#include "seven_seg_display.hpp"
 
 #ifdef SPI_TEST_MODE
 extern "C" int spi_test_main(void);
@@ -119,9 +123,6 @@ static void MX_SPI2_Init(void);
 static void MX_SDMMC1_SD_Init(void);
 /* USER CODE BEGIN PFP */
 static void MX_GPDMA1_Init(void);
-static HAL_StatusTypeDef Max7221_WriteRegister(uint8_t reg, uint8_t value);
-static void Max7221_Init(void);
-static void Max7221_DisplayNumber(uint32_t value);
 
 /* USER CODE END PFP */
 
@@ -150,11 +151,36 @@ namespace
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
+static bool SD_HardwareReady()
+{
+  if (hsd_sdmmc1.State == HAL_SD_STATE_RESET)
+  {
+    printf("[SD] HAL SD handle not initialized, skipping mount\r\n");
+    SevenSeg::displayNumber(1);
+    // HAL_Delay(10000U);
+    return false;
+  }
+
+#if defined(SDMMC1)
+  if (__HAL_RCC_SDMMC1_IS_CLK_ENABLED() == 0U)
+  {
+    printf("[SD] SDMMC1 clock disabled, skipping mount\r\n");
+    // SevenSeg::displayNumber(3);
+    // HAL_Delay(10000U);
+    return false;
+  }
+#endif
+
+  return true;
+}
+
+static bool SD_MountForRuntime(char *modelBasePath, size_t maxLen)
 {
   if (FATFS_LinkDriver(&SD_Driver, SDPath) != 0)
   {
     printf("[SD] FATFS_LinkDriver runtime failed\r\n");
+    // SevenSeg::displayNumber(5);
+    // HAL_Delay(10000U);
     return false;
   }
 
@@ -162,6 +188,8 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
   if (mountRes != FR_OK)
   {
     printf("[SD] f_mount runtime failed: %d\r\n", mountRes);
+    // SevenSeg::displayNumber(7);
+    // HAL_Delay(10000U);
     FATFS_UnLinkDriver(SDPath);
     return false;
   }
@@ -171,6 +199,8 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
   if ((dirWritten <= 0) || (dirWritten >= static_cast<int>(sizeof(dirPath))))
   {
     printf("[SD] models directory path too long\r\n");
+    // SevenSeg::displayNumber(9);
+    // HAL_Delay(10000U);
     f_mount(nullptr, SDPath, 0);
     FATFS_UnLinkDriver(SDPath);
     return false;
@@ -180,6 +210,8 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
   if (dirRes != FR_OK && dirRes != FR_EXIST)
   {
     printf("[SD] f_mkdir('%s') failed: %d\r\n", dirPath, dirRes);
+    // SevenSeg::displayNumber(11);
+    // HAL_Delay(10000U);
     f_mount(nullptr, SDPath, 0);
     FATFS_UnLinkDriver(SDPath);
     return false;
@@ -189,68 +221,25 @@ static bool SD_MountForRuntime(char* modelBasePath, size_t maxLen)
   if ((baseWritten <= 0) || (baseWritten >= static_cast<int>(maxLen)))
   {
     printf("[SD] Model base path buffer too small\r\n");
+    // SevenSeg::displayNumber(13);
+    // HAL_Delay(10000U);
     f_mount(nullptr, SDPath, 0);
     FATFS_UnLinkDriver(SDPath);
     return false;
   }
 
   printf("[SD] Runtime mount OK (base=%s)\r\n", modelBasePath);
+  // SevenSeg::displayNumber(2);
+  // HAL_Delay(10000U);
   return true;
 }
 
-static HAL_StatusTypeDef Max7221_WriteRegister(uint8_t reg, uint8_t value)
-{
-  uint8_t frame[2] = {reg, value};
-  HAL_GPIO_WritePin(SPI2_NCS_GPIO_Port, SPI2_NCS_Pin, GPIO_PIN_RESET);
-  const HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi2, frame, sizeof(frame), HAL_MAX_DELAY);
-  HAL_GPIO_WritePin(SPI2_NCS_GPIO_Port, SPI2_NCS_Pin, GPIO_PIN_SET);
-
-  if (status != HAL_OK)
-  {
-    printf("[MAX7221] SPI transmit failed: %d\r\n", status);
-  }
-
-  return status;
-}
-
-static void Max7221_Init(void)
-{
-  /* Configure while the driver is in shutdown to avoid spurious updates. */
-  Max7221_WriteRegister(0x0C, 0x00U); /* Shutdown register -> shutdown mode */
-  Max7221_WriteRegister(0x0F, 0x00U); /* Disable display test */
-  Max7221_WriteRegister(0x09, 0xFFU); /* Code B decode for all digits */
-  Max7221_WriteRegister(0x0B, 0x07U); /* Scan limit: display digits 0-7 */
-  Max7221_WriteRegister(0x0A, 0x08U); /* Medium intensity */
-
-  for (uint8_t digit = 1U; digit <= 8U; ++digit)
-  {
-    Max7221_WriteRegister(digit, 0x0FU); /* Blank all digits */
-  }
-
-  Max7221_WriteRegister(0x0C, 0x01U); /* Leave shutdown -> normal operation */
-}
-
-static void Max7221_DisplayNumber(uint32_t value)
-{
-  for (uint8_t digit = 1U; digit <= 8U; ++digit)
-  {
-    if ((value == 0U) && (digit > 1U))
-    {
-      Max7221_WriteRegister(digit, 0x0FU); /* Code B blank */
-    }
-    else
-    {
-      Max7221_WriteRegister(digit, static_cast<uint8_t>(value % 10U));
-      value /= 10U;
-    }
-  }
-}
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
 
@@ -264,7 +253,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -282,36 +270,44 @@ int main(void)
   MX_ADC1_Init();
   MX_ICACHE_Init();
   MX_SPI2_Init();
-  // MX_SDMMC1_SD_Init(); //broken as per wednsday
-  /* USER CODE BEGIN 2 */
-  // automatic testing if enabled
-  #ifdef SPI_TEST_MODE
+  MX_SDMMC1_SD_Init();
+/* USER CODE BEGIN 2 */
+// automatic testing if enabled
+#ifdef SPI_TEST_MODE
   spi_test_main();
-  #endif
+#endif
+  // Enable USB power
+  HAL_GPIO_WritePin(GPIOB, USB_Enable_Pin, GPIO_PIN_RESET);
 
-  Max7221_Init();
-  Max7221_DisplayNumber(0U);
-
-
-  bool sdReady = false;
+  const bool sdReady = SD_HardwareReady();
   bool runtimeMountOk = false;
 
   /* USER CODE END 2 */
 
   Rasterizer::SpiRasterizer rasterizer;
-  NullInput input;
-  HalTimer timer;
-  Game game{rasterizer, input, timer};
+  // NullInput input;
 
-  if (sdReady)
+  // Controller input
+  if (!tuh_init(BOARD_TUH_RHPORT))
   {
-    runtimeMountOk = SD_MountForRuntime(gModelBasePath, sizeof(gModelBasePath));
-    if (runtimeMountOk)
-    {
-      game.setModelBasePath(gModelBasePath);
-    }
+    Error_Handler();
   }
 
+  HalTimer timer;
+
+  MCUSevenSeg seven_seg;
+
+  Game game{rasterizer, TinyUSBInput::getInstance(), timer, seven_seg};
+
+  if (sdReady)
+    runtimeMountOk = SD_MountForRuntime(gModelBasePath, sizeof(gModelBasePath));
+
+
+  // Wait for PB7 to go high (guard for FPGA ready)
+  while (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6) != GPIO_PIN_SET)
+  {
+    HAL_Delay(1);
+  }
   game.init();
 
   /* Infinite loop */
@@ -320,6 +316,8 @@ int main(void)
   {
     game.tick_once();
     /* USER CODE END WHILE */
+    tuh_task();
+    TinyUSBInput::getInstance().driverTask();
 
     /* USER CODE BEGIN 3 */
   }
@@ -327,26 +325,24 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
   /** Configure the main internal regulator output voltage
-  */
+   */
   if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSI
-                              |RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_MSI
-                              |RCC_OSCILLATORTYPE_MSIK;
+   */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48 | RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_MSI | RCC_OSCILLATORTYPE_MSIK;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
@@ -361,7 +357,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV4;
   RCC_OscInitStruct.PLL.PLLM = 3;
   RCC_OscInitStruct.PLL.PLLN = 10;
-  RCC_OscInitStruct.PLL.PLLP = 5;
+  RCC_OscInitStruct.PLL.PLLP = 10;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 1;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
@@ -372,10 +368,8 @@ void SystemClock_Config(void)
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
-                              |RCC_CLOCKTYPE_PCLK3;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2 | RCC_CLOCKTYPE_PCLK3;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV16;
@@ -389,10 +383,10 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief ADC1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_ADC1_Init(void)
 {
 
@@ -407,7 +401,7 @@ static void MX_ADC1_Init(void)
   /* USER CODE END ADC1_Init 1 */
 
   /** Common config
-  */
+   */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc1.Init.Resolution = ADC_RESOLUTION_14B;
@@ -433,7 +427,7 @@ static void MX_ADC1_Init(void)
   }
 
   /** Configure Regular Channel
-  */
+   */
   sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_5CYCLE;
@@ -447,14 +441,13 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
-  * @brief GPDMA1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief GPDMA1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_GPDMA1_Init(void)
 {
 
@@ -466,8 +459,8 @@ static void MX_GPDMA1_Init(void)
   __HAL_RCC_GPDMA1_CLK_ENABLE();
 
   /* GPDMA1 interrupt Init */
-    HAL_NVIC_SetPriority(GPDMA1_Channel0_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(GPDMA1_Channel0_IRQn);
+  HAL_NVIC_SetPriority(GPDMA1_Channel0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(GPDMA1_Channel0_IRQn);
 
   /* USER CODE BEGIN GPDMA1_Init 1 */
 
@@ -475,14 +468,13 @@ static void MX_GPDMA1_Init(void)
   /* USER CODE BEGIN GPDMA1_Init 2 */
 
   /* USER CODE END GPDMA1_Init 2 */
-
 }
 
 /**
-  * @brief ICACHE Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief ICACHE Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_ICACHE_Init(void)
 {
 
@@ -495,7 +487,7 @@ static void MX_ICACHE_Init(void)
   /* USER CODE END ICACHE_Init 1 */
 
   /** Enable instruction cache (default 2-ways set associative cache)
-  */
+   */
   if (HAL_ICACHE_Enable() != HAL_OK)
   {
     Error_Handler();
@@ -503,14 +495,13 @@ static void MX_ICACHE_Init(void)
   /* USER CODE BEGIN ICACHE_Init 2 */
 
   /* USER CODE END ICACHE_Init 2 */
-
 }
 
 /**
-  * @brief OCTOSPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief OCTOSPI1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_OCTOSPI1_Init(void)
 {
 
@@ -549,14 +540,13 @@ static void MX_OCTOSPI1_Init(void)
   /* USER CODE BEGIN OCTOSPI1_Init 2 */
 
   /* USER CODE END OCTOSPI1_Init 2 */
-
 }
 
 /**
-  * @brief SDMMC1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief SDMMC1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_SDMMC1_SD_Init(void)
 {
 
@@ -575,17 +565,21 @@ static void MX_SDMMC1_SD_Init(void)
   hsd_sdmmc1.Init.ClockDiv = kSdmmcTransferClockDiv;
   if (HAL_SD_Init(&hsd_sdmmc1) != HAL_OK)
   {
-    Error_Handler();
+    hsd_sdmmc1.State = HAL_SD_STATE_RESET;
+    HAL_SD_MspDeInit(&hsd_sdmmc1);
+    __HAL_RCC_SDMMC1_CLK_DISABLE();
+    return;
+    // Error_Handler();
   }
   /* USER CODE BEGIN SDMMC1_Init 2 */
   /* USER CODE END SDMMC1_Init 2 */
 }
 
 /**
-  * @brief SPI2 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief SPI2 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_SPI2_Init(void)
 {
 
@@ -635,14 +629,13 @@ static void MX_SPI2_Init(void)
   /* USER CODE BEGIN SPI2_Init 2 */
 
   /* USER CODE END SPI2_Init 2 */
-
 }
 
 /**
-  * @brief USB_OTG_HS Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief USB_OTG_HS Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_USB_OTG_HS_HCD_Init(void)
 {
 
@@ -654,32 +647,34 @@ static void MX_USB_OTG_HS_HCD_Init(void)
 
   /* USER CODE END USB_OTG_HS_Init 1 */
   hhcd_USB_OTG_HS.Instance = USB_OTG_HS;
-  hhcd_USB_OTG_HS.Init.Host_channels = 16;
-  hhcd_USB_OTG_HS.Init.speed = HCD_SPEED_HIGH;
+  hhcd_USB_OTG_HS.Init.Host_channels = 4;
+  hhcd_USB_OTG_HS.Init.speed = HCD_SPEED_FULL;
   hhcd_USB_OTG_HS.Init.dma_enable = DISABLE;
   hhcd_USB_OTG_HS.Init.phy_itface = USB_OTG_HS_EMBEDDED_PHY;
-  hhcd_USB_OTG_HS.Init.Sof_enable = DISABLE;
+  hhcd_USB_OTG_HS.Init.Sof_enable = ENABLE;
   hhcd_USB_OTG_HS.Init.low_power_enable = DISABLE;
   hhcd_USB_OTG_HS.Init.use_external_vbus = ENABLE;
   if (HAL_HCD_Init(&hhcd_USB_OTG_HS) != HAL_OK)
   {
     Error_Handler();
   }
+  if (HAL_HCD_Start(&hhcd_USB_OTG_HS) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN USB_OTG_HS_Init 2 */
 
   /* USER CODE END USB_OTG_HS_Init 2 */
-
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
 
   /* USER CODE END MX_GPIO_Init_1 */
 
@@ -693,36 +688,34 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(SPI2_NCS_GPIO_Port, SPI2_NCS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, USB_Enable_Pin | SPI2_NCS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13
-                          |GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15, GPIO_PIN_RESET);
 
   /*Configure LPGPIO pins : Pin14 Pin15 Pin1 Pin2 */
-  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_1|GPIO_PIN_2;
+  GPIO_InitStruct.Pin = GPIO_PIN_14 | GPIO_PIN_15 | GPIO_PIN_1 | GPIO_PIN_2;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(LPGPIO1, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : SPI2_NCS_Pin */
-  GPIO_InitStruct.Pin = SPI2_NCS_Pin;
+  /*Configure GPIO pins : USB_Enable_Pin SPI2_NCS_Pin */
+  GPIO_InitStruct.Pin = USB_Enable_Pin | SPI2_NCS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SPI2_NCS_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD10 PD11 PD12 PD13
                            PD14 PD15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13
-                          |GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Pin = GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB6 PB7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
+  GPIO_InitStruct.Pin = GPIO_PIN_6 | GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -737,9 +730,9 @@ static void MX_GPIO_Init(void)
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -752,12 +745,12 @@ void Error_Handler(void)
 }
 #ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
