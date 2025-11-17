@@ -6,7 +6,6 @@
 
 #include "constants.hpp"
 #include "baked_models.hpp"
-#include "model_loader.hpp"
 #include "game_state.hpp"
 #include "collider.hpp"
 #include "entities/camera.hpp"
