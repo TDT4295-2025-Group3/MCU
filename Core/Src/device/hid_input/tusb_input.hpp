@@ -73,4 +73,6 @@ private:
     uint8_t _usb_dev_addr, _usb_instance;
 
     HIDInputType _controller_type = UNDEFINED;
+
+    float lastRumble = 0.0f;
 };

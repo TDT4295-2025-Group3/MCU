@@ -3,7 +3,7 @@
 #include "ff.h"
 
 namespace mcu_game::assets {
-    ModelLoadResult read_entire_file(const char *path, std::string &out) {
+    ModelLoadResult FsFatModelLoader::read_entire_file(const char *path, std::string &out) {
         FIL file{};
         const FRESULT openRes = f_open(&file, path, FA_READ);
         if (openRes != FR_OK) {

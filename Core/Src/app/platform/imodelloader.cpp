@@ -227,3 +227,18 @@ ModelLoadResult IModelLoader::parse_obj(const char* path, const std::string& con
     outModel.triangles = std::move(triangles);
     return ModelLoadResult::Ok;
 }
+
+ModelLoadResult IModelLoader::load_model(const char *path, ModelData &outModel)
+{
+    if (path == nullptr)
+    {
+        return ModelLoadResult::FileOpenFailed;
+    }
+    std::string content;
+    const ModelLoadResult ioRes = read_entire_file(path, content);
+    if (ioRes != ModelLoadResult::Ok)
+    {
+        return ioRes;
+    }
+    return parse_obj(path, content, outModel);
+}

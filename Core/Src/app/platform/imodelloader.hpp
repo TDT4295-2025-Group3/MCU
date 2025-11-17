@@ -70,7 +70,7 @@ namespace mcu_game::assets {
     public:
         virtual ~IModelLoader() = default;
 
-        virtual ModelLoadResult load_model(const char *path, ModelData &outModel) = 0;
+        ModelLoadResult load_model(const char *path, ModelData &outModel);
 
         virtual ModelLoadResult read_entire_file(const char *path, std::string &out) = 0;
 

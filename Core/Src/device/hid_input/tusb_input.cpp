@@ -22,7 +22,7 @@ KeyState TinyUSBInput::poll() {
             ks.cam_x = -_hid_ds4.getStickPosition(DS4Stick::Right).x;;
             ks.cam_y = _hid_ds4.getStickPosition(DS4Stick::Right).y;
             ks.x = _hid_ds4.getStickPosition(DS4Stick::Left).x;
-            ks.y = _hid_ds4.getStickPosition(DS4Stick::Left).y;
+            ks.y = -_hid_ds4.getStickPosition(DS4Stick::Left).y;
             ks.space = _hid_ds4.isKeyDown(DS4Button::Cross);
             break;
         case KEYBOARD:
@@ -93,6 +93,8 @@ void TinyUSBInput::processReport(uint8_t const *report, uint16_t len) {
 }
 
 void TinyUSBInput::setRumble(float x) {
+    if (x == lastRumble) return;
+
     if (_controller_type == DS4) {
         x = std::clamp(x, 0.0f, 1.0f);
 
@@ -111,6 +113,7 @@ void TinyUSBInput::setRumble(float x) {
 
         _hid_ds4.setRumbleStrong(rumbleStrong);
         _hid_ds4.setRumbleWeak(rumbleWeak);
+        lastRumble = x;
     }
 }
 

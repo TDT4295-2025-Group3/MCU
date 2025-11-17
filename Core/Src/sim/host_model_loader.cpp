@@ -44,19 +44,4 @@ namespace mcu_game::assets
         std::fclose(file);
         return ModelLoadResult::Ok;
     }
-
-    ModelLoadResult HostModelLoader::load_model(const char *path, ModelData &outModel)
-    {
-        if (path == nullptr)
-        {
-            return ModelLoadResult::FileOpenFailed;
-        }
-        std::string content;
-        const ModelLoadResult ioRes = read_entire_file(path, content);
-        if (ioRes != ModelLoadResult::Ok)
-        {
-            return ioRes;
-        }
-        return parse_obj(path, content, outModel);
-    }
 }
