@@ -41,7 +41,6 @@ void Game::initializeHitboxDebug()
                                                                transform);
         if (!instanceResp.isSuccess())
             continue;
-        uint32_t instanceId = instanceResp.getInstanceId();
     }
 }
 
