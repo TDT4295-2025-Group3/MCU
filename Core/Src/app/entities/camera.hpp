@@ -23,9 +23,10 @@ namespace mcu_game
     class Camera : public Entity
     {
     public:
-        Camera(uint8_t r_, uint8_t g_, uint8_t b_)
-            : r(r_), g(g_), b(b_)
+        Camera(Vec3 position, Vec3 rotation)
         {
+            transform.position = position;
+            transform.rotation = rotation;
         }
 
         bool init(GameState &gameState) override;

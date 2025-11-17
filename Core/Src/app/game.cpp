@@ -67,16 +67,21 @@ void Game::init()
 
     gameState.boxColliders.clear();
 
-    createEntity(new mcu_game::Camera({2, 2, 3}));
-
+    createEntity(new mcu_game::Camera({0.000f, 2.331f, 0.000f}, {1.570796f, 0.000000f, 0.000000f}));
     createEntity(new mcu_game::BasePlatform({0.000f, 0.000f, 0.000f}));
     createEntity(new mcu_game::Mushroom({29.525f, 19.301f, -18.338f}, 0.000000f));
+    createEntity(new mcu_game::Mushroom({-29.384f, 50.222f, -14.386f}, 0.773123f));
+    createEntity(new mcu_game::Mushroom({-30.761f, 55.916f, -10.765f}, 0.685847f));
+    createEntity(new mcu_game::Mushroom({-34.267f, 61.015f, -13.463f}, 0.685847f));
+    createEntity(new mcu_game::Mushroom({-29.602f, 64.670f, -14.632f}, 0.685847f));
     createEntity(new mcu_game::Mushroom({35.755f, 24.550f, -10.860f}, 0.773123f));
     createEntity(new mcu_game::Mushroom({34.095f, 27.188f, -3.578f}, 0.773123f));
     createEntity(new mcu_game::Mushroom({28.531f, 29.826f, 1.812f}, 0.773123f));
     createEntity(new mcu_game::Mushroom({15.709f, 32.194f, 1.812f}, 0.773123f));
     createEntity(new mcu_game::Mushroom({1.263f, 35.382f, -4.608f}, 0.773123f));
     createEntity(new mcu_game::Mushroom({-12.399f, 38.604f, -12.477f}, 0.773123f));
+    createEntity(new mcu_game::Mushroom({-31.059f, 41.468f, -10.699f}, 0.773123f));
+    createEntity(new mcu_game::Mushroom({-34.188f, 46.567f, -13.774f}, 0.773123f));
     createEntity(new mcu_game::Platform({-12.000f, 14.000f, 1.000f}, -222.270004f));
     createEntity(new mcu_game::Platform({21.807f, 20.190f, -18.060f}, -154.498047f));
     createEntity(new mcu_game::Platform({35.740f, 24.025f, -18.060f}, -155.465286f));
@@ -84,6 +89,8 @@ void Game::init()
     createEntity(new mcu_game::Platform({8.630f, 33.655f, -1.473f}, -155.465286f));
     createEntity(new mcu_game::Platform({-5.460f, 37.080f, -8.607f}, -155.465286f));
     createEntity(new mcu_game::Platform({-18.558f, 41.062f, -14.900f}, -156.394958f));
+    createEntity(new mcu_game::Platform({-26.197f, 41.062f, -12.224f}, -157.183792f));
+    createEntity(new mcu_game::Platform({-31.211f, 67.423f, -9.447f}, -157.835144f));
     createEntity(new mcu_game::Platform({-4.000f, 6.400f, 15.000f}, -4.000000f));
     createEntity(new mcu_game::Platform({-7.620f, 7.980f, 18.900f}, -32.779999f));
     createEntity(new mcu_game::Platform({-9.290f, 9.560f, 13.750f}, 7.990000f));
@@ -97,7 +104,7 @@ void Game::init()
     createEntity(new mcu_game::Platform({5.730f, 20.190f, -18.060f}, -153.210007f));
     createEntity(new mcu_game::Platform({3.000f, 1.700f, 11.000f}, 15.000006f));
     createEntity(new mcu_game::Platform({14.059f, 20.190f, -18.060f}, -152.423920f));
-    createEntity(new mcu_game::Player({0.000f, 1.000f, 0.000f}));
+    createEntity(new mcu_game::Player({-26.086f, 41.226f, -12.324f}));
 
     for (auto &entity : entities)
         entity->init(gameState);

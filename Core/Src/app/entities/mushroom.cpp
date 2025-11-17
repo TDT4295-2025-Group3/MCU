@@ -33,7 +33,7 @@ namespace mcu_game
                 {false, 0, 0,
                  false, 0.0f, 0.0f, 0.0f,
                  false, 0.0f, 0.0f, 0.0f,
-                 true, 1.2f, 0.94f, 1.2f,
+                 true, 1.3f, 0.9f, 1.3f,
                  0.15f},
 
                 {false, 0, 0,

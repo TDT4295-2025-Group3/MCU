@@ -33,8 +33,6 @@ namespace mcu_game
         gameState.cameraForward = getForward();
 
         target = {0, cameraConfig.heightOffset, 0};
-        transform.position = target - getForward() * cameraConfig.distance;
-        transform.rotation = {0.3f, 0.0f, 0.0f};
 
         updateSkyColor(gameState.playerPosition.y);
         gameState.gfx.updateCamera(r, g, b, transform);
