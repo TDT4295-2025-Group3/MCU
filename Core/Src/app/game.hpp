@@ -12,13 +12,10 @@
 class Game
 {
 public:
-    Game(Rasterizer::IRasterizer &gfx, IInput &in, ITimer &time, ISevenSeg& sevenseg, mcu_game::assets::IModelLoader& model_loader, bool showHitboxDebug = false)
-        : gfx(gfx), input(in), timer(time), showHitboxDebug(showHitboxDebug), sevenseg(sevenseg), model_loader(model_loader) {
-        gameState.sevenseg = sevenseg;
-        gameState.input = in;
-        gameState.timer = time;
-        gameState.model_loader = model_loader;
-        gameState.gfx = gfx;
+    Game(Rasterizer::IRasterizer &gfx, IInput &in, ITimer &time, ISevenSeg &sevenseg, mcu_game::assets::IModelLoader &model_loader, bool showHitboxDebug = false)
+        : gameState(in, time, sevenseg, model_loader, gfx),
+          showHitboxDebug(showHitboxDebug)
+    {
     }
 
     void init();
@@ -34,21 +31,8 @@ private:
     mcu_game::GameState gameState;
 
     bool showHitboxDebug = false;
-
-private:
     void initializeHitboxDebug();
-
-    Rasterizer::IRasterizer &gfx;
-    IInput &input;
-    ITimer &timer;
-    ISevenSeg& sevenseg;
-    mcu_game::assets::IModelLoader& model_loader;
 
     uint32_t next_tick_ms;
     uint32_t next_frame_ms;
-
-    float lastRumbleIntensity = 0.0f;
-
-    // Pointer to the player entity for easy access
-    std::unique_ptr<mcu_game::Player> _player;
 };

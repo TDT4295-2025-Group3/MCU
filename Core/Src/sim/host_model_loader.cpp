@@ -1,32 +1,40 @@
 #include "host_model_loader.hpp"
 
-namespace mcu_game::assets {
-    ModelLoadResult HostModelLoader::read_entire_file(const char *path, std::string &out) {
+namespace mcu_game::assets
+{
+    ModelLoadResult HostModelLoader::read_entire_file(const char *path, std::string &out)
+    {
         std::FILE *file = std::fopen(path, "rb");
-        if (file == nullptr) {
+        if (file == nullptr)
+        {
             std::printf("[Model] fopen failed for %s\n", path);
             return ModelLoadResult::FileOpenFailed;
         }
-        if (std::fseek(file, 0, SEEK_END) != 0) {
+        if (std::fseek(file, 0, SEEK_END) != 0)
+        {
             std::printf("[Model] fseek failed for %s\n", path);
             std::fclose(file);
             return ModelLoadResult::DataReadFailed;
         }
         const long size = std::ftell(file);
-        if (size < 0) {
+        if (size < 0)
+        {
             std::printf("[Model] ftell failed for %s\n", path);
             std::fclose(file);
             return ModelLoadResult::DataReadFailed;
         }
-        if (std::fseek(file, 0, SEEK_SET) != 0) {
+        if (std::fseek(file, 0, SEEK_SET) != 0)
+        {
             std::printf("[Model] rewind failed for %s\n", path);
             std::fclose(file);
             return ModelLoadResult::DataReadFailed;
         }
         out.resize(static_cast<size_t>(size));
-        if (!out.empty()) {
+        if (!out.empty())
+        {
             const size_t read = std::fread(out.data(), 1, out.size(), file);
-            if (read != out.size()) {
+            if (read != out.size())
+            {
                 std::printf("[Model] fread failed for %s (read=%zu)\n", path, read);
                 std::fclose(file);
                 out.clear();
@@ -35,5 +43,20 @@ namespace mcu_game::assets {
         }
         std::fclose(file);
         return ModelLoadResult::Ok;
+    }
+
+    ModelLoadResult HostModelLoader::load_model(const char *path, ModelData &outModel)
+    {
+        if (path == nullptr)
+        {
+            return ModelLoadResult::FileOpenFailed;
+        }
+        std::string content;
+        const ModelLoadResult ioRes = read_entire_file(path, content);
+        if (ioRes != ModelLoadResult::Ok)
+        {
+            return ioRes;
+        }
+        return parse_obj(path, content, outModel);
     }
 }

@@ -28,7 +28,7 @@ namespace
 namespace mcu_game
 {
 
-    bool Camera::init(Rasterizer::IRasterizer &gfx, GameState &gameState)
+    bool Camera::init(GameState &gameState)
     {
         gameState.cameraForward = getForward();
 
@@ -37,15 +37,15 @@ namespace mcu_game
         transform.rotation = {0.3f, 0.0f, 0.0f};
 
         updateSkyColor(gameState.playerPosition.y);
-        gfx.updateCamera(r, g, b, transform);
+        gameState.gfx.updateCamera(r, g, b, transform);
 
         return true;
     }
 
-    void Camera::update(IInput &input, float deltaTime, GameState &gameState)
+    void Camera::update(float deltaTime, GameState &gameState)
     {
         // Apply look deltas
-        Vec2 lookInput = input.getLookInput();
+        Vec2 lookInput = gameState.input.getLookInput();
         transform.rotation.y += lookInput.x * cameraConfig.lookStep * cameraConfig.yawSensitivity;
         transform.rotation.x += lookInput.y * cameraConfig.lookStep * cameraConfig.pitchSensitivity;
         if (transform.rotation.x < cameraConfig.minPitch)
@@ -69,9 +69,9 @@ namespace mcu_game
         updateSkyColor(gameState.playerPosition.y);
     }
 
-    void Camera::render(Rasterizer::IRasterizer &gfx)
+    void Camera::render(GameState &gameState)
     {
-        gfx.updateCamera(r, g, b, transform);
+        gameState.gfx.updateCamera(r, g, b, transform);
     }
 
     void Camera::updateSkyColor(float playerHeight)

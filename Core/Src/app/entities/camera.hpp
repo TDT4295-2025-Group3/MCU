@@ -28,9 +28,9 @@ namespace mcu_game
         {
         }
 
-        bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;
-        void update(IInput &input, float deltaTime, GameState &gameState) override;
-        void render(Rasterizer::IRasterizer &gfx) override;
+        bool init(GameState &gameState) override;
+        void update(float deltaTime, GameState &gameState) override;
+        void render(GameState &gameState) override;
 
         Vec3 getForward() const { return forward_vector_from_yaw_pitch(transform.rotation.y, transform.rotation.x); }
         Vec3 getRight() const { return normalize(cross({0, 1, 0}, getForward())); }

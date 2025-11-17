@@ -9,16 +9,14 @@
 namespace mcu_game
 {
 
-    bool BasePlatform::init(Rasterizer::IRasterizer &gfx, GameState &gameState)
+    bool BasePlatform::init(GameState &gameState)
     {
-        if (!createBuffersWithFallback(gfx, assets::baked::MeshId::BasePlatform,
-                                       vertexId,
-                                       triangleId))
+        if (!gameState.load_model(assets::baked::MeshId::BasePlatform, vertexId, triangleId))
             return false;
 
-        const auto platformInstanceResp = gfx.createInstance(static_cast<uint8_t>(vertexId),
-                                                             static_cast<uint8_t>(triangleId),
-                                                             transform);
+        const auto platformInstanceResp = gameState.gfx.createInstance(static_cast<uint8_t>(vertexId),
+                                                                       static_cast<uint8_t>(triangleId),
+                                                                       transform);
         if (!platformInstanceResp.isSuccess())
             return false;
         instanceId = platformInstanceResp.getInstanceId();
@@ -28,25 +26,25 @@ namespace mcu_game
         gameState.boxColliders.push_back({{transform.position.x + 7.0f, transform.position.y + 0.5f, transform.position.z - 1.0f}, {0.2f, 1.0f, 2.4f}});
         gameState.boxColliders.push_back({{transform.position.x - 4.0f, transform.position.y + 0.5f, transform.position.z - 7.0f}, {2.4f, 1.0f, 0.2f}});
 
-        if (!fire.init(gfx, gameState))
+        if (!fire.init(gameState))
             return false;
 
-        if (!fence.init(gfx, gameState))
+        if (!fence.init(gameState))
             return false;
-        if (!fence2.init(gfx, gameState))
+        if (!fence2.init(gameState))
             return false;
 
         return true;
     }
 
-    void BasePlatform::update(IInput &input, float deltaTime, GameState &gameState)
+    void BasePlatform::update(float deltaTime, GameState &gameState)
     {
-        fire.update(input, deltaTime, gameState);
+        fire.update(deltaTime, gameState);
     }
 
-    void BasePlatform::render(Rasterizer::IRasterizer &gfx)
+    void BasePlatform::render(GameState &gameState)
     {
-        fire.render(gfx);
+        fire.render(gameState);
     }
 
 } // namespace mcu_game

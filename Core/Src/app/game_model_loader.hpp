@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "IModelLoader.hpp"
+#include "platform/imodelloader.hpp"
 
 bool loadModelGeometry(Rasterizer::IRasterizer &gfx,
                        mcu_game::assets::IModelLoader &loader,

@@ -45,14 +45,12 @@ namespace mcu_game
             startPosition = position;
             body.setBottomPosition(position);
         }
-        bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;
-        void update(IInput &input, float deltaTime, GameState &gameState) override;
-        void render(Rasterizer::IRasterizer &gfx) override;
+        bool init(GameState &gameState) override;
+        void update(float deltaTime, GameState &gameState) override;
+        void render(GameState &gameState) override;
 
         Vec3 getPosition() const { return body.getBottomPosition(); }
         Vec3 getVelocity() const { return body.getVelocity(); }
-
-        const Rigidbody &getBody() const { return body; }
 
     private:
         PlayerConfig playerConfig{};

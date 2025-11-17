@@ -9,6 +9,7 @@
 #include "irasterizer.hpp"
 #include "isevenseg.hpp"
 #include "itimer.hpp"
+#include "game_model_loader.hpp"
 
 namespace mcu_game
 {
@@ -20,10 +21,32 @@ namespace mcu_game
 
         IInput &input;
         ITimer &timer;
-        ISevenSeg& sevenseg;
-        mcu_game::assets::IModelLoader& model_loader;
+        ISevenSeg &sevenseg;
+        mcu_game::assets::IModelLoader &model_loader;
         Rasterizer::IRasterizer &gfx;
 
-        GameState() = default;
+        bool load_model(mcu_game::assets::baked::MeshId bakedId,
+                        uint32_t &outVertexId,
+                        uint32_t &outTriangleId)
+        {
+            return createBuffersWithFallback(gfx,
+                                             model_loader,
+                                             bakedId,
+                                             outVertexId,
+                                             outTriangleId);
+        }
+
+        GameState(IInput &input_,
+                  ITimer &timer_,
+                  ISevenSeg &sevenseg_,
+                  mcu_game::assets::IModelLoader &model_loader_,
+                  Rasterizer::IRasterizer &gfx_)
+            : input(input_),
+              timer(timer_),
+              sevenseg(sevenseg_),
+              model_loader(model_loader_),
+              gfx(gfx_)
+        {
+        }
     };
 } // namespace mcu_game

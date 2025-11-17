@@ -8,8 +8,8 @@ namespace mcu_game
     {
     public:
         virtual ~Entity() = default;
-        virtual bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) = 0;
-        virtual void update(IInput &input, float deltaTime, GameState &gameState) = 0;
-        virtual void render(Rasterizer::IRasterizer &gfx) = 0;
+        virtual bool init(GameState &gameState) { return true; }
+        virtual void update(float deltaTime, GameState &gameState) {}
+        virtual void render(GameState &gameState) {}
     };
 } // namespace mcu_game

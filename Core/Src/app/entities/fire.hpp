@@ -15,9 +15,9 @@ namespace mcu_game
         Fire(Vec3 center, float rotation) : transform{center.x, center.y, center.z, 0.0f, rotation, 0.0f, 1.0f, 1.0f, 1.0f}
         {
         }
-        bool init(Rasterizer::IRasterizer &gfx, GameState &gameState) override;
-        void update(IInput &input, float deltaTime, GameState &gameState) override;
-        void render(Rasterizer::IRasterizer &gfx) override;
+        bool init(GameState &gameState) override;
+        void update(float deltaTime, GameState &gameState) override;
+        void render(GameState &gameState) override;
 
     private:
         Rasterizer::Transform transform;

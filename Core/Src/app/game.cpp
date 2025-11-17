@@ -24,10 +24,7 @@ void Game::initializeHitboxDebug()
 {
     uint32_t vertexCollisionId = 0xFF;
     uint32_t triangleCollisionId = 0xFF;
-    if (!createBuffersWithFallback(gfx,
-                                   mcu_game::assets::baked::MeshId::Collision,
-                                   vertexCollisionId,
-                                   triangleCollisionId))
+    if (!gameState.load_model(mcu_game::assets::baked::MeshId::Collision, vertexCollisionId, triangleCollisionId))
         return;
 
     for (auto &boxCollider : gameState.boxColliders)
@@ -39,9 +36,9 @@ void Game::initializeHitboxDebug()
             boxCollider.halfExtents.y * 2.0f,
             boxCollider.halfExtents.z * 2.0f};
 
-        const auto instanceResp = gfx.createInstance(static_cast<uint8_t>(vertexCollisionId),
-                                                     static_cast<uint8_t>(triangleCollisionId),
-                                                     transform);
+        const auto instanceResp = gameState.gfx.createInstance(static_cast<uint8_t>(vertexCollisionId),
+                                                               static_cast<uint8_t>(triangleCollisionId),
+                                                               transform);
         if (!instanceResp.isSuccess())
             continue;
         uint32_t instanceId = instanceResp.getInstanceId();
@@ -57,7 +54,7 @@ void Game::createEntity(mcu_game::Entity *entity)
 void Game::init()
 {
 
-    const auto wipeResp = gfx.wipeAll();
+    const auto wipeResp = gameState.gfx.wipeAll();
     if (!wipeResp.isSuccess())
     {
         std::printf("[Rasterizer] wipeAll failed (status=%u)\n", static_cast<unsigned>(wipeResp.getStatus()));
@@ -66,11 +63,9 @@ void Game::init()
         return;
     }
 
-    const auto tick = timer.get_ticks_ms();
+    const auto tick = gameState.timer.get_ticks_ms();
 
     gameState.boxColliders.clear();
-
-    _player = std::make_unique<mcu_game::Player>(mcu_game::Vec3{0.0f, 1.0f, 0.0f});
 
     createEntity(new mcu_game::Camera({2, 2, 3}));
 
@@ -93,7 +88,7 @@ void Game::init()
     createEntity(new mcu_game::Player({0.000f, 1.000f, 0.000f}));
 
     for (auto &entity : entities)
-        entity->init(gfx, gameState);
+        entity->init(gameState);
 
     if (showHitboxDebug)
         initializeHitboxDebug();
@@ -104,7 +99,7 @@ void Game::init()
 
 void Game::tick_once()
 {
-    auto now = timer.get_ticks_ms();
+    auto now = gameState.timer.get_ticks_ms();
 
     // Do catchup logic ticks
     uint32_t steps = 0;
@@ -130,14 +125,14 @@ void Game::tick_once()
 
 void Game::tick_graphics()
 {
-    gfx.clear();
+    gameState.gfx.clear();
     for (auto &entity : entities)
-        entity->render(gfx);
+        entity->render(gameState);
 
-    gfx.end_frame();
+    gameState.gfx.end_frame();
 
     int yInt = static_cast<int>(std::lround(gameState.playerPosition.y));
-    sevenseg.setDisplayedValue(yInt);
+    gameState.sevenseg.setDisplayedValue(yInt);
 }
 
 void Game::tick_logic()
@@ -148,5 +143,5 @@ void Game::tick_logic()
 
     // Rigidbody inside player handles all collisions using gameState.boxColliders
     for (auto &entity : entities)
-        entity->update(input, deltaTime, gameState);
+        entity->update(deltaTime, gameState);
 }

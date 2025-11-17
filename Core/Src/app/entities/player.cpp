@@ -10,45 +10,31 @@
 namespace mcu_game
 {
 
-    bool Player::init(Rasterizer::IRasterizer &gfx, GameState &gameState)
+    bool Player::init(GameState &gameState)
     {
         body.getTransform().position.y = 1.0f;
         body.setVelocity({0.0f, 0.0f, 0.0f});
         gameState.playerPosition = body.getTransform().position;
 
-        if (!createBuffersWithFallback(gfx,
-                                       assets::baked::MeshId::PlayerIdle,
-                                       vertexIdleId,
-                                       triangleIdleId))
+        if (!gameState.load_model(assets::baked::MeshId::PlayerIdle, vertexIdleId, triangleIdleId))
             return false;
 
-        if (!createBuffersWithFallback(gfx,
-                                       assets::baked::MeshId::PlayerRun1,
-                                       vertexRun1Id,
-                                       triangleRun1Id))
+        if (!gameState.load_model(assets::baked::MeshId::PlayerRun1, vertexRun1Id, triangleRun1Id))
             return false;
 
-        if (!createBuffersWithFallback(gfx,
-                                       assets::baked::MeshId::PlayerRun2,
-                                       vertexRun2Id,
-                                       triangleRun2Id))
+        if (!gameState.load_model(assets::baked::MeshId::PlayerRun2, vertexRun2Id, triangleRun2Id))
             return false;
 
-        if (!createBuffersWithFallback(gfx,
-                                       assets::baked::MeshId::PlayerJumpUp,
-                                       vertexJumpUpId,
-                                       triangleJumpUpId))
+        if (!gameState.load_model(assets::baked::MeshId::PlayerJumpUp, vertexJumpUpId, triangleJumpUpId))
             return false;
 
-        if (!createBuffersWithFallback(gfx,
-                                       assets::baked::MeshId::PlayerJumpDown,
-                                       vertexJumpDownId,
-                                       triangleJumpDownId))
+        if (!gameState.load_model(assets::baked::MeshId::PlayerJumpDown, vertexJumpDownId,
+                                  triangleJumpDownId))
             return false;
 
-        const auto playerInstanceResp = gfx.createInstance(static_cast<uint8_t>(vertexIdleId),
-                                                           static_cast<uint8_t>(triangleIdleId),
-                                                           body.getTransform());
+        const auto playerInstanceResp = gameState.gfx.createInstance(static_cast<uint8_t>(vertexIdleId),
+                                                                     static_cast<uint8_t>(triangleIdleId),
+                                                                     body.getTransform());
         if (!playerInstanceResp.isSuccess())
             return false;
         instanceId = playerInstanceResp.getInstanceId();
@@ -141,7 +127,7 @@ namespace mcu_game
         return true;
     }
 
-    void Player::update(IInput &input, float deltaTime, GameState &gameState)
+    void Player::update(float deltaTime, GameState &gameState)
     {
         constexpr float PI = 3.14159265359f;
 
@@ -169,7 +155,7 @@ namespace mcu_game
         }
 
         // Input vector in camera space
-        Vec2 runInput = input.getRunInput();
+        Vec2 runInput = gameState.input.getRunInput();
         Vec3 inputDir = forward * runInput.y + right * runInput.x;
         const bool hasInput = length_sq(inputDir) > 1e-6f;
         Vec3 desiredMoveDir = hasInput ? normalize(inputDir) : Vec3{0, 0, 0}; // normalized desired move direction
@@ -250,7 +236,7 @@ namespace mcu_game
         }
 
         // Jump
-        bool jumpPressed = input.getJump();
+        bool jumpPressed = gameState.input.getJump();
         if (jumpPressed && body.isGrounded())
         {
             Vec3 vel = body.getVelocity();
@@ -286,12 +272,12 @@ namespace mcu_game
         // rumble for player velocity
         float speedY = getVelocity().y;
         if (speedY < playerConfig.fall_rumble_threshold)
-            input.setRumble(std::min(1.0f, std::abs(speedY - playerConfig.fall_rumble_threshold) / 20.0f));
+            gameState.input.setRumble(std::min(1.0f, std::abs(speedY - playerConfig.fall_rumble_threshold) / 20.0f));
         else
-            input.clearRumble();
+            gameState.input.clearRumble();
     }
 
-    void Player::render(Rasterizer::IRasterizer &gfx)
+    void Player::render(GameState &gameState)
     {
         const Keyframe &keyframe = animator.getCurrentKeyframe();
 
@@ -316,7 +302,7 @@ namespace mcu_game
             animTransform.scale.z *= keyframe.scaleZ;
         }
 
-        gfx.updateInstance(keyframe.vertexId, keyframe.triangleId, instanceId, animTransform);
+        gameState.gfx.updateInstance(keyframe.vertexId, keyframe.triangleId, instanceId, animTransform);
     }
 
 } // namespace mcu_game
