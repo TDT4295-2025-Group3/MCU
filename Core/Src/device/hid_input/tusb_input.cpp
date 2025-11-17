@@ -1,5 +1,6 @@
 #include "tusb_input.hpp"
 
+#include <algorithm>
 #include <cstdio>
 
 #include "usbh.h"
@@ -18,7 +19,7 @@ KeyState TinyUSBInput::poll() {
     KeyState ks{};
     switch (_controller_type) {
         case DS4:
-            ks.cam_x = _hid_ds4.getStickPosition(DS4Stick::Right).x;;
+            ks.cam_x = -_hid_ds4.getStickPosition(DS4Stick::Right).x;;
             ks.cam_y = _hid_ds4.getStickPosition(DS4Stick::Right).y;
             ks.x = _hid_ds4.getStickPosition(DS4Stick::Left).x;
             ks.y = _hid_ds4.getStickPosition(DS4Stick::Left).y;
@@ -51,17 +52,15 @@ void TinyUSBInput::driverTask() {
 
     if (_controller_type == DS4) {
         DS4_OutputUSBReport report;
-        if (_hid_ds4.getReadyOutputReport(report)) {
-
-
-
+        _hid_ds4.flushOutput();
+        while (_hid_ds4.getReadyOutputReport(report)) {
             tuh_hid_send_report(_usb_dev_addr, _usb_instance, 0x5, &report, sizeof(report));
             // TODO - doublecheck 0x5 report ID is correct
         }
     }
     else if (_controller_type == KEYBOARD) {
         HID_KeyboardOutputReport report;
-        if (_hid_keyboard.getReadyOutputReport(report)) {
+        while (_hid_keyboard.getReadyOutputReport(report)) {
             // TODO: double check report ID
             tuh_hid_send_report(_usb_dev_addr, _usb_instance, 0, &report, sizeof(report));
         }
@@ -92,6 +91,29 @@ void TinyUSBInput::processReport(uint8_t const *report, uint16_t len) {
             break;
     }
 }
+
+void TinyUSBInput::setRumble(float x) {
+    if (_controller_type == DS4) {
+        x = std::clamp(x, 0.0f, 1.0f);
+
+        const float a = 1.0f;   // strong contribution
+        const float b = 0.2f;   // weak contribution
+
+        // First fill the strong motor
+        float strongF = std::min(x / a, 1.0f);
+
+        // Remaining energy goes to weak
+        float remaining = x - strongF * a;
+        float weakF = std::clamp(remaining / b, 0.0f, 1.0f);
+
+        auto rumbleStrong = static_cast<uint8_t>(strongF * 255.0f);
+        auto rumbleWeak = static_cast<uint8_t>(weakF * 255.0f);
+
+        _hid_ds4.setRumbleStrong(rumbleStrong);
+        _hid_ds4.setRumbleWeak(rumbleWeak);
+    }
+}
+
 
 extern "C" void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* desc_report,
                                  uint16_t desc_len) {

@@ -239,7 +239,7 @@ HostRasterizer::HostRasterizer(int width, int height)
     Impl::g_current = impl.get();
 
     // SDL setup
-    impl->window = SDL_CreateWindow("small3dlib + SDL", width, height, 0);
+    impl->window = SDL_CreateWindow("Upwards (Simulator)", width, height, 0);
     if (!impl->window)
         throw std::runtime_error(SDL_GetError());
     SDL_SetWindowPosition(impl->window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);

@@ -39,6 +39,8 @@ public:
     TinyUSBInput(TinyUSBInput&&) = delete;
     TinyUSBInput& operator=(TinyUSBInput&&) = delete;
 
+    void setRumble(float x) override;
+
     void clearController() {
         _controller_type = UNDEFINED;
     }

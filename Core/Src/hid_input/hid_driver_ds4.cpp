@@ -1,10 +1,6 @@
 
-#include <cstring>
 #include "hid_driver.hpp"
-
 #include <cmath>
-
-#include "hid_driver.hpp"
 
 DS4Driver::DS4Driver() : HIDDriver() {
     outputDraft.EnableRumbleUpdate = 1;
@@ -14,8 +10,6 @@ DS4Driver::DS4Driver() : HIDDriver() {
     outputDraft.LedRed = 0x00;
     outputDraft.LedGreen = 0x00;
     outputDraft.LedBlue = 0x00;
-
-    outputDraft.RumbleLeft = 255;
 
     outputBuffer.push(outputDraft);
 }

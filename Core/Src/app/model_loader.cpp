@@ -24,10 +24,10 @@ constexpr uint16_t kMaxSupportedTriangles = 4096;
 constexpr uint8_t kDefaultColor = 15;
 
 bool parse_float(std::string_view token, float& out) {
-    const char* begin = token.data();
-    const char* end = begin + token.size();
-    const auto result = std::from_chars(begin, end, out);
-    return (result.ec == std::errc{}) && (result.ptr == end);
+    std::string tmp(token);
+    char* end;
+    out = std::strtof(tmp.c_str(), &end);
+    return end == tmp.c_str() + tmp.size();
 }
 
 bool parse_int(std::string_view token, int& out) {

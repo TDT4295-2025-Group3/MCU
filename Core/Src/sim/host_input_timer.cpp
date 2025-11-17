@@ -1,5 +1,6 @@
 #include "host_input_timer.hpp"
 #include <chrono>
+#include <iostream>
 #include <stdexcept>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
@@ -36,13 +37,43 @@ KeyState HostInput::poll() {
     return ks;
 }
 
+void HostInput::setRumble(float x) {
+    std::cout << "[HostInput] Rumble set to " << x << " (no effect in simulation)" << std::endl;
+}
+
 KeyState DS4Input::poll() {
     KeyState ks{};
     ks.cam_x = controller.getStickPosition(DS4Stick::Right).x;
     ks.cam_y = controller.getStickPosition(DS4Stick::Right).y;
     ks.x = controller.getStickPosition(DS4Stick::Left).x;
-    ks.y = controller.getStickPosition(DS4Stick::Left).y;
+    ks.y = -controller.getStickPosition(DS4Stick::Left).y;
     ks.space = controller.isKeyDown(DS4Button::Cross);
     return ks;
 }
 
+
+void DS4Input::setRumble(float x) {
+    x = std::clamp(x, 0.0f, 1.0f);
+
+    const float a = 1.0f;   // strong contribution
+    const float b = 0.2f;   // weak contribution
+
+    // First fill the strong motor
+    float strongF = std::min(x / a, 1.0f);
+
+    // Remaining energy goes to weak
+    float remaining = x - strongF * a;
+    float weakF = std::clamp(remaining / b, 0.0f, 1.0f);
+
+    auto rumbleStrong = static_cast<uint8_t>(strongF * 255.0f);
+    auto rumbleWeak = static_cast<uint8_t>(weakF * 255.0f);
+
+    std::cout << "[DS4Input] Rumble set to " << x
+              << " (strong=" << static_cast<int>(rumbleStrong)
+              << ", weak=" << static_cast<int>(rumbleWeak) << ")" << std::endl;
+
+    controller.setRumbleStrong(rumbleStrong);
+    controller.setRumbleWeak(rumbleWeak);
+
+    controller.flushOutput();
+}

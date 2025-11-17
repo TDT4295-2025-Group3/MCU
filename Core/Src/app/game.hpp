@@ -1,18 +1,20 @@
 #pragma once
+#include <memory>
+
 #include "iinput.hpp"
 #include "irasterizer.hpp"
 #include "itimer.hpp"
 #include "entities/player.hpp"
 #include "entities/camera.hpp"
+#include "isevenseg.hpp"
 
-#include <array>
-#include <cstddef>
+static constexpr float RUMBLE_THRESHOLD = -5.0f; // velocity Y fall threshold to trigger rumble
 
 class Game
 {
 public:
-    Game(Rasterizer::IRasterizer &gfx, IInput &in, ITimer &time, bool showHitboxDebug = false)
-        : gfx(gfx), input(in), timer(time), showHitboxDebug(showHitboxDebug) {}
+    Game(Rasterizer::IRasterizer &gfx, IInput &in, ITimer &time, ISevenSeg& sevenseg, bool showHitboxDebug = false)
+        : gfx(gfx), input(in), timer(time), showHitboxDebug(showHitboxDebug), sevenseg(sevenseg) {}
 
     void init();
     void tick_once();
@@ -34,6 +36,12 @@ private:
     Rasterizer::IRasterizer &gfx;
     IInput &input;
     ITimer &timer;
+    ISevenSeg& sevenseg;
     uint32_t next_tick_ms;
     uint32_t next_frame_ms;
+
+    float lastRumbleIntensity = 0.0f;
+
+    // Pointer to the player entity for easy access
+    std::unique_ptr<mcu_game::Player> _player;
 };

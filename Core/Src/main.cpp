@@ -253,7 +253,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  HAL_Delay(15*1000);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -271,16 +271,12 @@ int main(void)
   MX_ADC1_Init();
   MX_ICACHE_Init();
   MX_SPI2_Init();
-// MX_SDMMC1_SD_Init(); //broken as per wednsday
+  MX_SDMMC1_SD_Init();
 /* USER CODE BEGIN 2 */
 // automatic testing if enabled
 #ifdef SPI_TEST_MODE
   spi_test_main();
 #endif
-
-  SevenSeg::init();
-  SevenSeg::displayChars("----");
-
   // Enable USB power
   HAL_GPIO_WritePin(GPIOB, USB_Enable_Pin, GPIO_PIN_RESET);
 
@@ -299,7 +295,10 @@ int main(void)
   }
 
   HalTimer timer;
-  Game game{rasterizer, TinyUSBInput::getInstance(), timer};
+
+  MCUSevenSeg seven_seg;
+
+  Game game{rasterizer, TinyUSBInput::getInstance(), timer, seven_seg};
 
   if (sdReady)
     runtimeMountOk = SD_MountForRuntime(gModelBasePath, sizeof(gModelBasePath));
@@ -567,7 +566,11 @@ static void MX_SDMMC1_SD_Init(void)
   hsd_sdmmc1.Init.ClockDiv = kSdmmcTransferClockDiv;
   if (HAL_SD_Init(&hsd_sdmmc1) != HAL_OK)
   {
-    Error_Handler();
+    hsd_sdmmc1.State = HAL_SD_STATE_RESET;
+    HAL_SD_MspDeInit(&hsd_sdmmc1);
+    __HAL_RCC_SDMMC1_CLK_DISABLE();
+    return;
+    // Error_Handler();
   }
   /* USER CODE BEGIN SDMMC1_Init 2 */
   /* USER CODE END SDMMC1_Init 2 */

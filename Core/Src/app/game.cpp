@@ -2,11 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <limits>
+#include <iostream>
 
 #include "constants.hpp"
 #include "baked_models.hpp"
@@ -76,8 +72,10 @@ void Game::init()
 
     gameState.boxColliders.clear();
 
+    _player = std::make_unique<mcu_game::Player>(mcu_game::Vec3{0.0f, 1.0f, 0.0f});
+
     createEntity(new mcu_game::Camera({2, 2, 3}));
-    createEntity(new mcu_game::Player({0.0f, 1.0f, 0.0f}));
+    createEntity(_player.get());
     createEntity(new mcu_game::Platform({3.0f, 1.0f, 8.0f}, 15.0f));
     createEntity(new mcu_game::Platform({-4.0f, 2.0f, 12.0f}, -10.0f));
     createEntity(new mcu_game::BasePlatform({0.0f, 0.0f, 0.0f}));
@@ -125,6 +123,9 @@ void Game::tick_graphics()
         entity->render(gfx);
 
     gfx.end_frame();
+
+    int yInt = static_cast<int>(std::lround(gameState.playerPosition.y));
+    sevenseg.setDisplayedValue(yInt);
 }
 
 void Game::tick_logic()
@@ -149,4 +150,23 @@ void Game::tick_logic()
     // Rigidbody inside player handles all collisions using gameState.boxColliders
     for (auto &entity : entities)
         entity->update(in, dt, gameState);
+
+
+    float nextRumble;
+
+    // rumble for player velocity
+    float speedY = _player->getVelocity().y;
+    if (speedY < RUMBLE_THRESHOLD) {
+        // Calculate rumble intensity (0 to 1) based on how fast we're falling
+        // The faster we fall (more negative), the stronger the rumble
+        nextRumble = std::min(1.0f, std::abs(speedY - RUMBLE_THRESHOLD) / 20.0f);
+    } else {
+        // Stop rumble when not falling fast enough
+        nextRumble = 0.0f;
+    }
+
+    if (nextRumble != lastRumbleIntensity) { // dont spam if no change
+        input.setRumble(nextRumble);
+        lastRumbleIntensity = nextRumble;
+    }
 }

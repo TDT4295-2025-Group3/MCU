@@ -12,6 +12,8 @@
 #include "hid_driver.hpp"
 #include <hidapi.h>
 
+#include "host_sevenseg.hpp"
+
 int main()
 {
     HostInput keyboardInput;
@@ -91,10 +93,11 @@ int main()
         ds4Controller = std::make_unique<DS4Driver>();
         ds4Input = std::make_unique<DS4Input>(*ds4Controller);
         activeInput = ds4Input.get();
-        ds4Controller->queueInitReport();
     }
 
-    Game game{rasterizer, *activeInput, timer, false};
+    HostSevenSeg seven_seg;
+
+    Game game{rasterizer, *activeInput, timer, seven_seg, false};
     game.init();
 
     uint8_t ds4_buffer[64];
@@ -109,7 +112,7 @@ int main()
             {
                 // hid_write requires raw reportId at start (we removed it for tinyusb)
                 DS4_OutputUSBReport_Container rawReport = {};
-                std::memcpy(&rawReport, &outputReport, sizeof(DS4_OutputUSBReport));
+                memcpy(&rawReport.Report, &outputReport, sizeof(DS4_OutputUSBReport));
                 rawReport.ReportID = 0x05;
                 hid_write(handle, reinterpret_cast<uint8_t *>(&rawReport), sizeof(DS4_OutputUSBReport_Container));
             }

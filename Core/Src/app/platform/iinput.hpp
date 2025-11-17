@@ -18,4 +18,10 @@ class IInput {
 public:
     virtual ~IInput() = default;
     virtual KeyState poll() = 0;
+
+    /**
+     * Sets the rumble intensity for controllers that support it.
+     * @param x Rumble intensity in the range [0.0, 1.0].
+     */
+    virtual void setRumble(float x) = 0;
 };

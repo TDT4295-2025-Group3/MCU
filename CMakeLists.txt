@@ -250,6 +250,7 @@ if (BUILD_SIMULATOR AND NOT CMAKE_CROSSCOMPILING)
             Core/Src/sim/main_sim.cpp
             Core/Src/sim/host_input_timer.cpp
             Core/Src/sim/host_rasterizer.cpp
+            Core/Src/sim/host_sevenseg.cpp
             Core/Src/sim/small3dlib.h
     )
 
