@@ -27,19 +27,19 @@ namespace mcu_game
                 {true, vertexId, triangleId,
                  false, 0.0f, 0.0f, 0.0f,
                  false, 0.0f, 0.0f, 0.0f,
-                 true, 1.0f, 1.0f, 1.0f,
+                 true, 1.2f, 1.2f, 1.2f,
                  0.15f},
 
                 {false, 0, 0,
                  false, 0.0f, 0.0f, 0.0f,
                  false, 0.0f, 0.0f, 0.0f,
-                 true, 1.2f, 0.94f, 1.2f,
+                 true, 1.4f, 1.14f, 1.4f,
                  0.15f},
 
                 {false, 0, 0,
                  false, 0.0f, 0.0f, 0.0f,
                  false, 0.0f, 0.0f, 0.0f,
-                 true, 1.0f, 1.0f, 1.0f,
+                 true, 1.2f, 1.2f, 1.2f,
                  0.0f},
             },
             true});
