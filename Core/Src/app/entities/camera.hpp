@@ -36,6 +36,8 @@ namespace mcu_game
         const Vec3 &getTarget() const { return target; }
 
     private:
+        void updateSkyColor(float playerHeight);
+
         CameraConfig cameraConfig{};
         Rasterizer::Transform transform{};
         Vec3 target{0, 0, 0};
