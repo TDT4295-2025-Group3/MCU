@@ -58,8 +58,14 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+
+// pin to enable USB power (active low)
 #define USB_Enable_Pin GPIO_PIN_1
 #define USB_Enable_GPIO_Port GPIOB
+// pin will be set when FPGA is ready
+#define FPGA_Ready_GPIO_Port GPIOB
+#define FPGA_Ready_PIN GPIO_PIN_6
+
 #define SPI2_NCS_Pin GPIO_PIN_12
 #define SPI2_NCS_GPIO_Port GPIOB
 

@@ -48,28 +48,20 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "ff.h"
-#include "ff_gen_drv.h"
-#include "sd_diskio.h"
 
 #include <cstdio>
-#include <cstring>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <string.h>
-#include <cstdio>
 #include "spi_stm.hpp"
 #include "app/game.hpp"
-#include "app/platform/iinput.hpp"
-#include "app/platform/itimer.hpp"
-#include "app/platform/irasterizer.hpp"
 #include "stm32u5xx_hal.h"
 #include "tusb_input.hpp"
 #include "tusb.h"
 #include "usbh.h"
 #include "seven_seg_display.hpp"
 #include "fsfat_model_loader.hpp"
+#include "hal_timer.hpp"
 
 #ifdef SPI_TEST_MODE
 extern "C" int spi_test_main(void);
@@ -106,9 +98,6 @@ SPI_HandleTypeDef hspi2;
 HCD_HandleTypeDef hhcd_USB_OTG_HS;
 
 /* USER CODE BEGIN PV */
-static FATFS sdFatFs;
-static char SDPath[4];
-static char gModelBasePath[64];
 
 /* USER CODE END PV */
 
@@ -131,7 +120,7 @@ static void MX_GPDMA1_Init(void);
 /* USER CODE BEGIN 0 */
 namespace
 {
-  constexpr uint32_t kSdmmcTransferClockDiv = 8U; // 48 MHz / (2 * 8) ~= 3 MHz
+   // 48 MHz / (2 * 8) ~= 3 MHz
   constexpr char kModelDirectory[] = "models";
 
   class NullInput : public IInput
@@ -140,108 +129,19 @@ namespace
     KeyState poll() override { return {}; }
   };
 
-  class HalTimer : public ITimer
-  {
-  public:
-    uint32_t get_ticks_ms() override { return HAL_GetTick(); }
-  };
-};
 
+};;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-static bool SD_HardwareReady()
-{
-  if (hsd_sdmmc1.State == HAL_SD_STATE_RESET)
-  {
-    printf("[SD] HAL SD handle not initialized, skipping mount\r\n");
-    SevenSeg::displayNumber(1);
-    // HAL_Delay(10000U);
-    return false;
-  }
-
-#if defined(SDMMC1)
-  if (__HAL_RCC_SDMMC1_IS_CLK_ENABLED() == 0U)
-  {
-    printf("[SD] SDMMC1 clock disabled, skipping mount\r\n");
-    // SevenSeg::displayNumber(3);
-    // HAL_Delay(10000U);
-    return false;
-  }
-#endif
-
-  return true;
-}
-
-static bool SD_MountForRuntime(char *modelBasePath, size_t maxLen)
-{
-  if (FATFS_LinkDriver(&SD_Driver, SDPath) != 0)
-  {
-    printf("[SD] FATFS_LinkDriver runtime failed\r\n");
-    // SevenSeg::displayNumber(5);
-    // HAL_Delay(10000U);
-    return false;
-  }
-
-  const FRESULT mountRes = f_mount(&sdFatFs, SDPath, 1);
-  if (mountRes != FR_OK)
-  {
-    printf("[SD] f_mount runtime failed: %d\r\n", mountRes);
-    // SevenSeg::displayNumber(7);
-    // HAL_Delay(10000U);
-    FATFS_UnLinkDriver(SDPath);
-    return false;
-  }
-
-  char dirPath[sizeof(gModelBasePath)] = {0};
-  const int dirWritten = std::snprintf(dirPath, sizeof(dirPath), "%s%s", SDPath, kModelDirectory);
-  if ((dirWritten <= 0) || (dirWritten >= static_cast<int>(sizeof(dirPath))))
-  {
-    printf("[SD] models directory path too long\r\n");
-    // SevenSeg::displayNumber(9);
-    // HAL_Delay(10000U);
-    f_mount(nullptr, SDPath, 0);
-    FATFS_UnLinkDriver(SDPath);
-    return false;
-  }
-
-  const FRESULT dirRes = f_mkdir(dirPath);
-  if (dirRes != FR_OK && dirRes != FR_EXIST)
-  {
-    printf("[SD] f_mkdir('%s') failed: %d\r\n", dirPath, dirRes);
-    // SevenSeg::displayNumber(11);
-    // HAL_Delay(10000U);
-    f_mount(nullptr, SDPath, 0);
-    FATFS_UnLinkDriver(SDPath);
-    return false;
-  }
-
-  const int baseWritten = std::snprintf(modelBasePath, maxLen, "%s%s/", SDPath, kModelDirectory);
-  if ((baseWritten <= 0) || (baseWritten >= static_cast<int>(maxLen)))
-  {
-    printf("[SD] Model base path buffer too small\r\n");
-    // SevenSeg::displayNumber(13);
-    // HAL_Delay(10000U);
-    f_mount(nullptr, SDPath, 0);
-    FATFS_UnLinkDriver(SDPath);
-    return false;
-  }
-
-  printf("[SD] Runtime mount OK (base=%s)\r\n", modelBasePath);
-  // SevenSeg::displayNumber(2);
-  // HAL_Delay(10000U);
-  return true;
-}
-
 /* USER CODE END 0 */
 
 /**
  * @brief  The application entry point.
  * @retval int
  */
-int main(void)
+[[noreturn]] int main(void)
 {
 
   /* USER CODE BEGIN 1 */
@@ -277,36 +177,30 @@ int main(void)
 #ifdef SPI_TEST_MODE
   spi_test_main();
 #endif
-  // Enable USB power
-  HAL_GPIO_WritePin(GPIOB, USB_Enable_Pin, GPIO_PIN_RESET);
-
-  const bool sdReady = SD_HardwareReady();
-  bool runtimeMountOk = false;
 
   /* USER CODE END 2 */
 
-  Rasterizer::SpiRasterizer rasterizer;
-  // NullInput input;
-
-  // Controller input
+  // Initalize USB host
+  // USB power active low -> disable power, init tinyusb, then enable power
+  HAL_GPIO_WritePin(USB_Enable_GPIO_Port, USB_Enable_Pin, GPIO_PIN_SET);
   if (!tuh_init(BOARD_TUH_RHPORT))
   {
     Error_Handler();
   }
+  HAL_Delay(500);
+  HAL_GPIO_WritePin(USB_Enable_GPIO_Port, USB_Enable_Pin, GPIO_PIN_RESET);
 
+  // Initialize game components
   HalTimer timer;
-
   MCUSevenSeg seven_seg;
-  mcu_game::assets::FsFatModelLoader model_loader;
+  mcu_game::assets::FsFatModelLoader model_loader(&hsd_sdmmc1);
+  Rasterizer::SpiRasterizer rasterizer;
 
   Game game{rasterizer, TinyUSBInput::getInstance(), timer, seven_seg, model_loader};
 
-  if (sdReady)
-    runtimeMountOk = SD_MountForRuntime(gModelBasePath, sizeof(gModelBasePath));
-
 
   // Wait for PB7 to go high (guard for FPGA ready)
-  while (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6) != GPIO_PIN_SET)
+  while (HAL_GPIO_ReadPin(FPGA_Ready_GPIO_Port, FPGA_Ready_PIN) != GPIO_PIN_SET)
   {
     HAL_Delay(1);
   }
@@ -314,7 +208,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
+  while (true)
   {
     game.tick_once();
     /* USER CODE END WHILE */
@@ -557,7 +451,7 @@ static void MX_SDMMC1_SD_Init(void)
   /* USER CODE END SDMMC1_Init 0 */
 
   /* USER CODE BEGIN SDMMC1_Init 1 */
-
+  static constexpr uint32_t kSdmmcTransferClockDiv = 8U; // 48 MHz / (2 * 8) ~= 3 MHz
   /* USER CODE END SDMMC1_Init 1 */
   hsd_sdmmc1.Instance = SDMMC1;
   hsd_sdmmc1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;

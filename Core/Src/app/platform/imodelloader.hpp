@@ -60,6 +60,7 @@ namespace mcu_game::assets {
         VertexCountInvalid,
         TriangleCountInvalid,
         DataReadFailed,
+        SdCardUninitialized,
     };
 
     /**
