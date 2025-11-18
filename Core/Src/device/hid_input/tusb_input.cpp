@@ -20,10 +20,10 @@ KeyState TinyUSBInput::poll() {
     KeyState ks{};
     switch (_controller_type) {
         case DS4:
-            ks.cam_x = -_hid_ds4.getStickPosition(DS4Stick::Right).x;;
-            ks.cam_y = _hid_ds4.getStickPosition(DS4Stick::Right).y;
+            ks.cam_x -= _hid_ds4.getStickPosition(DS4Stick::Right).x;
+            ks.cam_y -= _hid_ds4.getStickPosition(DS4Stick::Right).y;
             ks.x = _hid_ds4.getStickPosition(DS4Stick::Left).x;
-            ks.y = -_hid_ds4.getStickPosition(DS4Stick::Left).y;
+            ks.y -= _hid_ds4.getStickPosition(DS4Stick::Left).y;
             ks.space = _hid_ds4.isKeyDown(DS4Button::Cross);
             ks.reset = _hid_ds4.isKeyDown(DS4Button::Home);
             break;
