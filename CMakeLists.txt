@@ -58,6 +58,7 @@ set(APP_SRC
         Core/Src/app/entities/fence.cpp
         Core/Src/app/entities/camera.cpp
         Core/Src/app/entities/mushroom.cpp
+        Core/Src/app/entities/burger.cpp
         Core/Src/app/entities/logo.cpp
         Core/Src/app/entities/fishing_platform.cpp
         Core/Src/app/platform/imodelloader.cpp

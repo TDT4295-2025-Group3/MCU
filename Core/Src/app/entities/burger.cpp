@@ -1,4 +1,4 @@
-#include "entities/mushroom.hpp"
+#include "entities/burger.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -9,9 +9,9 @@
 namespace mcu_game
 {
 
-    bool Mushroom::init(GameState &gameState)
+    bool Burger::init(GameState &gameState)
     {
-        if (!gameState.load_model(assets::baked::MeshId::Mushroom, vertexId, triangleId))
+        if (!gameState.load_model(assets::baked::MeshId::Burger, vertexId, triangleId))
             return false;
 
         const auto platformInstanceResp = gameState.gfx.createInstance(static_cast<uint8_t>(vertexId),
@@ -22,7 +22,7 @@ namespace mcu_game
         instanceId = platformInstanceResp.getInstanceId();
 
         animator.addAnimation(Animation{
-            "Bounce",
+            "Squish",
             {
                 {true, vertexId, triangleId,
                  false, 0.0f, 0.0f, 0.0f,
@@ -33,8 +33,19 @@ namespace mcu_game
                 {false, 0, 0,
                  false, 0.0f, 0.0f, 0.0f,
                  false, 0.0f, 0.0f, 0.0f,
-                 true, 1.2f, 0.94f, 1.2f,
-                 0.15f},
+                 true, 1.1f, 0.86f, 1.1f,
+                 0.02f},
+            },
+            false});
+
+        animator.addAnimation(Animation{
+            "NoSquish",
+            {
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.1f, 0.86f, 1.1f,
+                 0.2f},
 
                 {false, 0, 0,
                  false, 0.0f, 0.0f, 0.0f,
@@ -44,10 +55,10 @@ namespace mcu_game
             },
             false});
 
-        animator.playAnimation("Bounce");
+        animator.playAnimation("NoSquish");
 
-        BoxCollider collider{{transform.position.x, transform.position.y - 0.76f, transform.position.z}, {1.76f, 0.5f, 1.76f}};
-        collider.friction = 0.8f;
+        BoxCollider collider{{transform.position.x, transform.position.y - 0.76f, transform.position.z}, {2.1f, 0.5f, 2.1f}};
+        collider.friction = 0.22f;
         collider.onLand = [this]()
         { this->landCallback(); };
         gameState.boxColliders.push_back(collider);
@@ -57,12 +68,18 @@ namespace mcu_game
 
     void Burger::landCallback()
     {
-        animator.playAnimation("Bounce", true);
+        animator.playAnimation("Squish");
+        landTimer = 0.05f;
     }
 
     void Burger::update(float deltaTime, GameState &gameState)
     {
         animator.update(deltaTime);
+        landTimer -= deltaTime;
+        if (landTimer <= 0.0f)
+        {
+            animator.playAnimation("NoSquish");
+        }
     }
 
     void Burger::render(GameState &gameState)

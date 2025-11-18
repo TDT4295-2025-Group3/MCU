@@ -21,7 +21,7 @@ namespace mcu_game
 
     private:
         void landCallback();
-
+        float landTimer{0.0f};
         Rasterizer::Transform transform;
         Animator animator{};
         uint32_t vertexId = 0xFF;
