@@ -57,8 +57,6 @@
 #include "app/game.hpp"
 #include "stm32u5xx_hal.h"
 #include "tusb_input.hpp"
-#include "tusb.h"
-#include "usbh.h"
 #include "seven_seg_display.hpp"
 #include "fsfat_model_loader.hpp"
 #include "hal_timer.hpp"
@@ -180,23 +178,14 @@ namespace
 
   /* USER CODE END 2 */
 
-  // Initalize USB host
-  // USB power active low -> disable power, init tinyusb, then enable power
-  HAL_GPIO_WritePin(USB_Enable_GPIO_Port, USB_Enable_Pin, GPIO_PIN_SET);
-  if (!tuh_init(BOARD_TUH_RHPORT))
-  {
-    Error_Handler();
-  }
-  HAL_Delay(500);
-  HAL_GPIO_WritePin(USB_Enable_GPIO_Port, USB_Enable_Pin, GPIO_PIN_RESET);
-
   // Initialize game components
   HalTimer timer;
   MCUSevenSeg seven_seg;
   mcu_game::assets::FsFatModelLoader model_loader(&hsd_sdmmc1);
   Rasterizer::SpiRasterizer rasterizer;
+  auto &tusb_input = TinyUSBInput::getInstance();
 
-  Game game{rasterizer, TinyUSBInput::getInstance(), timer, seven_seg, model_loader};
+  Game game{rasterizer, tusb_input, timer, seven_seg, model_loader};
 
 
   // Wait for PB7 to go high (guard for FPGA ready)
@@ -211,9 +200,8 @@ namespace
   while (true)
   {
     game.tick_once();
-    /* USER CODE END WHILE */
-    tuh_task();
     TinyUSBInput::getInstance().driverTask();
+    /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }

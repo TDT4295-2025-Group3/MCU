@@ -5,6 +5,7 @@
 
 #include "usbh.h"
 #include "hid_host.h"
+#include "main.h"
 #include "stm32u5xx_hal.h"
 #include "tusb.h"
 /**
@@ -45,6 +46,8 @@ KeyState TinyUSBInput::poll() {
 }
 
 void TinyUSBInput::driverTask() {
+    tuh_task();
+
     // send output reports periodically
     if (_controller_type == UNDEFINED) {
         return;
@@ -115,6 +118,20 @@ void TinyUSBInput::setRumble(float x) {
         _hid_ds4.setRumbleWeak(rumbleWeak);
         lastRumble = x;
     }
+}
+
+TinyUSBInput::TinyUSBInput() {
+    // Initalize USB host
+    // USB power active low -> disable power, init tinyusb, then enable power
+    HAL_GPIO_WritePin(USB_Enable_GPIO_Port, USB_Enable_Pin, GPIO_PIN_SET);
+    if (!tuh_init(BOARD_TUH_RHPORT))
+    {
+        Error_Handler();
+    }
+    HAL_Delay(500);
+    HAL_GPIO_WritePin(USB_Enable_GPIO_Port, USB_Enable_Pin, GPIO_PIN_RESET);
+    _usb_dev_addr = 0;
+    _usb_instance = 0;
 }
 
 
