@@ -7,7 +7,7 @@
 
 using namespace mcu_game::assets;
 
-const char* IModelLoader::to_string(ModelLoadResult result) const {
+const char *IModelLoader::to_string(ModelLoadResult result) const {
     switch (result) {
         case ModelLoadResult::Ok:
             return "Ok";
@@ -21,26 +21,28 @@ const char* IModelLoader::to_string(ModelLoadResult result) const {
             return "TriangleCountInvalid";
         case ModelLoadResult::DataReadFailed:
             return "DataReadFailed";
+        case ModelLoadResult::SdCardUninitialized:
+            return "SdCardUninitialized";
         default:
             return "Unknown";
     }
 }
 
-bool IModelLoader::parse_float(std::string_view token, float& out) {
+bool IModelLoader::parse_float(std::string_view token, float &out) {
     std::string tmp(token);
-    char* end;
+    char *end;
     out = std::strtof(tmp.c_str(), &end);
     return end == tmp.c_str() + tmp.size();
 }
 
-bool IModelLoader::parse_int(std::string_view token, int& out) {
-    const char* begin = token.data();
-    const char* end = begin + token.size();
+bool IModelLoader::parse_int(std::string_view token, int &out) {
+    const char *begin = token.data();
+    const char *end = begin + token.size();
     const auto result = std::from_chars(begin, end, out);
     return (result.ec == std::errc{}) && (result.ptr == end);
 }
 
-bool IModelLoader::parse_face_index(std::string_view token, size_t vertexCount, uint16_t& out) {
+bool IModelLoader::parse_face_index(std::string_view token, size_t vertexCount, uint16_t &out) {
     if (token.empty()) {
         return false;
     }
@@ -61,7 +63,7 @@ bool IModelLoader::parse_face_index(std::string_view token, size_t vertexCount, 
     return true;
 }
 
-void IModelLoader::tokenize(std::string_view line, std::vector<std::string_view>& tokens) {
+void IModelLoader::tokenize(std::string_view line, std::vector<std::string_view> &tokens) {
     tokens.clear();
     size_t pos = 0;
     while (pos < line.size()) {
@@ -82,7 +84,7 @@ void IModelLoader::tokenize(std::string_view line, std::vector<std::string_view>
     }
 }
 
-ModelLoadResult IModelLoader::parse_obj(const char* path, const std::string& content, ModelData& outModel) {
+ModelLoadResult IModelLoader::parse_obj(const char *path, const std::string &content, ModelData &outModel) {
     std::vector<Rasterizer::Vertex> vertices;
     std::vector<Rasterizer::Triangle> triangles;
     vertices.reserve(32);
@@ -146,7 +148,8 @@ ModelLoadResult IModelLoader::parse_obj(const char* path, const std::string& con
                 float rf = 0.0f;
                 float gf = 0.0f;
                 float bf = 0.0f;
-                if (!parse_float(tokens[colorStart], rf) || !parse_float(tokens[colorStart + 1], gf) || !parse_float(tokens[colorStart + 2], bf)) {
+                if (!parse_float(tokens[colorStart], rf) || !parse_float(tokens[colorStart + 1], gf) || !parse_float(
+                        tokens[colorStart + 2], bf)) {
                     std::printf("[Model] Parse error in %s (line %zu): invalid vertex color\n", path, lineNumber);
                     return ModelLoadResult::ParseError;
                 }
@@ -228,16 +231,13 @@ ModelLoadResult IModelLoader::parse_obj(const char* path, const std::string& con
     return ModelLoadResult::Ok;
 }
 
-ModelLoadResult IModelLoader::load_model(const char *path, ModelData &outModel)
-{
-    if (path == nullptr)
-    {
+ModelLoadResult IModelLoader::load_model(const char *path, ModelData &outModel) {
+    if (path == nullptr) {
         return ModelLoadResult::FileOpenFailed;
     }
     std::string content;
     const ModelLoadResult ioRes = read_entire_file(path, content);
-    if (ioRes != ModelLoadResult::Ok)
-    {
+    if (ioRes != ModelLoadResult::Ok) {
         return ioRes;
     }
     return parse_obj(path, content, outModel);

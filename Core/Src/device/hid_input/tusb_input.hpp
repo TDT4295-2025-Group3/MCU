@@ -64,7 +64,7 @@ public:
     void processReport(uint8_t const *report, uint16_t len);
 
 private:
-    TinyUSBInput() = default;
+    TinyUSBInput();
     ~TinyUSBInput() = default;
 
     DS4Driver _hid_ds4;

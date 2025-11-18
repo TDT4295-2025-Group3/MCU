@@ -142,6 +142,7 @@ if (BUILD_STM32)
             Core/Src/device/fsfat_model_loader.cpp
             Core/Src/device/seven_seg_display.cpp
             Core/Src/device/seven_seg_display_c.cpp
+            Core/Src/device/hal_timer.cpp
             Core/Src/device/hid_input/tusb_config.h
             Core/Src/device/hid_input/tusb_input.cpp
             Core/Src/device/hid_input/tusb_input.hpp
@@ -204,6 +205,7 @@ if (BUILD_STM32 AND BUILD_SPI_TESTS)
         Core/Src/device/seven_seg_display.cpp
         Core/Src/device/seven_seg_display_c.cpp
         Core/Src/device/spi_stm.hpp
+        Core/Src/device/hal_timer.cpp
         Core/Src/main.cpp
         Core/Src/sysmem.c
         Core/Src/syscalls.c
