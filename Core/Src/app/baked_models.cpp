@@ -47,6 +47,10 @@ namespace mcu_game::assets::baked
             return FISHING_PLATFORM_MESH;
         case MeshId::PlayerFish:
             return PLAYER_FISH_MESH;
+        case MeshId::Cloud:
+            return CLOUD_MESH;
+        case MeshId::Star:
+            return STAR_MESH;
         }
         return EMPTY_MESH;
     }
@@ -91,6 +95,10 @@ namespace mcu_game::assets::baked
             return "FishingPlatform";
         case MeshId::PlayerFish:
             return "PlayerFish";
+        case MeshId::Cloud:
+            return "Cloud";
+        case MeshId::Star:
+            return "Star";
         }
         return "Unknown";
     }
@@ -135,6 +143,10 @@ namespace mcu_game::assets::baked
             return "fishing_platform.obj";
         case MeshId::PlayerFish:
             return "playerFish.obj";
+        case MeshId::Cloud:
+            return "cloud.obj";
+        case MeshId::Star:
+            return "star.obj";
         }
         return "unknown.obj";
     }

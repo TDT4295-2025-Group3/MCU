@@ -16,7 +16,9 @@
 #include "entities/fishing_platform.hpp"
 #include "entities/logo.hpp"
 #include "entities/burger.hpp"
+#include "entities/cloud.hpp"
 #include "entities/model.hpp"
+#include "entities/star.hpp"
 #include "game_model_loader.hpp"
 
 static inline bool time_reached(uint32_t now, uint32_t target)
@@ -69,6 +71,13 @@ void Game::init()
 
     const auto tick = gameState.timer.get_ticks_ms();
 
+    for (auto &entity : entities)
+    {
+        if (entity)
+            free(entity);
+    }
+    entities.clear();
+
     gameState.boxColliders.clear();
     createEntity(new mcu_game::Camera({0.844f, 2.959f, 0.875f}, {-0.202100f, -2.983185f, -0.000000f}));
     createEntity(new mcu_game::BasePlatform({0.000f, 0.000f, 0.000f}));
@@ -76,11 +85,14 @@ void Game::init()
     createEntity(new mcu_game::Burger({-41.046f, 68.269f, -1.944f}, -0.762319f));
     createEntity(new mcu_game::Burger({-48.276f, 69.152f, -2.383f}, 1.813437f));
     createEntity(new mcu_game::Burger({-51.382f, 70.720f, -8.265f}, -0.981462f));
+    createEntity(new mcu_game::Cloud({18.850f, 1.000f, 25.092f}, 0.000000f));
+    createEntity(new mcu_game::Cloud({-4.965f, 7.018f, 32.975f}, 0.148478f));
+    createEntity(new mcu_game::Cloud({-35.679f, 7.018f, 4.068f}, 1.451110f));
+    createEntity(new mcu_game::Cloud({-6.279f, 7.018f, -23.361f}, 3.347657f));
+    createEntity(new mcu_game::Cloud({4.725f, 7.018f, -31.737f}, 3.347657f));
+    createEntity(new mcu_game::Cloud({42.837f, 7.018f, -3.756f}, 5.029768f));
     createEntity(new mcu_game::FishingPlatform({-52.305f, 72.848f, -35.462f}, 0.000000f));
     createEntity(new mcu_game::Logo({1.517f, 3.481f, -3.336f}, 0.097165f));
-    createEntity(new mcu_game::Mushroom({35.755f, 24.550f, -10.860f}, 0.773123f));
-    createEntity(new mcu_game::Mushroom({34.095f, 27.188f, -3.578f}, 0.773123f));
-    createEntity(new mcu_game::Mushroom({28.531f, 29.826f, 1.812f}, 0.773123f));
     createEntity(new mcu_game::Mushroom({15.709f, 32.194f, 1.812f}, 0.773123f));
     createEntity(new mcu_game::Mushroom({1.263f, 35.382f, -4.608f}, 0.773123f));
     createEntity(new mcu_game::Mushroom({-12.399f, 38.604f, -12.477f}, 0.773123f));
@@ -91,6 +103,9 @@ void Game::init()
     createEntity(new mcu_game::Mushroom({-30.761f, 55.916f, -10.765f}, 0.685847f));
     createEntity(new mcu_game::Mushroom({-34.267f, 61.015f, -13.463f}, 0.685847f));
     createEntity(new mcu_game::Mushroom({-29.602f, 64.670f, -14.632f}, 0.685847f));
+    createEntity(new mcu_game::Mushroom({35.755f, 24.550f, -10.860f}, 0.773123f));
+    createEntity(new mcu_game::Mushroom({34.095f, 27.188f, -3.578f}, 0.773123f));
+    createEntity(new mcu_game::Mushroom({28.531f, 29.826f, 1.812f}, 0.773123f));
     createEntity(new mcu_game::Platform({-12.000f, 14.000f, 1.000f}, -222.270004f));
     createEntity(new mcu_game::Platform({21.807f, 20.190f, -18.060f}, -154.498047f));
     createEntity(new mcu_game::Platform({35.740f, 24.025f, -18.060f}, -155.465286f));
@@ -117,7 +132,26 @@ void Game::init()
     createEntity(new mcu_game::Platform({3.000f, 1.700f, 11.000f}, 15.000006f));
     createEntity(new mcu_game::Platform({14.059f, 20.190f, -18.060f}, -152.423920f));
     createEntity(new mcu_game::Player({1.889f, 0.421f, -3.076f}));
-    createEntity(new mcu_game::Model({10.0f, 1.0f, 10.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, mcu_game::assets::baked::MeshId::Burger));
+    createEntity(new mcu_game::Star({-30.739f, 84.274f, -99.823f}, 0.475621f));
+    createEntity(new mcu_game::Star({-8.507f, 90.660f, -99.823f}, 0.475621f));
+    createEntity(new mcu_game::Star({-76.895f, 69.610f, -103.256f}, 0.047980f));
+    createEntity(new mcu_game::Star({-92.390f, 83.091f, -96.194f}, 0.047980f));
+    createEntity(new mcu_game::Star({-83.997f, 104.141f, -100.020f}, 0.047980f));
+    createEntity(new mcu_game::Star({-147.932f, 62.982f, 42.924f}, -1.342707f));
+    createEntity(new mcu_game::Star({-148.461f, 90.660f, -54.003f}, -1.342707f));
+    createEntity(new mcu_game::Star({-136.399f, 76.036f, 15.174f}, -1.770348f));
+    createEntity(new mcu_game::Star({-126.836f, 92.954f, 32.603f}, -1.770348f));
+    createEntity(new mcu_game::Star({-128.830f, 103.739f, 8.318f}, -1.770348f));
+    createEntity(new mcu_game::Star({-32.490f, 77.753f, 71.570f}, -2.648103f));
+    createEntity(new mcu_game::Star({-57.387f, 90.660f, 73.241f}, -2.648103f));
+    createEntity(new mcu_game::Star({10.929f, 69.610f, 77.895f}, -3.075745f));
+    createEntity(new mcu_game::Star({26.548f, 83.091f, 71.111f}, -3.075745f));
+    createEntity(new mcu_game::Star({-1.926f, 104.629f, 74.636f}, -3.075745f));
+    createEntity(new mcu_game::Star({121.543f, 77.382f, 9.598f}, -4.165260f));
+    createEntity(new mcu_game::Star({93.270f, 90.660f, 29.936f}, -4.165260f));
+    createEntity(new mcu_game::Star({101.633f, 60.711f, -45.449f}, -4.592902f));
+    createEntity(new mcu_game::Star({93.222f, 82.087f, -36.026f}, -4.592902f));
+    createEntity(new mcu_game::Star({94.689f, 99.579f, -16.644f}, -4.592902f));
 
     for (auto &entity : entities)
         entity->init(gameState);

@@ -30,6 +30,8 @@ namespace mcu_game::assets::baked
         PressXToStart,
         Empty,
         FishingPlatform,
+        Cloud,
+        Star,
     };
 
     struct MeshData
