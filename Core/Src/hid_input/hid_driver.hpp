@@ -220,6 +220,13 @@ public:
     Vec2 getStickPosition(DS4Stick stick) const;
 
     /**
+     * Set the blinking pattern of the controller's LED.
+     * @param interval_on_ms how long the LED stays on in milliseconds
+     * @param interval_off_ms how long the LED stays off in milliseconds
+     */
+    void setBlinking(uint8_t interval_on_ms, uint8_t interval_off_ms);
+
+    /**
      * Override processInput to add any DS4-specific processing if needed
      */
     void processInput(const DS4_InputUSBReport &report) override {

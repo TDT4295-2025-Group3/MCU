@@ -45,6 +45,9 @@ public:
         _controller_type = UNDEFINED;
     }
 
+    void setInputColor(int r, int g, int b) override;
+    void setBlinking(int interval_on_ms, int interval_off_ms) override;
+
     void mountController(HIDInputType type, uint8_t dev_addr, uint8_t instance) {
         _controller_type = type;
         _usb_dev_addr = dev_addr;

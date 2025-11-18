@@ -106,6 +106,18 @@ void DS4Driver::setLedColor(uint32_t rgb) {
     setLedColor(r, g, b);
 }
 
+void DS4Driver::setBlinking(uint8_t interval_on_ms, uint8_t interval_off_ms) {
+    if (interval_on_ms == 0 && interval_off_ms == 0) {
+        // disable blinking
+        this->outputDraft.EnableLedBlink = false;
+    } else {
+        this->outputDraft.EnableLedBlink = true;
+    }
+    this->outputDraft.LedFlashOnPeriod = interval_on_ms;
+    this->outputDraft.LedFlashOffPeriod = interval_off_ms;
+    dirty = true;
+}
+
 /**
  * Normalize a stick value from [0, 255] to [-1.0, 1.0].
  * @param value The raw stick value (0-255).
