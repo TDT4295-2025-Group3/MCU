@@ -16,8 +16,10 @@ namespace mcu_game
     struct GameState
     {
         bool isMenuActive{true};
+        bool isEndingFishSequenceActive{false};
         Vec3 cameraForward{0.0f, 0.0f, 1.0f};
         Vec3 playerPosition{0.0f, 0.0f, 0.0f};
+        Vec3 endFishPosition{0.0f, 0.0f, 0.0f};
         std::vector<BoxCollider> boxColliders;
 
         IInput &input;

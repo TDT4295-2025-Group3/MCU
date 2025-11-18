@@ -17,6 +17,7 @@ namespace mcu_game::assets::baked
         PlayerJumpUp,
         PlayerJumpDown,
         PlayerSleep,
+        PlayerFish,
         Platform,
         Collision,
         BasePlatform,
@@ -28,6 +29,7 @@ namespace mcu_game::assets::baked
         Logo,
         PressXToStart,
         Empty,
+        FishingPlatform,
     };
 
     struct MeshData

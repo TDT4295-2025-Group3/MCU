@@ -43,6 +43,10 @@ namespace mcu_game::assets::baked
             return UPWARD_LOGO_MIRRORED_MESH;
         case MeshId::PressXToStart:
             return PRESS_X_MIRRORED_MESH;
+        case MeshId::FishingPlatform:
+            return FISHING_PLATFORM_MESH;
+        case MeshId::PlayerFish:
+            return PLAYER_FISH_MESH;
         }
         return EMPTY_MESH;
     }
@@ -83,6 +87,10 @@ namespace mcu_game::assets::baked
             return "Logo";
         case MeshId::PressXToStart:
             return "PressXToStart";
+        case MeshId::FishingPlatform:
+            return "FishingPlatform";
+        case MeshId::PlayerFish:
+            return "PlayerFish";
         }
         return "Unknown";
     }
@@ -123,6 +131,10 @@ namespace mcu_game::assets::baked
             return "upward_logo_mirrored.obj";
         case MeshId::PressXToStart:
             return "press_x_mirrored.obj";
+        case MeshId::FishingPlatform:
+            return "fishing_platform.obj";
+        case MeshId::PlayerFish:
+            return "playerFish.obj";
         }
         return "unknown.obj";
     }

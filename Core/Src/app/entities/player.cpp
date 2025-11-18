@@ -40,6 +40,10 @@ namespace mcu_game
                                   triangleSleepId))
             return false;
 
+        if (!gameState.load_model(assets::baked::MeshId::PlayerFish, vertexFishId,
+                                  triangleFishId))
+            return false;
+
         const auto playerInstanceResp = gameState.gfx.createInstance(static_cast<uint8_t>(vertexIdleId),
                                                                      static_cast<uint8_t>(triangleIdleId),
                                                                      body.getTransform());
@@ -153,7 +157,30 @@ namespace mcu_game
             },
             true});
 
-        animator.playAnimation("Slep");
+        animator.addAnimation(Animation{
+            "Fish",
+            {
+                {true, vertexFishId, triangleFishId,
+                 true, 0.0f, -0.2f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.8f},
+
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.1f, 0.96f, 1.1f,
+                 0.8f},
+
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.0f},
+            },
+            true});
+
+        animator.playAnimation("Sleep");
 
         gameState.isMenuActive = true;
 
@@ -189,7 +216,7 @@ namespace mcu_game
 
         // Input vector in camera space
         Vec2 runInput = gameState.input.getRunInput();
-        if (gameState.isMenuActive)
+        if (gameState.isMenuActive || gameState.isEndingFishSequenceActive)
             runInput = {0.0f, 0.0f};
         Vec3 inputDir = forward * runInput.y + right * runInput.x;
         const bool hasInput = length_sq(inputDir) > 1e-6f;
@@ -198,6 +225,12 @@ namespace mcu_game
         if (gameState.isMenuActive)
         {
             animator.playAnimation("Sleep");
+        }
+        else if (gameState.isEndingFishSequenceActive)
+        {
+            animator.playAnimation("Fish");
+            body.getTransform().position = gameState.endFishPosition;
+            body.getTransform().rotation.y = PI; // face camera
         }
         else
         {
@@ -235,7 +268,7 @@ namespace mcu_game
         }
 
         // Update player yaw to face orientDir
-        if (length_sq(orientDir) > 1e-6f)
+        if (length_sq(orientDir) > 1e-6f && !gameState.isMenuActive && !gameState.isEndingFishSequenceActive)
         {
             float desiredYaw = std::atan2(-orientDir.x, orientDir.z);
             float yawDelta = desiredYaw - body.getTransform().rotation.y;
@@ -279,6 +312,9 @@ namespace mcu_game
 
         // Jump
         bool jumpPressed = gameState.input.getJump();
+        if (gameState.isEndingFishSequenceActive)
+            jumpPressed = false;
+
         bool jumpJustPressed = jumpPressed && !lastJumpPressed;
         lastJumpPressed = jumpPressed;
         if (jumpJustPressed)
