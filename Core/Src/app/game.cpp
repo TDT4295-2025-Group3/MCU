@@ -16,6 +16,7 @@
 #include "entities/fishing_platform.hpp"
 #include "entities/logo.hpp"
 #include "entities/burger.hpp"
+#include "entities/model.hpp"
 #include "game_model_loader.hpp"
 
 static inline bool time_reached(uint32_t now, uint32_t target)
@@ -69,7 +70,6 @@ void Game::init()
     const auto tick = gameState.timer.get_ticks_ms();
 
     gameState.boxColliders.clear();
-
     createEntity(new mcu_game::Camera({0.844f, 2.959f, 0.875f}, {-0.202100f, -2.983185f, -0.000000f}));
     createEntity(new mcu_game::BasePlatform({0.000f, 0.000f, 0.000f}));
     createEntity(new mcu_game::Burger({-34.092f, 67.604f, -3.760f}, 0.717311f));
@@ -117,6 +117,7 @@ void Game::init()
     createEntity(new mcu_game::Platform({3.000f, 1.700f, 11.000f}, 15.000006f));
     createEntity(new mcu_game::Platform({14.059f, 20.190f, -18.060f}, -152.423920f));
     createEntity(new mcu_game::Player({1.889f, 0.421f, -3.076f}));
+    createEntity(new mcu_game::Model({10.0f, 1.0f, 10.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, mcu_game::assets::baked::MeshId::Burger));
 
     for (auto &entity : entities)
         entity->init(gameState);

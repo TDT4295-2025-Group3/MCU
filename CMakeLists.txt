@@ -61,6 +61,7 @@ set(APP_SRC
         Core/Src/app/entities/burger.cpp
         Core/Src/app/entities/logo.cpp
         Core/Src/app/entities/fishing_platform.cpp
+        Core/Src/app/entities/model.cpp
         Core/Src/app/platform/imodelloader.cpp
         Core/Src/device/spi_stm.hpp
         Core/Src/hid_input/hid_driver.hpp
