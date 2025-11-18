@@ -71,7 +71,7 @@ namespace mcu_game
 
     void Star::render(GameState &gameState)
     {
-        bool isVisible = gameState.playerPosition.y > transform.position.y + 35.0f;
+        bool isVisible = gameState.playerPosition.y > transform.position.y - 40.0f;
 
         if (!isVisible && !lastIsVisible)
             return;
