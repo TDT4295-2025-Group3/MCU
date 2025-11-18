@@ -147,11 +147,11 @@ void Game::init()
     createEntity(new mcu_game::Star({10.929f, 69.610f, 77.895f}, -3.075745f));
     createEntity(new mcu_game::Star({26.548f, 83.091f, 71.111f}, -3.075745f));
     createEntity(new mcu_game::Star({-1.926f, 104.629f, 74.636f}, -3.075745f));
-    createEntity(new mcu_game::Star({121.543f, 77.382f, 9.598f}, -4.165260f));
-    createEntity(new mcu_game::Star({93.270f, 90.660f, 29.936f}, -4.165260f));
-    createEntity(new mcu_game::Star({101.633f, 60.711f, -45.449f}, -4.592902f));
-    createEntity(new mcu_game::Star({93.222f, 82.087f, -36.026f}, -4.592902f));
-    createEntity(new mcu_game::Star({94.689f, 99.579f, -16.644f}, -4.592902f));
+    createEntity(new mcu_game::Star({60.205f, 77.382f, 9.598f}, -4.165260f));
+    createEntity(new mcu_game::Star({31.931f, 90.660f, 29.936f}, -4.165260f));
+    createEntity(new mcu_game::Star({40.295f, 60.711f, -45.449f}, -4.592902f));
+    createEntity(new mcu_game::Star({31.883f, 82.087f, -36.026f}, -4.592902f));
+    createEntity(new mcu_game::Star({33.351f, 99.579f, -16.644f}, -4.592902f));
 
     for (auto &entity : entities)
         entity->init(gameState);
