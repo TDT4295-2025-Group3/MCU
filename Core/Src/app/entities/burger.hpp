@@ -23,6 +23,7 @@ namespace mcu_game
         void landCallback();
         float landTimer{0.0f};
         Rasterizer::Transform transform;
+        Rasterizer::Transform lastAnimTransform;
         Animator animator{};
         uint32_t vertexId = 0xFF;
         uint32_t triangleId = 0xFF;

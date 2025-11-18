@@ -68,7 +68,21 @@ namespace mcu_game
     void Mushroom::render(GameState &gameState)
     {
         const auto animState = animator.getCurrentAnimState(vertexId, triangleId, transform);
+        if (animState.transform.position.x == lastAnimTransform.position.x &&
+            animState.transform.position.y == lastAnimTransform.position.y &&
+            animState.transform.position.z == lastAnimTransform.position.z &&
+            animState.transform.rotation.x == lastAnimTransform.rotation.x &&
+            animState.transform.rotation.y == lastAnimTransform.rotation.y &&
+            animState.transform.rotation.z == lastAnimTransform.rotation.z &&
+            animState.transform.scale.x == lastAnimTransform.scale.x &&
+            animState.transform.scale.y == lastAnimTransform.scale.y &&
+            animState.transform.scale.z == lastAnimTransform.scale.z)
+        {
+            return; // no change
+        }
+
         gameState.gfx.updateInstance(animState.vertexId, animState.triangleId, instanceId, animState.transform);
+        lastAnimTransform = animState.transform;
     }
 
 }

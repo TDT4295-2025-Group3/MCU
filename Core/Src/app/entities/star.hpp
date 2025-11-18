@@ -35,10 +35,13 @@ namespace mcu_game
         Animator animator{};
         uint32_t vertexId = 0xFF;
         uint32_t triangleId = 0xFF;
+        uint32_t emptyVertexId = 0xFF;
+        uint32_t emptyTriangleId = 0xFF;
         uint32_t instanceId = 0xFF;
 
         float startDelay = 0.0f; // seconds until animation starts
         bool animationStarted = false;
+        bool lastIsVisible{true};
     };
 
 } // namespace mcu_game

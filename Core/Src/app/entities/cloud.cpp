@@ -16,6 +16,9 @@ namespace mcu_game
         if (!gameState.load_model(assets::baked::MeshId::Cloud, vertexId, triangleId))
             return false;
 
+        if (!gameState.load_model(assets::baked::MeshId::Empty, emptyVertexId, emptyTriangleId))
+            return false;
+
         const auto platformInstanceResp = gameState.gfx.createInstance(static_cast<uint8_t>(vertexId),
                                                                        static_cast<uint8_t>(triangleId),
                                                                        transform);
@@ -135,8 +138,21 @@ namespace mcu_game
 
     void Cloud::render(GameState &gameState)
     {
+        bool isVisible = gameState.playerPosition.y < transform.position.y + 25.0f;
+
+        if (!isVisible && !lastIsVisible)
+            return;
+
+        if (!isVisible && lastIsVisible)
+        {
+            gameState.gfx.updateInstance(emptyVertexId, emptyTriangleId, instanceId, transform);
+            lastIsVisible = isVisible;
+            return;
+        }
+
         const auto animState = animator.getCurrentAnimState(vertexId, triangleId, transform);
         gameState.gfx.updateInstance(animState.vertexId, animState.triangleId, instanceId, animState.transform);
+        lastIsVisible = isVisible;
     }
 
 }

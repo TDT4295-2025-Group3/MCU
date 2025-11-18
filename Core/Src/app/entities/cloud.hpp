@@ -128,11 +128,15 @@ namespace mcu_game
         Animator animator{};
         uint32_t vertexId = 0xFF;
         uint32_t triangleId = 0xFF;
+        uint32_t emptyVertexId = 0xFF;
+        uint32_t emptyTriangleId = 0xFF;
         uint32_t instanceId = 0xFF;
 
         Vec3 center;
         float halfSize;
         float phase;
         float speed;
+
+        bool lastIsVisible{false};
     };
 }
