@@ -41,6 +41,15 @@ void HostInput::setRumble(float x) {
     std::cout << "[HostInput] Rumble set to " << x << " (no effect in simulation)" << std::endl;
 }
 
+void HostInput::setInputColor(int r, int g, int b) {
+    std::cout << "[HostInput] Set input color to (" << r << ", " << g << ", " << b << ") (no effect in simulation)" << std::endl;
+}
+
+void HostInput::setBlinking(int interval_on_ms, int interval_off_ms) {
+    std::cout << "[HostInput] Set blinking to on=" << interval_on_ms << "ms, off=" << interval_off_ms << "ms (no effect in simulation)" << std::endl;
+}
+
+
 KeyState DS4Input::poll() {
     KeyState ks{};
     ks.cam_x = controller.getStickPosition(DS4Stick::Right).x;
@@ -76,4 +85,13 @@ void DS4Input::setRumble(float x) {
     controller.setRumbleWeak(rumbleWeak);
 
     controller.flushOutput();
+}
+
+
+void DS4Input::setInputColor(int r, int g, int b) {
+    controller.setLedColor(r, g, b);
+}
+
+void DS4Input::setBlinking(int interval_on_ms, int interval_off_ms) {
+    controller.setBlinking(interval_on_ms, interval_off_ms);
 }

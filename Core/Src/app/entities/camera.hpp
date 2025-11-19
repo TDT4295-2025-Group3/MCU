@@ -16,16 +16,17 @@ namespace mcu_game
         float heightOffset = 1.5f;     // look at point above player origin
         float yawSensitivity = 1.0f;   // multiplier for input yaw delta
         float pitchSensitivity = 1.0f; // multiplier for input pitch delta
-        float smooth = 12.0f;          // higher = snappier
+        float smooth = 10.0f;          // higher = snappier
         float lookStep = 0.03f;
     };
 
     class Camera : public Entity
     {
     public:
-        Camera(uint8_t r_, uint8_t g_, uint8_t b_)
-            : r(r_), g(g_), b(b_)
+        Camera(Vec3 position, Vec3 rotation)
         {
+            transform.position = position;
+            transform.rotation = rotation;
         }
 
         bool init(GameState &gameState) override;

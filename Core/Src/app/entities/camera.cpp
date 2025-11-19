@@ -33,8 +33,6 @@ namespace mcu_game
         gameState.cameraForward = getForward();
 
         target = {0, cameraConfig.heightOffset, 0};
-        transform.position = target - getForward() * cameraConfig.distance;
-        transform.rotation = {0.3f, 0.0f, 0.0f};
 
         updateSkyColor(gameState.playerPosition.y);
         gameState.gfx.updateCamera(r, g, b, transform);
@@ -45,6 +43,8 @@ namespace mcu_game
     void Camera::update(float deltaTime, GameState &gameState)
     {
         // Apply look deltas
+        if (gameState.isMenuActive)
+            return;
         Vec2 lookInput = gameState.input.getLookInput();
         transform.rotation.y += lookInput.x * cameraConfig.lookStep * cameraConfig.yawSensitivity;
         transform.rotation.x += lookInput.y * cameraConfig.lookStep * cameraConfig.pitchSensitivity;

@@ -160,6 +160,12 @@ namespace mcu_game
             if (dir > 0.0f)
             {
                 groundedFlag = true;
+
+                // Simple friction when resting/moving on top of this box.
+                float friction = std::clamp(box.friction, 0.0f, 1.0f);
+                workingVelocity.x *= (1.0f - friction);
+                workingVelocity.z *= (1.0f - friction);
+
                 if (workingVelocity.y < 0.0f)
                     workingVelocity.y = 0.0f;
             }
@@ -228,6 +234,7 @@ namespace mcu_game
             float bestTime = 1.0f;
             Vec3 bestNormal{0.0f, 0.0f, 0.0f};
             bool hitFound = false;
+            const BoxCollider *hitBox = nullptr;
 
             auto considerCollider = [&](const BoxCollider &box)
             {
@@ -240,6 +247,7 @@ namespace mcu_game
                         bestTime = hitTime;
                         bestNormal = hitNormal;
                         hitFound = true;
+                        hitBox = &box;
                     }
                 }
             };
@@ -259,10 +267,21 @@ namespace mcu_game
             const float advance = std::max(0.0f, bestTime - RAY_EPSILON);
             workingCenter += remainingMotion * advance;
 
-            // Clip velocity along collision normal.
+            // Clip / bounce velocity along collision normal.
             const float velAlongNormal = dot(workingVelocity, bestNormal);
-            if (velAlongNormal < 0.0f)
+            bool bounced = false;
+
+            if (bestNormal.y > 0.5f && hitBox && hitBox->bounciness > 0.0f && velAlongNormal < 0.0f)
+            {
+                // Bouncy floor: set a fixed upward velocity.
+                workingVelocity.y = hitBox->bounciness;
+                bounced = true;
+            }
+            else if (velAlongNormal < 0.0f)
+            {
+                // Regular collision: remove velocity into the surface.
                 workingVelocity -= bestNormal * velAlongNormal;
+            }
 
             // Slide remaining motion along the surface.
             float remainingFraction = 1.0f - bestTime;
@@ -273,7 +292,24 @@ namespace mcu_game
             remainingMotion -= bestNormal * motionAlongNormal;
 
             if (bestNormal.y > 0.5f)
-                groundedFlag = true;
+            {
+                if (hitBox && hitBox->onLand)
+                    hitBox->onLand();
+
+                if (!bounced)
+                {
+                    groundedFlag = true;
+
+                    // Friction on floor contact: damp horizontal velocity.
+                    if (hitBox)
+                    {
+                        float friction = std::clamp(hitBox->friction, 0.0f, 1.0f);
+                        workingVelocity.x *= (1.0f - friction);
+                        workingVelocity.z *= (1.0f - friction);
+                    }
+                }
+                // If bounced: not grounded, no friction; we just launched upwards.
+            }
 
             if (length_sq(remainingMotion) < 1e-8f)
             {

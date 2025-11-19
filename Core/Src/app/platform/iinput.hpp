@@ -14,6 +14,9 @@ struct KeyState
 
     // Jump
     bool space{};
+
+    // Reset button
+    bool reset{};
 };
 
 class IInput
@@ -29,6 +32,13 @@ public:
      */
     virtual void setRumble(float x) = 0;
     virtual void clearRumble() { setRumble(0.0f); }
+
+    virtual void setInputColor(int r, int g, int b) = 0;
+    virtual void clearInputColor() { setInputColor(0, 0, 0); }
+
+    virtual void setBlinking(int interval_on_ms, int interval_off_ms) = 0;
+    virtual void clearBlinking() { setBlinking(0, 0); }
+    virtual void setBlinking(int interval_ms) { setBlinking(interval_ms, interval_ms); }
 
     virtual mcu_game::Vec2 getRunInput()
     {

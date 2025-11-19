@@ -1,11 +1,13 @@
 #pragma once
 
-#include "IModelLoader.hpp"
 #include "stm32u5xx.h"
 #include "ff.h"
+#include "imodelloader.hpp"
 
-namespace mcu_game::assets {
-    class FsFatModelLoader : public IModelLoader {
+namespace mcu_game::assets
+{
+    class FsFatModelLoader : public IModelLoader
+    {
     public:
         explicit FsFatModelLoader(SD_HandleTypeDef *sd_card_handle);
 
@@ -14,6 +16,6 @@ namespace mcu_game::assets {
     private:
         bool sdInitialized = false;
         char sdMountPath[4] = {0}; // Store mount path like "0:/"
-        FATFS fatFs; // FATFS instance
+        FATFS fatFs;               // FATFS instance
     };
 }

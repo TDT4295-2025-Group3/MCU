@@ -32,6 +32,18 @@ namespace mcu_game
                                   triangleJumpDownId))
             return false;
 
+        if (!gameState.load_model(assets::baked::MeshId::PlayerSleep, vertexSleepId,
+                                  triangleSleepId))
+            return false;
+
+        if (!gameState.load_model(assets::baked::MeshId::PlayerSleep, vertexSleepId,
+                                  triangleSleepId))
+            return false;
+
+        if (!gameState.load_model(assets::baked::MeshId::PlayerFish, vertexFishId,
+                                  triangleFishId))
+            return false;
+
         const auto playerInstanceResp = gameState.gfx.createInstance(static_cast<uint8_t>(vertexIdleId),
                                                                      static_cast<uint8_t>(triangleIdleId),
                                                                      body.getTransform());
@@ -122,7 +134,55 @@ namespace mcu_game
             },
             true});
 
-        animator.playAnimation("Idle");
+        animator.addAnimation(Animation{
+            "Sleep",
+            {
+                {true, vertexSleepId, triangleSleepId,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.8f},
+
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.1f, 0.96f, 1.1f,
+                 0.8f},
+
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.0f},
+            },
+            true});
+
+        animator.addAnimation(Animation{
+            "Fish",
+            {
+                {true, vertexFishId, triangleFishId,
+                 true, 0.0f, -0.2f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.8f},
+
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.1f, 0.96f, 1.1f,
+                 0.8f},
+
+                {false, 0, 0,
+                 false, 0.0f, 0.0f, 0.0f,
+                 false, 0.0f, 0.0f, 0.0f,
+                 true, 1.0f, 1.0f, 1.0f,
+                 0.0f},
+            },
+            true});
+
+        animator.playAnimation("Sleep");
+
+        gameState.isMenuActive = true;
 
         return true;
     }
@@ -156,27 +216,42 @@ namespace mcu_game
 
         // Input vector in camera space
         Vec2 runInput = gameState.input.getRunInput();
+        if (gameState.isMenuActive || gameState.isEndingFishSequenceActive)
+            runInput = {0.0f, 0.0f};
         Vec3 inputDir = forward * runInput.y + right * runInput.x;
         const bool hasInput = length_sq(inputDir) > 1e-6f;
         Vec3 desiredMoveDir = hasInput ? normalize(inputDir) : Vec3{0, 0, 0}; // normalized desired move direction
 
-        if (hasInput && body.isGrounded())
+        if (gameState.isMenuActive)
         {
-            animator.playAnimation("Run");
+            animator.playAnimation("Sleep");
         }
-        else if (!hasInput && body.isGrounded())
+        else if (gameState.isEndingFishSequenceActive)
         {
-            animator.playAnimation("Idle");
+            animator.playAnimation("Fish");
+            body.getTransform().position = gameState.endFishPosition;
+            body.getTransform().rotation.y = PI; // face camera
         }
-        else if (!body.isGrounded())
+        else
         {
-            if (body.getVelocity().y > 0.0f)
+            if (hasInput && body.isGrounded())
             {
-                animator.playAnimation("JumpUp");
+                animator.playAnimation("Run");
             }
-            else
+            else if (!hasInput && body.isGrounded())
             {
-                animator.playAnimation("JumpDown");
+                animator.playAnimation("Idle");
+            }
+            else if (!body.isGrounded())
+            {
+                if (body.getVelocity().y > 0.0f)
+                {
+                    animator.playAnimation("JumpUp");
+                }
+                else
+                {
+                    animator.playAnimation("JumpDown");
+                }
             }
         }
 
@@ -193,7 +268,7 @@ namespace mcu_game
         }
 
         // Update player yaw to face orientDir
-        if (length_sq(orientDir) > 1e-6f)
+        if (length_sq(orientDir) > 1e-6f && !gameState.isMenuActive && !gameState.isEndingFishSequenceActive)
         {
             float desiredYaw = std::atan2(-orientDir.x, orientDir.z);
             float yawDelta = desiredYaw - body.getTransform().rotation.y;
@@ -237,11 +312,28 @@ namespace mcu_game
 
         // Jump
         bool jumpPressed = gameState.input.getJump();
-        if (jumpPressed && body.isGrounded())
+        if (gameState.isEndingFishSequenceActive)
+            jumpPressed = false;
+
+        bool jumpJustPressed = jumpPressed && !lastJumpPressed;
+        lastJumpPressed = jumpPressed;
+        if (jumpJustPressed)
+            jumpBufferTimer = playerConfig.jumpBufferTime;
+        else
+            jumpBufferTimer -= deltaTime;
+        if (body.isGrounded())
+            coyoteTimer = playerConfig.coyoteTime;
+        else
+            coyoteTimer -= deltaTime;
+
+        if (jumpBufferTimer > 0.0f && coyoteTimer > 0.0f)
         {
+            gameState.isMenuActive = false;
             Vec3 vel = body.getVelocity();
             vel.y = playerConfig.jumpVelocity;
             body.setVelocity(vel);
+            jumpBufferTimer = 0.0f;
+            coyoteTimer = 0.0f;
         }
 
         // Gravity
@@ -279,30 +371,8 @@ namespace mcu_game
 
     void Player::render(GameState &gameState)
     {
-        const Keyframe &keyframe = animator.getCurrentKeyframe();
-
-        Rasterizer::Transform animTransform = body.getTransform();
-        if (keyframe.useTranslation)
-        {
-            animTransform.position.x += keyframe.translationX;
-            animTransform.position.y += keyframe.translationY;
-            animTransform.position.z += keyframe.translationZ;
-        }
-
-        if (keyframe.useRotation)
-        {
-            animTransform.rotation.x += keyframe.rotationX;
-            animTransform.rotation.y += keyframe.rotationY;
-            animTransform.rotation.z += keyframe.rotationZ;
-        }
-        if (keyframe.useScale)
-        {
-            animTransform.scale.x *= keyframe.scaleX;
-            animTransform.scale.y *= keyframe.scaleY;
-            animTransform.scale.z *= keyframe.scaleZ;
-        }
-
-        gameState.gfx.updateInstance(keyframe.vertexId, keyframe.triangleId, instanceId, animTransform);
+        const AnimState &animState = animator.getCurrentAnimState(vertexIdleId, triangleIdleId, body.getTransform());
+        gameState.gfx.updateInstance(animState.vertexId, animState.triangleId, instanceId, animState.transform);
     }
 
 } // namespace mcu_game

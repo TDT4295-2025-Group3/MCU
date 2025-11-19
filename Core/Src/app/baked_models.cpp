@@ -21,6 +21,8 @@ namespace mcu_game::assets::baked
             return PLAYERJUMPUP_MESH;
         case MeshId::PlayerJumpDown:
             return PLAYERJUMPDOWN_MESH;
+        case MeshId::PlayerSleep:
+            return PLAYER_SLEEP_MESH;
         case MeshId::Platform:
             return PLATFORM_MESH;
         case MeshId::Collision:
@@ -31,6 +33,24 @@ namespace mcu_game::assets::baked
             return FENCE_MESH;
         case MeshId::Fire:
             return FIRE_MESH;
+        case MeshId::Banana:
+            return BANANA_MESH;
+        case MeshId::Mushroom:
+            return MUSHROOM_MESH;
+        case MeshId::Burger:
+            return BURGER_MESH;
+        case MeshId::Logo:
+            return UPWARD_LOGO_MIRRORED_MESH;
+        case MeshId::PressXToStart:
+            return PRESS_X_MIRRORED_MESH;
+        case MeshId::FishingPlatform:
+            return FISHING_PLATFORM_MESH;
+        case MeshId::PlayerFish:
+            return PLAYER_FISH_MESH;
+        case MeshId::Cloud:
+            return CLOUD_MESH;
+        case MeshId::Star:
+            return STAR_MESH;
         }
         return EMPTY_MESH;
     }
@@ -49,6 +69,8 @@ namespace mcu_game::assets::baked
             return "PlayerJumpUp";
         case MeshId::PlayerJumpDown:
             return "PlayerJumpDown";
+        case MeshId::PlayerSleep:
+            return "PlayerSleep";
         case MeshId::Platform:
             return "Platform";
         case MeshId::Collision:
@@ -59,6 +81,24 @@ namespace mcu_game::assets::baked
             return "Fence";
         case MeshId::Fire:
             return "Fire";
+        case MeshId::Banana:
+            return "Banana";
+        case MeshId::Mushroom:
+            return "Mushroom";
+        case MeshId::Burger:
+            return "Burger";
+        case MeshId::Logo:
+            return "Logo";
+        case MeshId::PressXToStart:
+            return "PressXToStart";
+        case MeshId::FishingPlatform:
+            return "FishingPlatform";
+        case MeshId::PlayerFish:
+            return "PlayerFish";
+        case MeshId::Cloud:
+            return "Cloud";
+        case MeshId::Star:
+            return "Star";
         }
         return "Unknown";
     }
@@ -77,6 +117,8 @@ namespace mcu_game::assets::baked
             return "playerJumpUp.obj";
         case MeshId::PlayerJumpDown:
             return "playerJumpDown.obj";
+        case MeshId::PlayerSleep:
+            return "playerSleep.obj";
         case MeshId::Platform:
             return "platform.obj";
         case MeshId::Collision:
@@ -87,6 +129,24 @@ namespace mcu_game::assets::baked
             return "fence.obj";
         case MeshId::Fire:
             return "fire.obj";
+        case MeshId::Banana:
+            return "banana.obj";
+        case MeshId::Mushroom:
+            return "mushroom.obj";
+        case MeshId::Burger:
+            return "burger.obj";
+        case MeshId::Logo:
+            return "upward_logo_mirrored.obj";
+        case MeshId::PressXToStart:
+            return "press_x_mirrored.obj";
+        case MeshId::FishingPlatform:
+            return "fishing_platform.obj";
+        case MeshId::PlayerFish:
+            return "playerFish.obj";
+        case MeshId::Cloud:
+            return "cloud.obj";
+        case MeshId::Star:
+            return "star.obj";
         }
         return "unknown.obj";
     }

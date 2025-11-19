@@ -20,11 +20,12 @@ KeyState TinyUSBInput::poll() {
     KeyState ks{};
     switch (_controller_type) {
         case DS4:
-            ks.cam_x = -_hid_ds4.getStickPosition(DS4Stick::Right).x;;
-            ks.cam_y = _hid_ds4.getStickPosition(DS4Stick::Right).y;
+            ks.cam_x -= _hid_ds4.getStickPosition(DS4Stick::Right).x;
+            ks.cam_y -= _hid_ds4.getStickPosition(DS4Stick::Right).y;
             ks.x = _hid_ds4.getStickPosition(DS4Stick::Left).x;
-            ks.y = -_hid_ds4.getStickPosition(DS4Stick::Left).y;
+            ks.y -= _hid_ds4.getStickPosition(DS4Stick::Left).y;
             ks.space = _hid_ds4.isKeyDown(DS4Button::Cross);
+            ks.reset = _hid_ds4.isKeyDown(DS4Button::Home);
             break;
         case KEYBOARD:
             ks.cam_x = (_hid_keyboard.isKeyDown(KBKey::Right) ? 1.0f : 0.0f) - (_hid_keyboard.isKeyDown(KBKey::Left)
@@ -38,12 +39,26 @@ KeyState TinyUSBInput::poll() {
             ks.y = (_hid_keyboard.isKeyDown(KBKey::W) ? 1.0f : 0.0f) - (
                        _hid_keyboard.isKeyDown(KBKey::S) ? 1.0f : 0.0f);
             ks.space = _hid_keyboard.isKeyDown(KBKey::Space);
+            ks.reset = _hid_keyboard.isKeyDown(KBKey::Home);
             break;
         default:
             break;
     }
     return ks;
 }
+
+void TinyUSBInput::setBlinking(int interval_on_ms, int interval_off_ms) {
+    if (_controller_type == DS4) {
+        _hid_ds4.setBlinking(interval_on_ms, interval_off_ms);
+    }
+}
+
+void TinyUSBInput::setInputColor(int r, int g, int b) {
+    if (_controller_type == DS4) {
+        _hid_ds4.setLedColor(r, g, b);
+    }
+}
+
 
 void TinyUSBInput::driverTask() {
     tuh_task();
